@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 function QRScanner({ onAttendanceMarked }) {
   const [message, setMessage] = useState("");
   const scannerRef = useRef(null);
@@ -16,7 +18,7 @@ function QRScanner({ onAttendanceMarked }) {
       const token = localStorage.getItem("token");
 
       const response = await axios.post(
-        "http://localhost:5000/attendance/mark",
+        `${API_BASE}/attendance/mark`,
         {
           lecture_id: qrData.lecture_id,
           session_token: qrData.session_token,
@@ -112,7 +114,7 @@ function QRScanner({ onAttendanceMarked }) {
       console.error("Image QR Error:", error);
 
       setMessage(
-        "QR Code image detect nahi hua. Clear QR image upload karo."
+        "Could not detect a valid QR code in this image. Please upload a clear QR code image."
       );
     }
   };

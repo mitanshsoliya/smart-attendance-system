@@ -71,14 +71,20 @@ smart-attendance-system/
 - MySQL 8 or newer
 - A modern browser with camera permission support for QR scanning
 
-## Database setup
+## Supabase database setup
 
-Create the application database before starting the backend:
+The backend now uses PostgreSQL through Supabase. To migrate the database:
 
-```sql
-CREATE DATABASE smart_attendance;
-USE smart_attendance;
-```
+1. Create or open your Supabase project.
+2. Copy [backend/.env.example](backend/.env.example) to `backend/.env` and add your Supabase `DATABASE_URL` and `JWT_SECRET`.
+3. Run `node database/migrate.js` in `backend/` (or run [backend/database/supabase.sql](backend/database/supabase.sql) in Supabase SQL Editor).
+4. Users registered via `POST /register` automatically receive their linked student or faculty profile in PostgreSQL.
+
+If the backend prints `DATABASE_URL is not configured`, `backend/.env` is missing or does not contain a `DATABASE_URL` entry. Copy the example file, replace its placeholders with the connection string from **Supabase Dashboard > Project Settings > Database**, then restart Node. Never commit `backend/.env`.
+
+The migration creates the database tables, PostgreSQL enums, foreign keys, indexes, duplicate-attendance protection, and a demo subject. Supabase already provides the PostgreSQL database, so do not run the old MySQL schema against Supabase.
+
+The previous MySQL-only schema is retained at [backend/database/schema.sql](backend/database/schema.sql) for reference only.
 
 The backend expects these tables and relationships:
 
@@ -98,7 +104,17 @@ FACULTY
 STUDENT
 ```
 
-Create at least one faculty profile linked to a user, one student profile linked to a user, a subject, and a lecture before testing the dashboards.
+The schema inserts a `DEMO-101` subject if it does not already exist.
+
+### Demo Credentials
+
+Run `node database/seed.js` in `backend/` to seed or reset demo users and sample lectures.
+
+| Role | Portal Tab | Email | Password |
+| :--- | :--- | :--- | :--- |
+| **Student** | Student | `student@example.com` | `student123` |
+| **Faculty** | Faculty | `faculty@example.com` | `faculty123` |
+| **HOD** | HOD | `hod@example.com` | `hod123` |
 
 ## Backend setup
 
@@ -250,14 +266,14 @@ node server.js    # Start API server
 
 ## Security notes
 
-The current backend is suitable for local development, but production deployment should improve the following areas:
+The backend now uses PostgreSQL and can connect directly to Supabase. The current backend is suitable for local development, but production deployment should improve the following areas:
 
-- Move MySQL credentials and JWT secret into environment variables.
+- Use `backend/.env.example` to configure `DATABASE_URL`, `JWT_SECRET`, and `PORT`.
 - Hash passwords with `bcrypt` or Argon2 instead of comparing plain text passwords.
 - Use HTTPS in production.
 - Add request validation and rate limiting to authentication routes.
 - Restrict CORS to the deployed frontend origin.
-- Add database migrations and foreign-key constraints.
+- Apply `backend/database/supabase.sql` in the Supabase SQL Editor.
 - Avoid exposing session tokens outside the intended lecture audience.
 
 ## Current limitations

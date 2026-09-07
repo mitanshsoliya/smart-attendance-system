@@ -1,16 +1,10 @@
 const express = require("express");
-const mysql = require("mysql2");
+const bcrypt = require("bcryptjs");
+const db = require("../db");
 
 const router = express.Router();
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
-
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { full_name, email, password, role } = req.body;
 
   if (!full_name || !email || !password || !role) {
@@ -27,36 +21,72 @@ router.post("/", (req, res) => {
     });
   }
 
-  const sql =
-    "INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)";
+  let client;
+  try {
+    client = await db.getClient();
+    await client.query("BEGIN");
 
-  db.query(
-    sql,
-    [full_name, email, password, role],
-    (err, result) => {
-      if (err) {
-        if (err.code === "ER_DUP_ENTRY") {
-          return res.status(409).json({
-            message: "Email already registered",
-          });
-        }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        console.error(err);
+    const userSql =
+      "INSERT INTO users (full_name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id";
 
-        return res.status(500).json({
-          message: "Registration failed",
-        });
+    const userResult = await client.query(userSql, [
+      full_name.trim(),
+      email.trim().toLowerCase(),
+      hashedPassword,
+      role,
+    ]);
+
+    const userId = userResult.rows[0].id;
+
+    // Automatically create the linked profile row based on user role to avoid orphan users
+    if (role === "STUDENT") {
+      await client.query(
+        "INSERT INTO students (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
+        [userId]
+      );
+    } else if (role === "FACULTY" || role === "HOD") {
+      await client.query(
+        "INSERT INTO faculty (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
+        [userId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: "Registration successful",
+      user_id: userId,
+      full_name: full_name.trim(),
+      email: email.trim().toLowerCase(),
+      role: role,
+    });
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        console.error("Rollback error:", rollbackErr);
       }
+    }
 
-      res.status(201).json({
-        message: "Registration successful",
-        user_id: result.insertId,
-        full_name: full_name,
-        email: email,
-        role: role,
+    if (err.code === "23505" || err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "Email already registered",
       });
     }
-  );
+
+    console.error("Registration error:", err);
+
+    return res.status(500).json({
+      message: "Registration failed",
+    });
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
 });
 
 module.exports = router;

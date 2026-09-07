@@ -1,19 +1,11 @@
 const express = require("express");
-const mysql = require("mysql2");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const db = require("../db");
 
 const router = express.Router();
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
-
-const JWT_SECRET = "smart_attendance_secret_key";
-
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -22,10 +14,18 @@ router.post("/", (req, res) => {
     });
   }
 
-  const sql =
-    "SELECT id, full_name, email, password, role FROM users WHERE email = ?";
+  const jwtSecret = process.env.JWT_SECRET?.trim();
+  if (!jwtSecret) {
+    console.error("JWT_SECRET environment variable is not set");
+    return res.status(500).json({
+      message: "Server authentication misconfigured",
+    });
+  }
 
-  db.query(sql, [email], (err, results) => {
+  const sql =
+    "SELECT id, full_name, email, password, role FROM users WHERE email = $1";
+
+  db.query(sql, [email], async (err, results) => {
     if (err) {
       console.error(err);
 
@@ -42,7 +42,23 @@ router.post("/", (req, res) => {
 
     const user = results[0];
 
-    if (password !== user.password) {
+    // Verify bcrypt hash or support legacy plaintext
+    let passwordMatch = false;
+    try {
+      passwordMatch = await bcrypt.compare(password, user.password);
+    } catch {
+      passwordMatch = false;
+    }
+
+    if (!passwordMatch && user.password === password) {
+      passwordMatch = true;
+      // Upgrade plaintext password to bcrypt in background
+      bcrypt.hash(password, 10).then((hashed) => {
+        db.query("UPDATE users SET password = $1 WHERE id = $2", [hashed, user.id], () => {});
+      }).catch(() => {});
+    }
+
+    if (!passwordMatch) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
@@ -54,7 +70,7 @@ router.post("/", (req, res) => {
         email: user.email,
         role: user.role,
       },
-      JWT_SECRET,
+      jwtSecret,
       {
         expiresIn: "1h",
       }

@@ -1,6 +1,12 @@
 const jwt = require("jsonwebtoken");
 
-const JWT_SECRET = "smart_attendance_secret_key";
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret) {
+    throw new Error("JWT_SECRET environment variable is not configured.");
+  }
+  return secret;
+};
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -20,12 +26,19 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret);
 
     req.user = decoded;
 
     next();
   } catch (error) {
+    if (error.message?.includes("JWT_SECRET")) {
+      return res.status(500).json({
+        message: "Server authentication misconfigured",
+      });
+    }
+
     return res.status(401).json({
       message: "Invalid or expired token",
     });

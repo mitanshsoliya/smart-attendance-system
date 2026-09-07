@@ -1,17 +1,10 @@
 const express = require("express");
-const mysql = require("mysql2");
 const crypto = require("crypto");
 const QRCode = require("qrcode");
 const verifyToken = require("../middleware/auth");
+const db = require("../db");
 
 const router = express.Router();
-
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
 
 router.post("/create", verifyToken, async (req, res) => {
   try {
@@ -36,7 +29,8 @@ router.post("/create", verifyToken, async (req, res) => {
     const sql = `
       INSERT INTO qr_sessions
       (lecture_id, session_token, expires_at)
-      VALUES (?, ?, ?)
+      VALUES ($1, $2, $3)
+      RETURNING id
     `;
 
     db.query(
@@ -60,7 +54,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
         res.status(201).json({
           message: "QR Session created successfully",
-          session_id: result.insertId,
+          session_id: result[0].id,
           lecture_id: lecture_id,
           session_token: session_token,
           expires_at: expires_at,

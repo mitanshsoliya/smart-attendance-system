@@ -1,21 +1,14 @@
 const express = require("express");
-const mysql = require("mysql2");
 const verifyToken = require("../middleware/auth");
+const db = require("../db");
 
 const router = express.Router();
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
-
-// Get Faculty Lectures
+// Get Faculty / HOD Lectures
 router.get("/my", verifyToken, (req, res) => {
-  if (req.user.role !== "FACULTY") {
+  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
     return res.status(403).json({
-      message: "Only faculty can access lectures",
+      message: "Only faculty or HOD can access lectures",
     });
   }
 
@@ -30,13 +23,13 @@ router.get("/my", verifyToken, (req, res) => {
     FROM lectures l
     JOIN subjects s ON l.subject_id = s.id
     JOIN faculty f ON l.faculty_id = f.id
-    WHERE f.user_id = ?
+    WHERE f.user_id = $1
     ORDER BY l.lecture_date DESC, l.start_time DESC
   `;
 
   db.query(sql, [req.user.id], (err, results) => {
     if (err) {
-      console.error(err);
+      console.error("Fetch lectures error:", err);
 
       return res.status(500).json({
         message: "Failed to fetch lectures",
@@ -52,10 +45,9 @@ router.get("/my", verifyToken, (req, res) => {
 
 // Create Lecture
 router.post("/create", verifyToken, (req, res) => {
-  // Only faculty can create lecture
-  if (req.user.role !== "FACULTY") {
+  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
     return res.status(403).json({
-      message: "Only faculty can create lectures",
+      message: "Only faculty or HOD can create lectures",
     });
   }
 
@@ -78,12 +70,12 @@ router.post("/create", verifyToken, (req, res) => {
   const facultySql = `
     SELECT id
     FROM faculty
-    WHERE user_id = ?
+    WHERE user_id = $1
   `;
 
   db.query(facultySql, [req.user.id], (err, facultyResult) => {
     if (err) {
-      console.error(err);
+      console.error("Faculty lookup error:", err);
 
       return res.status(500).json({
         message: "Faculty verification failed",
@@ -102,7 +94,8 @@ router.post("/create", verifyToken, (req, res) => {
     const lectureSql = `
       INSERT INTO lectures
       (subject_id, faculty_id, lecture_date, start_time, end_time)
-      VALUES (?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
     `;
 
     db.query(
@@ -116,7 +109,19 @@ router.post("/create", verifyToken, (req, res) => {
       ],
       (err, result) => {
         if (err) {
-          console.error(err);
+          if (err.constraint === "lectures_time_order" || err.code === "23514") {
+            return res.status(400).json({
+              message: "End time must be after start time",
+            });
+          }
+
+          if (err.code === "23503") {
+            return res.status(404).json({
+              message: "Selected subject does not exist",
+            });
+          }
+
+          console.error("Lecture creation error:", err);
 
           return res.status(500).json({
             message: "Lecture creation failed",
@@ -125,7 +130,7 @@ router.post("/create", verifyToken, (req, res) => {
 
         res.status(201).json({
           message: "Lecture created successfully",
-          lecture_id: result.insertId,
+          lecture_id: result[0].id,
           subject_id,
           faculty_id,
           lecture_date,

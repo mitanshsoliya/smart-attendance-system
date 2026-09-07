@@ -1,6 +1,7 @@
+require("dotenv").config();
 const express = require("express");
-const mysql = require("mysql2");
 const cors = require("cors");
+const db = require("./db");
 
 const app = express();
 
@@ -30,31 +31,29 @@ app.use("/attendance", attendanceRoute);
 const lectureRoute = require("./routes/lectures");
 app.use("/lectures", lectureRoute);
 
-// MySQL Connection
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
-
+// Verify the database before accepting API traffic.
 db.connect((err) => {
   if (err) {
     console.error("Database Connection Failed:", err);
+    process.exitCode = 1;
     return;
   }
 
-  console.log("MySQL Connected Successfully");
-});
+  if (!process.env.JWT_SECRET || !process.env.JWT_SECRET.trim()) {
+    console.error("FATAL: JWT_SECRET is not configured in backend/.env.");
+    process.exitCode = 1;
+    return;
+  }
 
-// Home Route
-app.get("/", (req, res) => {
-  res.send("Smart Attendance Backend Running Successfully");
-});
+  console.log("PostgreSQL connected successfully");
 
-// Server
-const PORT = 5000;
+  // Home Route
+  app.get("/", (req, res) => {
+    res.send("Smart Attendance Backend Running Successfully");
+  });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 });

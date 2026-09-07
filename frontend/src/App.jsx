@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import QRScanner from "./QRScanner";
+import FacultyDashboard from "./FacultyDashboard";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -86,7 +87,12 @@ function Login({ onLogin }) {
 
 function Dashboard({ user, token, onLogout }) {
   const isFaculty = user.role === "FACULTY" || user.role === "HOD";
-  const [view, setView] = useState(isFaculty ? "faculty-qr" : "student-mark");
+
+  if (isFaculty) {
+    return <FacultyDashboard user={user} token={token} onLogout={onLogout} />;
+  }
+
+  const [view, setView] = useState("student-mark");
   const [mobileNav, setMobileNav] = useState(false);
 
   return <div className="app-shell">
@@ -94,28 +100,41 @@ function Dashboard({ user, token, onLogout }) {
       <Brand />
       <p className="tagline">Smart attendance. Simple academics.</p>
       <nav>
-        {isFaculty ? <NavItem active={view === "faculty-qr"} onClick={() => { setView("faculty-qr"); setMobileNav(false); }}>Generate QR</NavItem> : <>
-          <NavItem active={view === "student-mark"} onClick={() => { setView("student-mark"); setMobileNav(false); }}>Mark Attendance</NavItem>
-          <NavItem active={view === "student-my"} onClick={() => { setView("student-my"); setMobileNav(false); }}>My Attendance</NavItem>
-        </>}
+        <NavItem active={view === "student-mark"} onClick={() => { setView("student-mark"); setMobileNav(false); }}>Mark Attendance</NavItem>
+        <NavItem active={view === "student-my"} onClick={() => { setView("student-my"); setMobileNav(false); }}>My Attendance</NavItem>
       </nav>
       <button className="logout-link" onClick={onLogout}>Log out <span>↗</span></button>
     </aside>
     {mobileNav && <button className="scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
     <main className="main-content">
-      <header className="topbar"><button className="menu-button" onClick={() => setMobileNav(true)} aria-label="Open menu">☰</button><div><p className="eyebrow">{isFaculty ? "FACULTY DESK" : "STUDENT DESK"}</p><h1>Good morning, {user.full_name?.split(" ")[0]}.</h1></div><div className="profile"><span className="avatar">{user.full_name?.charAt(0)}</span><span className="profile-name">{user.full_name}</span><span className="role-badge">{user.role}</span></div></header>
-      {isFaculty ? <FacultyView token={token} /> : <StudentView token={token} view={view} />}
+      <header className="topbar">
+        <button className="menu-button" onClick={() => setMobileNav(true)} aria-label="Open menu">☰</button>
+        <div>
+          <p className="eyebrow">STUDENT DESK</p>
+          <h1>Good morning, {user.full_name?.split(" ")[0]}.</h1>
+        </div>
+        <div className="profile">
+          <span className="avatar">{user.full_name?.charAt(0)}</span>
+          <span className="profile-name">{user.full_name}</span>
+          <span className="role-badge">{user.role}</span>
+        </div>
+      </header>
+      <StudentView token={token} view={view} />
     </main>
   </div>;
 }
 
-function FacultyView({ token }) {
+function FacultyView({ token, view, setView }) {
   const [lectures, setLectures] = useState([]);
   const [selected, setSelected] = useState("");
   const [qr, setQr] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [remaining, setRemaining] = useState(0);
+  const [status, setStatus] = useState([]);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [lectureForm, setLectureForm] = useState({ subject_id: "", lecture_date: "", start_time: "", end_time: "" });
+  const [createMessage, setCreateMessage] = useState("");
 
   useEffect(() => { api.get("/lectures/my", auth(token)).then(({ data }) => { setLectures(data.lectures || []); setSelected(String(data.lectures?.[0]?.id || "")); }).catch((error) => setMessage(error.response?.data?.message || "Could not load lectures.")).finally(() => setLoading(false)); }, [token]);
   useEffect(() => { if (!qr) return undefined; const timer = setInterval(() => setRemaining(Math.max(0, Math.floor((new Date(qr.expires_at) - Date.now()) / 1000))), 1000); return () => clearInterval(timer); }, [qr]);
@@ -127,8 +146,41 @@ function FacultyView({ token }) {
     try { const { data } = await api.post("/qr-session/create", { lecture_id: Number(selected) }, auth(token)); setQr(data); setRemaining(Math.floor((new Date(data.expires_at) - Date.now()) / 1000)); } catch (error) { setMessage(error.response?.data?.message || "QR generation failed."); }
   };
 
+  const createLecture = async (event) => {
+    event.preventDefault();
+    setCreateMessage("");
+    try {
+      const { data } = await api.post("/lectures/create", { ...lectureForm, subject_id: Number(lectureForm.subject_id) }, auth(token));
+      setCreateMessage(data.message || "Lecture created successfully.");
+      setLectureForm({ subject_id: "", lecture_date: "", start_time: "", end_time: "" });
+      const refreshed = await api.get("/lectures/my", auth(token));
+      setLectures(refreshed.data.lectures || []);
+    } catch (error) {
+      setCreateMessage(error.response?.data?.message || "Lecture creation failed.");
+    }
+  };
+
+  const loadStatus = async () => {
+    if (!selected) return setStatusMessage("Choose a lecture first.");
+    setStatusMessage("");
+    try {
+      const { data } = await api.get(`/attendance/lecture/${selected}`, auth(token));
+      setStatus(data.attendance || []);
+    } catch (error) {
+      setStatusMessage(error.response?.data?.message || "Could not load attendance status.");
+    }
+  };
+
+  const presentCount = status.filter((item) => item.status === "PRESENT").length;
+
+  if (view === "faculty-create") return <section className="content-grid"><div className="content-heading"><div><p className="eyebrow">LECTURE MANAGEMENT</p><h2>Create Lecture</h2><p className="muted">Add a scheduled class before generating its attendance QR.</p></div></div><div className="card form-card narrow-card"><form onSubmit={createLecture}><Field label="SUBJECT ID" type="number" value={lectureForm.subject_id} onChange={(value) => setLectureForm({ ...lectureForm, subject_id: value })} placeholder="e.g. 1" /><Field label="LECTURE DATE" type="date" value={lectureForm.lecture_date} onChange={(value) => setLectureForm({ ...lectureForm, lecture_date: value })} /><div className="field-row"><Field label="START TIME" type="time" value={lectureForm.start_time} onChange={(value) => setLectureForm({ ...lectureForm, start_time: value })} /><Field label="END TIME" type="time" value={lectureForm.end_time} onChange={(value) => setLectureForm({ ...lectureForm, end_time: value })} /></div><button className="button primary">Create Lecture <span>→</span></button></form>{createMessage && <Notice type={createMessage.includes("success") ? "success" : "error"}>{createMessage}</Notice>}</div></section>;
+
+  if (view === "faculty-status") return <section className="content-grid"><div className="content-heading"><div><p className="eyebrow">LECTURE REPORT</p><h2>Attendance Status</h2><p className="muted">See which students checked in for a selected lecture.</p></div><div className="stat-strip"><Stat value={presentCount} label="Present" /><Stat value={status.length} label="Check-ins" /></div></div><div className="card status-toolbar"><select value={selected} onChange={(event) => setSelected(event.target.value)}><option value="">Select a lecture</option>{lectures.map((lecture) => <option key={lecture.id} value={lecture.id}>{lecture.subject_code} · {lecture.subject_name} · {formatDate(lecture.lecture_date)}</option>)}</select><button className="button primary" onClick={loadStatus}>Load Status <span>→</span></button></div>{statusMessage && <Notice type="error">{statusMessage}</Notice>}<FacultyStatusTable status={status} /></section>;
+
   return <section className="content-grid"><div className="content-heading"><div><p className="eyebrow">ATTENDANCE SESSION</p><h2>Generate QR Check-In</h2><p className="muted">Open a secure five-minute check-in window for your lecture.</p></div><span className="live-dot">● Live</span></div><div className="workspace two-column"><div className="card form-card"><label htmlFor="lecture">LECTURE</label><select id="lecture" value={selected} onChange={(event) => setSelected(event.target.value)} disabled={loading}><option value="">{loading ? "Loading lectures..." : "Select a lecture"}</option>{lectures.map((lecture) => <option key={lecture.id} value={lecture.id}>{lecture.subject_code} · {lecture.subject_name}</option>)}</select>{selectedLecture && <div className="lecture-meta"><strong>{selectedLecture.subject_name}</strong><span>{formatDate(selectedLecture.lecture_date)} · {selectedLecture.start_time} - {selectedLecture.end_time}</span></div>}<button className="button primary" onClick={generate} disabled={loading}>Generate QR <span>→</span></button>{message && <Notice type="error">{message}</Notice>}</div><div className="card qr-card">{qr ? <><div className="qr-frame"><img src={qr.qr_code} alt="Attendance QR code" /></div><div className="qr-status"><span className="live-dot">● Active session</span><strong>{formatTime(remaining)} remaining</strong></div><p className="token-label">Session token</p><div className="token-row"><code>{qr.session_token}</code><button className="icon-button" aria-label="Copy session token" onClick={() => navigator.clipboard?.writeText(qr.session_token)}>⧉</button></div></> : <div className="empty-qr"><div className="qr-placeholder">⌁</div><strong>Your QR code will appear here</strong><span>Select a lecture and generate a session.</span></div>}</div></div></section>;
 }
+
+function FacultyStatusTable({ status }) { return <div className="card table-card">{status.length ? <div className="table-wrap"><table><thead><tr><th>STUDENT</th><th>EMAIL</th><th>CHECK-IN TIME</th><th>STATUS</th></tr></thead><tbody>{status.map((item) => <tr key={item.id}><td><strong>{item.full_name}</strong></td><td>{item.email}</td><td>{formatDateTime(item.attendance_time)}</td><td><span className={`status ${item.status === "PRESENT" ? "present" : "absent"}`}>{item.status}</span></td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No check-ins loaded</strong><span>Select a lecture and load its attendance status.</span></div>}</div>; }
 
 function StudentView({ token, view }) {
   const [attendance, setAttendance] = useState([]);
@@ -151,7 +203,16 @@ function StudentView({ token, view }) {
   const present = attendance.filter((item) => item.status === "PRESENT").length;
   const percentage = attendance.length ? `${Math.round((present / attendance.length) * 100)}%` : "0%";
 
-  return <section className="content-grid"><div className="content-heading"><div><p className="eyebrow">{view === "student-my" ? "MY RECORDS" : "CHECK-IN"}</p><h2>{view === "student-my" ? "My Attendance" : "Mark Attendance"}</h2><p className="muted">{view === "student-my" ? "A clear record of your recent lecture check-ins." : "Scan the faculty QR or enter its session details."}</p></div><div className="stat-strip"><Stat value={attendance.length} label="Classes" /><Stat value={percentage} label="Attendance" /></div></div>{view === "student-my" ? <AttendanceTable attendance={attendance} message={message} /> : <div className="workspace two-column"><div className="card form-card"><form onSubmit={markAttendance}><Field label="LECTURE ID" type="number" value={lectureId} onChange={setLectureId} placeholder="e.g. 2" /><Field label="SESSION TOKEN" value={sessionToken} onChange={setSessionToken} placeholder="Paste token from faculty QR" /><button className="button primary full">Mark Present <span>→</span></button></form>{message && <Notice type={message.includes("success") ? "success" : "error"}>{message}</Notice>}<button className="button secondary full scanner-trigger" onClick={() => setShowScanner(!showScanner)}>{showScanner ? "Close scanner" : "Scan attendance QR"}</button></div><div className="card checkin-card"><div className="checkin-number">01</div><h3>Quick check-in</h3><p>Use your camera to read the live QR code displayed by your faculty member.</p><div className="scan-mark">⌗</div></div></div>}{showScanner && <div className="scanner-panel"><QRScanner onAttendanceMarked={() => { setShowScanner(false); loadAttendance(); }} /></div>}</section>;
+  return <section className="content-grid"><div className="content-heading"><div><p className="eyebrow">{view === "student-my" ? "MY RECORDS" : "CHECK-IN"}</p><h2>{view === "student-my" ? "My Attendance" : "Mark Attendance"}</h2><p className="muted">{view === "student-my" ? "A clear record of your recent lecture check-ins." : "Scan the faculty QR or enter its session details."}</p></div><div className="stat-strip"><Stat value={attendance.length} label="Classes" /><Stat value={present} label="Present" /><Stat value={percentage} label="Attendance" /></div></div>{view === "student-my" ? <><AttendanceInsights attendance={attendance} /><AttendanceTable attendance={attendance} message={message} /></> : <div className="workspace two-column"><div className="card form-card"><form onSubmit={markAttendance}><Field label="LECTURE ID" type="number" value={lectureId} onChange={setLectureId} placeholder="e.g. 2" /><Field label="SESSION TOKEN" value={sessionToken} onChange={setSessionToken} placeholder="Paste token from faculty QR" /><button className="button primary full">Mark Present <span>→</span></button></form>{message && <Notice type={message.includes("success") ? "success" : "error"}>{message}</Notice>}<button className="button secondary full scanner-trigger" onClick={() => setShowScanner(!showScanner)}>{showScanner ? "Close scanner" : "Scan attendance QR"}</button></div><div className="card checkin-card"><div className="checkin-number">01</div><h3>Quick check-in</h3><p>Use your camera to read the live QR code displayed by your faculty member.</p><div className="scan-mark">⌗</div></div></div>}{showScanner && <div className="scanner-panel"><QRScanner onAttendanceMarked={() => { setShowScanner(false); loadAttendance(); }} /></div>}</section>;
+}
+
+function AttendanceInsights({ attendance }) {
+  const subjectCounts = attendance.reduce((counts, item) => { const key = item.subject_code || item.subject_name || "Other"; counts[key] = (counts[key] || 0) + 1; return counts; }, {});
+  const subjects = Object.entries(subjectCounts).sort(([, first], [, second]) => second - first);
+  const maxCount = Math.max(...subjects.map(([, count]) => count), 1);
+  const recent = attendance.slice(0, 5);
+
+  return <div className="insights-grid"><div className="card insight-card"><div className="insight-heading"><div><p className="eyebrow">SUBJECT BREAKDOWN</p><h3>Where you show up</h3></div><span className="insight-total">{attendance.length} total</span></div>{subjects.length ? <div className="subject-bars">{subjects.map(([subject, count]) => <div className="subject-bar" key={subject}><div className="bar-label"><span>{subject}</span><strong>{count}</strong></div><div className="bar-track"><span style={{ width: `${(count / maxCount) * 100}%` }} /></div></div>)}</div> : <div className="mini-empty">Check-ins will create your subject chart.</div>}</div><div className="card insight-card"><div className="insight-heading"><div><p className="eyebrow">RECENT ACTIVITY</p><h3>Latest check-ins</h3></div><span className="activity-mark">●</span></div>{recent.length ? <div className="activity-list">{recent.map((item) => <div className="activity-item" key={item.id}><span className="activity-dot" /><div><strong>{item.subject_code} <small>{item.status}</small></strong><span>{item.subject_name}</span></div><time>{formatDateTime(item.attendance_time)}</time></div>)}</div> : <div className="mini-empty">Your latest check-ins will appear here.</div>}</div></div>;
 }
 
 function AttendanceTable({ attendance, message }) { return <div className="card table-card">{message && <Notice type="error">{message}</Notice>}{attendance.length ? <div className="table-wrap"><table><thead><tr><th>SUBJECT</th><th>DATE / TIME</th><th>STATUS</th></tr></thead><tbody>{attendance.map((item) => <tr key={item.id}><td><strong>{item.subject_code}</strong><span>{item.subject_name}</span></td><td>{formatDateTime(item.attendance_time)}</td><td><span className={`status ${item.status === "PRESENT" ? "present" : "absent"}`}>{item.status}</span></td></tr>)}</tbody></table></div> : <div className="empty-state"><strong>No attendance records yet</strong><span>Your check-ins will appear here after you attend a lecture.</span></div>}</div>; }

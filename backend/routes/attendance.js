@@ -1,15 +1,8 @@
 const express = require("express");
-const mysql = require("mysql2");
 const verifyToken = require("../middleware/auth");
+const db = require("../db");
 
 const router = express.Router();
-
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Ms9724006035@",
-  database: "smart_attendance",
-});
 
 router.post("/mark", verifyToken, (req, res) => {
   if (req.user.role !== "STUDENT") {
@@ -29,9 +22,9 @@ router.post("/mark", verifyToken, (req, res) => {
   const sessionSql = `
     SELECT id
     FROM qr_sessions
-    WHERE lecture_id = ?
-    AND session_token = ?
-    AND expires_at > NOW()
+    WHERE lecture_id = $1
+    AND session_token = $2
+    AND expires_at > CURRENT_TIMESTAMP
   `;
 
   db.query(
@@ -54,7 +47,7 @@ router.post("/mark", verifyToken, (req, res) => {
       const studentSql = `
         SELECT id
         FROM students
-        WHERE user_id = ?
+        WHERE user_id = $1
       `;
 
       db.query(
@@ -79,8 +72,8 @@ router.post("/mark", verifyToken, (req, res) => {
           const checkSql = `
             SELECT id
             FROM attendance
-            WHERE lecture_id = ?
-            AND student_id = ?
+            WHERE lecture_id = $1
+            AND student_id = $2
           `;
 
           db.query(
@@ -103,7 +96,7 @@ router.post("/mark", verifyToken, (req, res) => {
               const insertSql = `
                 INSERT INTO attendance
                 (lecture_id, student_id, status)
-                VALUES (?, ?, 'PRESENT')
+                VALUES ($1, $2, 'PRESENT')
               `;
 
               db.query(
@@ -111,7 +104,12 @@ router.post("/mark", verifyToken, (req, res) => {
                 [lecture_id, student_id],
                 (err) => {
                   if (err) {
-                    console.error(err);
+                    if (err.code === "23505") {
+                      return res.status(409).json({
+                        message: "Attendance already marked",
+                      });
+                    }
+                    console.error("Attendance mark error:", err);
                     return res.status(500).json({
                       message: "Attendance marking failed",
                     });
@@ -154,7 +152,7 @@ router.get("/my", verifyToken, (req, res) => {
     JOIN lectures l ON a.lecture_id = l.id
     JOIN subjects s ON l.subject_id = s.id
     JOIN students st ON a.student_id = st.id
-    WHERE st.user_id = ?
+    WHERE st.user_id = $1
     ORDER BY a.attendance_time DESC
   `;
 
@@ -173,6 +171,47 @@ router.get("/my", verifyToken, (req, res) => {
       attendance: results,
     });
 
+  });
+});
+
+// Get attendance for one lecture owned by the logged-in faculty member
+router.get("/lecture/:lectureId", verifyToken, (req, res) => {
+  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
+    return res.status(403).json({
+      message: "Only faculty or HOD can access lecture attendance",
+    });
+  }
+
+  const sql = `
+    SELECT
+      a.id,
+      a.lecture_id,
+      a.attendance_time,
+      a.status,
+      u.full_name,
+      u.email
+    FROM attendance a
+    JOIN students st ON a.student_id = st.id
+    JOIN users u ON st.user_id = u.id
+    JOIN lectures l ON a.lecture_id = l.id
+    JOIN faculty f ON l.faculty_id = f.id
+    WHERE a.lecture_id = $1
+    AND f.user_id = $2
+    ORDER BY a.attendance_time DESC
+  `;
+
+  db.query(sql, [req.params.lectureId, req.user.id], (err, results) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({
+        message: "Failed to fetch lecture attendance",
+      });
+    }
+
+    res.json({
+      message: "Lecture attendance fetched successfully",
+      attendance: results,
+    });
   });
 });
 
