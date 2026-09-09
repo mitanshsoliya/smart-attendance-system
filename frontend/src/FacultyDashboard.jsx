@@ -107,6 +107,21 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
     },
   ]);
 
+  // Courses Tab State & Roster Modal
+  const [showRosterModal, setShowRosterModal] = useState(false);
+  const [rosterModalTitle, setRosterModalTitle] = useState("All Enrolled Students (129 Total)");
+  const [rosterModalSubtitle, setRosterModalSubtitle] = useState("Inspect attendance ratios, status flags, and individual biometric verifications");
+  const [rosterCourseFilter, setRosterCourseFilter] = useState("ALL");
+  const [rosterSearchText, setRosterSearchText] = useState("");
+
+  const [policyExamThreshold, setPolicyExamThreshold] = useState(75);
+  const [policyDeanThreshold, setPolicyDeanThreshold] = useState(70);
+  const [policyGraceMinutes, setPolicyGraceMinutes] = useState("10");
+  const [policyConsecutiveAbsence, setPolicyConsecutiveAbsence] = useState(3);
+  const [policyCheckQr, setPolicyCheckQr] = useState(true);
+  const [policyCheckBleGps, setPolicyCheckBleGps] = useState(true);
+  const [policyCheckFacial, setPolicyCheckFacial] = useState(false);
+
   // Settings section state
   const [settingsSection, setSettingsSection] = useState("section-profile");
   const [toggleBle, setToggleBle] = useState(true);
@@ -242,6 +257,14 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
     );
   };
 
+  const openRosterModal = (courseCode, courseName, cohort, count) => {
+    setRosterModalTitle(`${courseCode} — ${courseName}`);
+    setRosterModalSubtitle(`Cohort ${cohort} • ${count} Enrolled Candidates`);
+    setRosterCourseFilter(courseCode);
+    setRosterSearchText("");
+    setShowRosterModal(true);
+  };
+
   const todayFormatted = formatDateDisplay(new Date());
   const rawName = user?.full_name || "Dr. Sarah Jenkins";
   const greetingName = rawName.includes("Dr.") || rawName.includes("Prof.") ? rawName : `Dr. ${rawName}`;
@@ -259,36 +282,23 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
 
   const currentScheduleDay = scheduleDays[selectedDayIndex];
 
-  // Faculty Courses Catalog
-  const facultyCourses = [
-    {
-      code: "CS501",
-      name: "Database Systems",
-      enrolled: 48,
-      schedule: "Mon, Thu • 10:00 AM",
-      room: "Room 204, Turing Building",
-      avgAttendance: "92.5%",
-      status: "Active",
-    },
-    {
-      code: "CS503",
-      name: "Operating Systems Lab",
-      enrolled: 45,
-      schedule: "Tue, Fri • 02:00 PM",
-      room: "Lab 3, Babbage Block",
-      avgAttendance: "88.0%",
-      status: "Active",
-    },
-    {
-      code: "CS508",
-      name: "Advanced Algorithms",
-      enrolled: 36,
-      schedule: "Wed, Sat • 11:30 AM",
-      room: "Lecture Hall B",
-      avgAttendance: "95.2%",
-      status: "Active",
-    },
+  // Roster Candidates List
+  const cohortCandidates = [
+    { roll: "2026-CSE-01", name: "Aarav Sharma", course: "CS501", cohort: "CSE-A", attended: "31 / 32", pct: "96.8%", status: "Exemplary", statusType: "success" },
+    { roll: "2026-CSE-22", name: "Marcus Vance", course: "CS503", cohort: "CSE-B", attended: "16 / 24", pct: "66.6%", status: "At Risk (Dean Alert)", statusType: "error" },
+    { roll: "2026-CSE-08", name: "Elena Rostova", course: "CS508", cohort: "Elective", attended: "19 / 20", pct: "95.0%", status: "Exemplary", statusType: "success" },
+    { roll: "2026-CSE-31", name: "Devon Chu", course: "CS503", cohort: "CSE-B", attended: "17 / 24", pct: "70.8%", status: "Warning Sent", statusType: "warning" },
+    { roll: "2026-CSE-14", name: "Priya Nair", course: "CS501", cohort: "CSE-A", attended: "29 / 32", pct: "90.6%", status: "Compliant", statusType: "neutral" },
   ];
+
+  const filteredCandidates = cohortCandidates.filter((cand) => {
+    const matchCourse = rosterCourseFilter === "ALL" || cand.course === rosterCourseFilter;
+    const matchText =
+      !rosterSearchText ||
+      cand.name.toLowerCase().includes(rosterSearchText.toLowerCase()) ||
+      cand.roll.toLowerCase().includes(rosterSearchText.toLowerCase());
+    return matchCourse && matchText;
+  });
 
   return (
     <div className="text-on-surface font-body-md text-body-md antialiased min-h-screen bg-[#F5F2EA]">
@@ -675,7 +685,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
         {/* ================= TAB 2: ATTENDANCE & SESSIONS OVERVIEW ================= */}
         {activeTab === "attendance" && (
           <div className="flex flex-col w-full">
-            {/* Top Academic Context Header & Action Bar */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-border-default">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-3 mb-2">
@@ -694,7 +703,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 </p>
               </div>
 
-              {/* Action Group */}
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => alert("Exporting session ledger CSV...")}
@@ -723,7 +731,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     <span className="material-symbols-outlined text-[18px] ml-0.5">expand_more</span>
                   </button>
 
-                  {/* Quick Launch Dropdown */}
                   {quickLaunchOpen && (
                     <div className="absolute right-0 mt-1 w-64 bg-surface-warm border border-border-default shadow-lg z-30 py-1">
                       <div className="px-3 py-1.5 font-label-sm text-label-sm text-text-stone uppercase tracking-wider border-b border-border-default">
@@ -770,9 +777,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               </div>
             </div>
 
-            {/* Today's Live Academic Operations Grid */}
             <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Active Real-time Card (8 cols) */}
               <div className="lg:col-span-8 bg-surface-warm border border-border-default p-6 relative overflow-hidden flex flex-col justify-between shadow-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-default">
                   <div>
@@ -805,9 +810,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   </div>
                 </div>
 
-                {/* Live Metrics & Telemetry */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 items-center">
-                  {/* Attendance Ring Chart */}
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20 shrink-0">
                       <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
@@ -842,7 +845,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     </div>
                   </div>
 
-                  {/* Telemetry Indicators */}
                   <div className="border-l border-border-default pl-4 space-y-2">
                     <div className="flex items-center justify-between text-body-md">
                       <span className="font-label-sm text-label-sm text-text-stone flex items-center gap-1.5">
@@ -867,7 +869,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     </div>
                   </div>
 
-                  {/* Controls */}
                   <div className="flex flex-col gap-2.5">
                     <button
                       onClick={() => handleGenerateQR(lectures[0]?.id)}
@@ -888,7 +889,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   </div>
                 </div>
 
-                {/* Footer Micro Bar */}
                 <div className="pt-3 border-t border-border-default flex flex-wrap items-center justify-between text-text-stone font-label-sm text-label-sm">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1">
@@ -908,7 +908,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 </div>
               </div>
 
-              {/* Upcoming Lecture Card (4 cols) */}
               <div className="lg:col-span-4 bg-surface-container p-6 border border-border-default flex flex-col justify-between shadow-xs">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -953,654 +952,794 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 </div>
               </div>
             </div>
-
-            {/* Filter & Ledger Controls Bar */}
-            <div className="mt-10 pt-6 border-t border-border-default flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-headline-md text-headline-md text-on-surface tracking-tight font-bold">
-                  Academic Attendance Ledger
-                </h3>
-                <p className="font-body-md text-body-md text-text-stone">
-                  Complete session history, geofence audit compliance, and roll registers.
-                </p>
-              </div>
-              {/* Dropdowns */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <select
-                    value={ledgerCourseFilter}
-                    onChange={(e) => setLedgerCourseFilter(e.target.value)}
-                    className="appearance-none bg-surface-warm border border-border-default text-on-surface font-label-md text-label-md py-2 pl-3 pr-8 focus:outline-none focus:border-secondary cursor-pointer"
-                  >
-                    <option>All Assigned Courses</option>
-                    <option>CS501: Database Systems</option>
-                    <option>CS503: Operating Systems Lab</option>
-                    <option>CS508: Advanced Algorithms</option>
-                  </select>
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2.5 text-text-stone text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <select
-                    value={ledgerSectionFilter}
-                    onChange={(e) => setLedgerSectionFilter(e.target.value)}
-                    className="appearance-none bg-surface-warm border border-border-default text-on-surface font-label-md text-label-md py-2 pl-3 pr-8 focus:outline-none focus:border-secondary cursor-pointer"
-                  >
-                    <option>All Sections</option>
-                    <option>CSE-A</option>
-                    <option>CSE-B</option>
-                  </select>
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2.5 text-text-stone text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <select className="appearance-none bg-surface-warm border border-border-default text-on-surface font-label-md text-label-md py-2 pl-3 pr-8 focus:outline-none focus:border-secondary cursor-pointer">
-                    <option>This Week (25 - 31 Aug)</option>
-                    <option>Autumn Semester 2026</option>
-                    <option>Last 30 Days</option>
-                  </select>
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2.5 text-text-stone text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <select
-                    value={ledgerStatusFilter}
-                    onChange={(e) => setLedgerStatusFilter(e.target.value)}
-                    className="appearance-none bg-surface-warm border border-border-default text-on-surface font-label-md text-label-md py-2 pl-3 pr-8 focus:outline-none focus:border-secondary cursor-pointer"
-                  >
-                    <option>All Statuses</option>
-                    <option>Completed & Signed</option>
-                    <option>Active Now</option>
-                    <option>Discrepancy Flagged</option>
-                  </select>
-                  <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2.5 text-text-stone text-[16px]">
-                    expand_more
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Ledger Grid & Discrepancy Queue Split (8:4 layout) */}
-            <div className="mt-6 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-              {/* Main Ledger Table (XL: 8 cols) */}
-              <div className="xl:col-span-8 bg-surface-warm border border-border-default">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-border-default bg-surface-container text-text-stone font-label-sm text-label-sm uppercase tracking-wider">
-                        <th className="py-3 px-4">Date & Time</th>
-                        <th className="py-3 px-4">Course & Cohort</th>
-                        <th className="py-3 px-4">Mode / Tech</th>
-                        <th className="py-3 px-4">Roll Breakdown</th>
-                        <th className="py-3 px-4">Geofence</th>
-                        <th className="py-3 px-4">Verification Health</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-default font-body-md text-body-md text-on-surface">
-                      {/* Row 1: Today Active */}
-                      <tr className="hover:bg-surface-container/50 transition-colors bg-surface-container-low/40">
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-semibold text-on-surface">29 Aug • 10:00 AM</div>
-                          <div className="font-label-sm text-label-sm text-secondary flex items-center gap-1 font-semibold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block"></span>
-                            In Progress
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">CS501: Database Systems</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">CSE-A • Lecture 14</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-label-sm text-label-sm text-on-surface">Room 204</span>
-                          <span className="block font-label-sm text-[11px] text-text-stone font-mono">QR + BLE</span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">
-                            42 <span className="text-text-stone text-label-sm">/ 48</span>
-                          </div>
-                          <div className="font-label-sm text-label-sm text-text-stone">42 Pres • 2 Late • 4 Abs</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-label-md text-label-md font-semibold text-success">98.2%</span>
-                            <span className="material-symbols-outlined text-[16px] text-success">check_circle</span>
-                          </div>
-                          <div className="w-16 h-1 bg-surface-container-high rounded-none overflow-hidden mt-0.5">
-                            <div className="h-full bg-success" style={{ width: "98.2%" }}></div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 bg-success/10 text-success font-label-sm text-label-sm font-semibold tracking-wide border border-success/30">
-                            Verified High
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setActiveTab("reports")}
-                              className="text-secondary hover:underline font-label-sm text-label-sm font-semibold cursor-pointer"
-                              type="button"
-                            >
-                              Live Log
-                            </button>
-                            <span className="text-border-default">|</span>
-                            <button
-                              onClick={() => alert("Quick Edit modal launched.")}
-                              className="text-text-stone hover:text-on-surface font-label-sm text-label-sm cursor-pointer"
-                              type="button"
-                            >
-                              Quick Edit
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Row 2: Yesterday Lab */}
-                      <tr className="hover:bg-surface-container/50 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-semibold text-on-surface">28 Aug • 02:00 PM</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">Session Closed</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">CS503: Operating Systems Lab</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">CSE-B • Lab Session 06</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-label-sm text-label-sm text-on-surface">Lab 3</span>
-                          <span className="block font-label-sm text-[11px] text-text-stone font-mono">QR + Face</span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">
-                            41 <span className="text-text-stone text-label-sm">/ 45</span>
-                          </div>
-                          <div className="font-label-sm text-label-sm text-text-stone">41 Pres • 1 Late • 3 Abs</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-label-md text-label-md font-semibold text-success">95.5%</span>
-                            <span className="material-symbols-outlined text-[16px] text-success">check_circle</span>
-                          </div>
-                          <div className="w-16 h-1 bg-surface-container-high rounded-none overflow-hidden mt-0.5">
-                            <div className="h-full bg-success" style={{ width: "95.5%" }}></div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 bg-success/10 text-success font-label-sm text-label-sm font-semibold tracking-wide border border-success/30">
-                            Verified High
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setActiveTab("reports")}
-                              className="text-on-surface hover:text-secondary font-label-sm text-label-sm font-semibold cursor-pointer"
-                              type="button"
-                            >
-                              View Log
-                            </button>
-                            <span className="text-border-default">|</span>
-                            <button
-                              onClick={() => alert("Audit PDF generated.")}
-                              className="text-text-stone hover:text-on-surface font-label-sm text-label-sm cursor-pointer"
-                              type="button"
-                            >
-                              Audit PDF
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Row 3: Flagged Discrepancy */}
-                      <tr className="hover:bg-surface-container/50 transition-colors bg-warning/5">
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-semibold text-on-surface">27 Aug • 10:00 AM</div>
-                          <div className="font-label-sm text-label-sm text-warning font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">flag</span>
-                            Pending Review
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">CS501: Database Systems</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">CSE-A • Lecture 13</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-label-sm text-label-sm text-on-surface">Room 204</span>
-                          <span className="block font-label-sm text-[11px] text-text-stone font-mono">QR + BLE</span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">
-                            40 <span className="text-text-stone text-label-sm">/ 48</span>
-                          </div>
-                          <div className="font-label-sm text-label-sm text-text-stone">40 Pres • 3 Late • 5 Abs</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-label-md text-label-md font-semibold text-warning">92.1%</span>
-                            <span className="material-symbols-outlined text-[16px] text-warning">warning</span>
-                          </div>
-                          <div className="w-16 h-1 bg-surface-container-high rounded-none overflow-hidden mt-0.5">
-                            <div className="h-full bg-warning" style={{ width: "92.1%" }}></div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 bg-warning/15 text-warning font-label-sm text-label-sm font-semibold tracking-wide border border-warning/40">
-                            Flagged (2 Appeals)
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => alert("Reviewing flagged session...")}
-                              className="text-warning hover:underline font-label-sm text-label-sm font-bold cursor-pointer"
-                              type="button"
-                            >
-                              Review Flag
-                            </button>
-                            <span className="text-border-default">|</span>
-                            <button
-                              onClick={() => alert("Loading audit log...")}
-                              className="text-text-stone hover:text-on-surface font-label-sm text-label-sm cursor-pointer"
-                              type="button"
-                            >
-                              Audit Log
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* Row 4: Advanced Algorithms Elective */}
-                      <tr className="hover:bg-surface-container/50 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-semibold text-on-surface">26 Aug • 11:30 AM</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">Session Closed</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">CS508: Advanced Algorithms</div>
-                          <div className="font-label-sm text-label-sm text-text-stone">Elective Cohort • Sem 5</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-label-sm text-label-sm text-on-surface">Hall B</span>
-                          <span className="block font-label-sm text-[11px] text-text-stone font-mono">Biometric Terminal</span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-label-md text-label-md font-medium text-on-surface">
-                            35 <span className="text-text-stone text-label-sm">/ 36</span>
-                          </div>
-                          <div className="font-label-sm text-label-sm text-text-stone">35 Pres • 0 Late • 1 Abs</div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-label-md text-label-md font-semibold text-success">100.0%</span>
-                            <span className="material-symbols-outlined text-[16px] text-success">verified</span>
-                          </div>
-                          <div className="w-16 h-1 bg-surface-container-high rounded-none overflow-hidden mt-0.5">
-                            <div className="h-full bg-success" style={{ width: "100%" }}></div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 bg-success/10 text-success font-label-sm text-label-sm font-semibold tracking-wide border border-success/30">
-                            Verified High
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => setActiveTab("reports")}
-                              className="text-on-surface hover:text-secondary font-label-sm text-label-sm font-semibold cursor-pointer"
-                              type="button"
-                            >
-                              View Log
-                            </button>
-                            <span className="text-border-default">|</span>
-                            <button
-                              onClick={() => alert("Editing session attributes...")}
-                              className="text-text-stone hover:text-on-surface font-label-sm text-label-sm cursor-pointer"
-                              type="button"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Table Pagination */}
-                <div className="px-4 py-3 border-t border-border-default bg-surface-warm flex flex-col sm:flex-row items-center justify-between gap-3 text-text-stone font-label-sm text-label-sm">
-                  <div>
-                    Showing <span className="font-semibold text-on-surface">1 – 4</span> of 38 sessions (Autumn Semester)
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      className="px-3 py-1 border border-border-default hover:bg-surface-container text-on-surface disabled:opacity-40"
-                      disabled
-                      type="button"
-                    >
-                      Previous
-                    </button>
-                    <span className="px-3 py-1 bg-surface-container text-on-surface font-semibold border border-border-default">
-                      1
-                    </span>
-                    <button className="px-3 py-1 border border-border-default hover:bg-surface-container text-on-surface" type="button">
-                      2
-                    </button>
-                    <button className="px-3 py-1 border border-border-default hover:bg-surface-container text-on-surface" type="button">
-                      3
-                    </button>
-                    <button className="px-3 py-1 border border-border-default hover:bg-surface-container text-on-surface" type="button">
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Discrepancy & Manual Correction Queue (XL: 4 cols) */}
-              <div className="xl:col-span-4 bg-surface-warm border border-border-default flex flex-col">
-                <div className="p-5 border-b border-border-default bg-surface-container flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-warning text-[20px]">assignment_late</span>
-                      <h4 className="font-headline-md text-headline-md text-on-surface tracking-tight font-bold">
-                        Manual Queue
-                      </h4>
-                    </div>
-                    <p className="font-label-sm text-label-sm text-text-stone mt-0.5">
-                      {appealsList.filter((a) => a.status === "pending").length} pending roll discrepancy requests
-                    </p>
-                  </div>
-                  <span className="px-2.5 py-0.5 bg-warning/20 text-warning font-label-sm text-label-sm font-semibold border border-warning/30">
-                    {appealsList.filter((a) => a.status === "pending").length} Action Items
-                  </span>
-                </div>
-
-                {/* Appeals Stack */}
-                <div className="divide-y divide-border-default">
-                  {appealsList.map((appeal) => {
-                    const isResolved = appeal.status !== "pending";
-                    return (
-                      <div
-                        key={appeal.id}
-                        className={`p-5 transition-all ${
-                          isResolved ? "opacity-40 bg-surface-container/50" : "hover:bg-surface-container-low"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-label-md text-label-md font-semibold text-on-surface">
-                              {appeal.name}
-                            </div>
-                            <div className="font-label-sm text-label-sm text-text-stone font-mono">
-                              {appeal.roll}
-                            </div>
-                          </div>
-                          <span
-                            className={`font-label-sm text-label-sm px-2 py-0.5 border ${
-                              appeal.tagType === "error"
-                                ? "bg-error/10 text-error border-error/30"
-                                : appeal.tagType === "secondary"
-                                ? "bg-secondary/10 text-secondary border-secondary/30"
-                                : "bg-warning/15 text-warning border-warning/30"
-                            }`}
-                          >
-                            {appeal.tag}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 p-2.5 bg-surface-container border border-border-default text-text-stone font-body-md text-label-sm leading-relaxed">
-                          <span className="text-on-surface font-medium">“</span>
-                          {appeal.quote}
-                          <span className="text-on-surface font-medium">”</span>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between text-label-sm text-text-stone">
-                          <span>{appeal.detail}</span>
-                          {appeal.rssi && <span className="font-medium text-success">{appeal.rssi}</span>}
-                          {appeal.link && (
-                            <a
-                              href="#"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                alert("Opening document preview...");
-                              }}
-                              className="text-secondary hover:underline font-medium"
-                            >
-                              {appeal.link}
-                            </a>
-                          )}
-                        </div>
-
-                        {isResolved ? (
-                          <div className="mt-3 pt-2 border-t border-border-default font-label-sm text-label-sm text-text-stone text-center uppercase tracking-wider font-semibold">
-                            Appeal {appeal.status === "accepted" ? "Accepted & Logged" : "Rejected"}
-                          </div>
-                        ) : (
-                          <div className="mt-4 pt-3 border-t border-border-default flex items-center gap-2">
-                            <button
-                              onClick={() => resolveAppeal(appeal.id, "accepted")}
-                              className="flex-1 py-1.5 px-3 bg-secondary text-on-secondary hover:opacity-90 font-label-sm text-label-sm font-medium tracking-wide flex items-center justify-center gap-1 cursor-pointer"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">check</span>
-                              <span>Accept Roll</span>
-                            </button>
-                            <button
-                              onClick={() => resolveAppeal(appeal.id, "rejected")}
-                              className="py-1.5 px-3 bg-surface-container hover:bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm border border-border-default cursor-pointer"
-                              type="button"
-                            >
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => alert(`Fingerprint details for ${appeal.name}: UUID verified, BLE RSSI -58 dBm.`)}
-                              className="p-1.5 text-text-stone hover:text-on-surface cursor-pointer"
-                              title="Audit device fingerprint"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">info</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="p-4 border-t border-border-default bg-surface-container text-center">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert("Opening resolved appeals archive...");
-                    }}
-                    className="font-label-sm text-label-sm text-secondary hover:underline font-semibold flex items-center justify-center gap-1"
-                  >
-                    <span>View Archive of Resolved Appeals (46 this term)</span>
-                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Academic Integrity & Compliance Audit Footnote */}
-            <div className="mt-10 p-6 bg-surface-container border border-border-default flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-surface-warm border border-border-default flex items-center justify-center text-secondary shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">verified_user</span>
-                </div>
-                <div>
-                  <div className="font-label-md text-label-md font-semibold text-on-surface">
-                    Institutional Audit Ledger Synchronized
-                  </div>
-                  <div className="font-label-sm text-label-sm text-text-stone">
-                    All session timestamps are SHA-256 hash-anchored to the University Registrar DB. Minimum attendance requirement for CS501 is 75.0%.
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={() => alert("Downloading audit certificate...")}
-                  className="px-4 py-2 bg-surface-warm text-on-surface hover:bg-surface-container-high border border-border-default font-label-md text-label-md cursor-pointer"
-                  type="button"
-                >
-                  Download Audit Certificate
-                </button>
-                <button
-                  onClick={() => alert("Generating Registrar Report...")}
-                  className="px-4 py-2 bg-primary text-on-primary hover:bg-on-surface-variant font-label-md text-label-md cursor-pointer"
-                  type="button"
-                >
-                  Registrar Report
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ================= TAB 3: COURSES ================= */}
+        {/* ================= TAB 3: ASSIGNED COURSES & CURRICULA ================= */}
         {activeTab === "courses" && (
-          <div className="flex flex-col gap-10">
-            <div className="border-b border-border-default pb-6">
-              <p className="font-label-sm text-label-sm text-[#B85C3A] uppercase tracking-wider mb-1 font-semibold">
-                Curriculum & Timetable
-              </p>
-              <h1 className="font-serif-display text-4xl text-primary">Courses & Lecture Management</h1>
-              <p className="font-body-lg text-text-muted mt-1">
-                Schedule new lecture sessions and review your assigned departmental courses.
-              </p>
+          <div className="flex flex-col w-full">
+            {/* Editorial Page Title & Curricular Header */}
+            <section className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-border-default">
+              <div className="space-y-2 max-w-3xl">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 bg-surface-container font-label-sm text-label-sm text-text-stone uppercase tracking-wider">
+                    Faculty Portal • Academic Year 2026
+                  </span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-secondary"></span>
+                  <span className="font-label-sm text-label-sm text-secondary font-medium">Autumn Term Active</span>
+                </div>
+                <h1 className="font-greeting-serif text-greeting-serif text-on-surface tracking-tight leading-none font-bold">
+                  Assigned Courses & Curricula
+                </h1>
+                <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+                  Curricular modules, enrolled cohorts, attendance thresholds, and syllabus progression for Autumn Semester 2026.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 self-start md:self-end">
+                <button
+                  onClick={() => setShowRosterModal(true)}
+                  className="px-4 py-2.5 bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2 shadow-sm hover:bg-surface-container transition-all cursor-pointer border border-border-default"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-text-stone">badge</span>
+                  <span>Directory Lookup</span>
+                </button>
+                <button
+                  onClick={() => alert("Batch Attendance Audit initiated across 3 modules.")}
+                  className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-2 shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add_task</span>
+                  <span>Batch Attendance Audit</span>
+                </button>
+              </div>
+            </section>
+
+            {/* Metric Strip: Minimalist Editorial Blocks */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 py-8 border-b border-border-default">
+              <div className="bg-surface-container-lowest p-6 shadow-xs border border-border-default flex flex-col justify-between h-36">
+                <div className="flex items-center justify-between">
+                  <span className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Active Modules</span>
+                  <span className="material-symbols-outlined text-text-stone text-[20px]">auto_stories</span>
+                </div>
+                <div>
+                  <div className="font-headline-lg text-headline-lg text-on-surface font-bold">03</div>
+                  <div className="font-label-sm text-label-sm text-text-stone mt-1">2 Core Disciplines • 1 Advanced Elective</div>
+                </div>
+              </div>
+              <div className="bg-surface-container-lowest p-6 shadow-xs border border-border-default flex flex-col justify-between h-36">
+                <div className="flex items-center justify-between">
+                  <span className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Cohort Census</span>
+                  <span className="material-symbols-outlined text-text-stone text-[20px]">group</span>
+                </div>
+                <div>
+                  <div className="font-headline-lg text-headline-lg text-on-surface font-bold">129</div>
+                  <div className="font-label-sm text-label-sm text-text-stone mt-1">100% Biometric Ledger Registration</div>
+                </div>
+              </div>
+              <div className="bg-surface-container-lowest p-6 shadow-xs border border-border-default flex flex-col justify-between h-36">
+                <div className="flex items-center justify-between">
+                  <span className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Aggregate Attendance</span>
+                  <span className="material-symbols-outlined text-success text-[20px]">trending_up</span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <div className="font-headline-lg text-headline-lg text-on-surface font-bold">89.2%</div>
+                    <div className="font-label-sm text-label-sm text-success mt-1 font-semibold">+2.4% vs Spring 2026 Final</div>
+                  </div>
+                  <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-surface-container"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3.5"
+                    />
+                    <path
+                      className="text-secondary"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeDasharray="89.2, 100"
+                      strokeLinecap="butt"
+                      strokeWidth="3.5"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div className="bg-surface-container-lowest p-6 shadow-xs border border-border-default flex flex-col justify-between h-36">
+                <div className="flex items-center justify-between">
+                  <span className="font-label-sm text-label-sm text-error uppercase tracking-wider font-semibold">Statutory Deficits</span>
+                  <span className="material-symbols-outlined text-error text-[20px]">warning</span>
+                </div>
+                <div>
+                  <div className="font-headline-lg text-headline-lg text-error font-bold">
+                    07 <span className="text-sm font-label-md font-normal text-text-stone">Students</span>
+                  </div>
+                  <div className="font-label-sm text-label-sm text-text-stone mt-1">Below mandatory 75% cutoff threshold</div>
+                </div>
+              </div>
+            </section>
+
+            {/* Editorial Section Divider */}
+            <div className="flex items-center gap-4 py-6">
+              <span className="font-label-sm text-label-sm uppercase tracking-widest text-text-stone font-semibold">
+                Curricular Modules In Session
+              </span>
+              <div className="flex-1 h-px bg-surface-container"></div>
+              <span className="font-label-sm text-label-sm text-text-stone">Autumn 2026 Academic Catalog</span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-5 bg-surface-warm border border-border-default rounded p-6 shadow-xs h-fit">
-                <h3 className="font-serif-display text-2xl text-primary mb-4 pb-3 border-b border-border-default">
-                  Schedule New Lecture
-                </h3>
-
-                <form onSubmit={handleCreateLecture} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
-                      Subject ID
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={lectureForm.subject_id}
-                      onChange={(e) => setLectureForm({ ...lectureForm, subject_id: e.target.value })}
-                      placeholder="e.g. 1 (1 = Demo Subject, 2 = CS-202)"
-                      className="w-full p-3 bg-white border border-border-default rounded text-primary focus:border-[#B85C3A] focus:ring-1 focus:ring-[#B85C3A] outline-none text-sm"
-                    />
-                    <span className="text-[11px] text-text-muted mt-1 block">
-                      Subject Registry: 1 (DEMO-101: Intro to CS), 2 (CS-202: Data Structures)
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
-                      Lecture Date
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={lectureForm.lecture_date}
-                      onChange={(e) => setLectureForm({ ...lectureForm, lecture_date: e.target.value })}
-                      className="w-full p-3 bg-white border border-border-default rounded text-primary focus:border-[#B85C3A] focus:ring-1 focus:ring-[#B85C3A] outline-none text-sm"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
-                        Start Time
-                      </label>
-                      <input
-                        type="time"
-                        step="1"
-                        required
-                        value={lectureForm.start_time}
-                        onChange={(e) => setLectureForm({ ...lectureForm, start_time: e.target.value })}
-                        className="w-full p-3 bg-white border border-border-default rounded text-primary focus:border-[#B85C3A] focus:ring-1 focus:ring-[#B85C3A] outline-none text-sm"
-                      />
+            {/* Course Portfolio Cards Stack */}
+            <div className="space-y-8 pb-10">
+              {/* Card 1: CS501 */}
+              <article className="bg-surface-container-lowest border border-border-default shadow-xs hover:shadow-sm transition-shadow">
+                <div className="p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-surface-warm border-b border-border-default">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-surface-container-high flex flex-col items-center justify-center shrink-0">
+                      <span className="font-label-sm text-label-sm text-secondary font-semibold tracking-wider">CSE</span>
+                      <span className="font-headline-md text-headline-md text-on-surface leading-tight font-bold">501</span>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
-                        End Time
-                      </label>
-                      <input
-                        type="time"
-                        step="1"
-                        required
-                        value={lectureForm.end_time}
-                        onChange={(e) => setLectureForm({ ...lectureForm, end_time: e.target.value })}
-                        className="w-full p-3 bg-white border border-border-default rounded text-primary focus:border-[#B85C3A] focus:ring-1 focus:ring-[#B85C3A] outline-none text-sm"
-                      />
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-surface-container text-on-surface font-label-sm text-label-sm uppercase font-semibold">
+                          Core Compulsory
+                        </span>
+                        <span className="px-2 py-0.5 bg-success/10 text-success font-label-sm text-label-sm font-medium">
+                          91.4% Avg Attendance
+                        </span>
+                        <span className="text-text-stone font-label-sm text-label-sm">• Cohort CSE-A (48 Students)</span>
+                      </div>
+                      <h2 className="font-greeting-serif text-headline-lg text-on-surface mt-1.5 font-bold">Database Systems</h2>
+                      <div className="flex items-center gap-4 text-text-stone font-label-md text-label-md mt-1 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">meeting_room</span> Room 204 (Turing Hall)
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">schedule</span> Mon, Wed, Fri (10:00 – 11:30 AM)
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-secondary">radar</span> Geofenced 100m • Dynamic QR
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  {createMessage && (
-                    <div
-                      className={`p-3 rounded text-sm ${
-                        createMessage.includes("success")
-                          ? "bg-success/10 text-success border border-success/30"
-                          : "bg-error-container/20 text-error border border-error/30"
-                      }`}
+                  <div className="flex items-center gap-3 self-start lg:self-center flex-wrap">
+                    <button
+                      onClick={() => openRosterModal("CS501", "Database Systems", "CSE-A", 48)}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
                     >
-                      {createMessage}
+                      <span className="material-symbols-outlined text-[17px]">groups</span>
+                      <span>Manage Roster</span>
+                    </button>
+                    <button
+                      onClick={() => alert("Syllabus Progress: Unit 4 of 6 (Relational Algebra, SQL Optimization, B-Tree Indices completed). Next lecture: Concurrency Protocols.")}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">menu_book</span>
+                      <span>View Syllabus</span>
+                    </button>
+                    <button
+                      onClick={() => handleGenerateQR(lectures[0]?.id)}
+                      className="px-4 py-2 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md transition-all flex items-center gap-2 cursor-pointer font-semibold"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                      <span>Start Attendance</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-lowest">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Syllabus Completion</span>
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">32 / 45 Lectures (71%)</span>
                     </div>
-                  )}
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-secondary h-2" style={{ width: "71%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-text-stone pt-1">Target mid-semester review threshold completed successfully.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Roster Integrity Status</span>
+                      <span className="font-label-md text-label-md text-success font-semibold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">verified</span> 0 Flagged Deficits
+                      </span>
+                    </div>
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-success h-2" style={{ width: "100%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-text-stone pt-1">All 48 enrolled candidates exceed 80% baseline attendance.</p>
+                  </div>
+                  <div className="bg-surface-container-low p-4 flex items-center justify-between border border-border-default">
+                    <div>
+                      <div className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Next Lecture Module</div>
+                      <div className="font-label-md text-label-md font-semibold text-on-surface">Transaction Serializability & 2PL</div>
+                      <div className="font-label-sm text-label-sm text-secondary">Tomorrow, 10:00 AM • Room 204</div>
+                    </div>
+                    <span className="material-symbols-outlined text-text-stone text-[24px]">calendar_today</span>
+                  </div>
+                </div>
+              </article>
 
+              {/* Card 2: CS503 */}
+              <article className="bg-surface-container-lowest border border-border-default shadow-xs hover:shadow-sm transition-shadow">
+                <div className="p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-surface-warm border-b border-border-default">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-surface-container-high flex flex-col items-center justify-center shrink-0">
+                      <span className="font-label-sm text-label-sm text-secondary font-semibold tracking-wider">CSE</span>
+                      <span className="font-headline-md text-headline-md text-on-surface leading-tight font-bold">503</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-surface-container text-on-surface font-label-sm text-label-sm uppercase font-semibold">
+                          Core Compulsory
+                        </span>
+                        <span className="px-2 py-0.5 bg-warning/10 text-warning font-label-sm text-label-sm font-medium">
+                          84.1% Compliant
+                        </span>
+                        <span className="px-2 py-0.5 bg-error/10 text-error font-label-sm text-label-sm font-medium">
+                          4 At-Risk (&lt;75%)
+                        </span>
+                        <span className="text-text-stone font-label-sm text-label-sm">• Cohort CSE-B (45 Students)</span>
+                      </div>
+                      <h2 className="font-greeting-serif text-headline-lg text-on-surface mt-1.5 font-bold">Operating Systems & Kernel Architecture</h2>
+                      <div className="flex items-center gap-4 text-text-stone font-label-md text-label-md mt-1 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">meeting_room</span> Room 201 / Lab 3
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">schedule</span> Tue, Thu (01:00 – 02:30 PM)
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-secondary">wifi_tethering</span> Dual Beacon + Face Biometrics
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 self-start lg:self-center flex-wrap">
+                    <button
+                      onClick={() => openRosterModal("CS503", "Operating Systems & Kernel Architecture", "CSE-B", 45)}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">groups</span>
+                      <span>Manage Roster</span>
+                    </button>
+                    <button
+                      onClick={() => alert("Syllabus Progress: Unit 3 of 5 (Virtual Memory Paging, Translation Lookaside Buffers, Page Replacement Algorithms in progress).")}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">menu_book</span>
+                      <span>View Syllabus</span>
+                    </button>
+                    <button
+                      onClick={() => handleGenerateQR(lectures[1]?.id || lectures[0]?.id)}
+                      className="px-4 py-2 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md transition-all flex items-center gap-2 cursor-pointer font-semibold"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                      <span>Start Attendance</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-lowest">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Syllabus Completion</span>
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">24 / 40 Lectures (60%)</span>
+                    </div>
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-secondary h-2" style={{ width: "60%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-text-stone pt-1">Kernel lab projects 1 & 2 submitted and graded.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Roster Integrity Status</span>
+                      <span className="font-label-md text-label-md text-error font-semibold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">priority_high</span> 4 Critical Flags
+                      </span>
+                    </div>
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-error h-2" style={{ width: "35%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-error pt-1">Deans warning letters dispatched to Roll #22, #31, #39, #44.</p>
+                  </div>
+                  <div className="bg-surface-container-low p-4 flex items-center justify-between border border-border-default">
+                    <div>
+                      <div className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Next Lecture Module</div>
+                      <div className="font-label-md text-label-md font-semibold text-on-surface">Demand Paging & Page Fault Handlers</div>
+                      <div className="font-label-sm text-label-sm text-secondary">Today, 01:00 PM • Room 201</div>
+                    </div>
+                    <span className="material-symbols-outlined text-text-stone text-[24px]">schedule</span>
+                  </div>
+                </div>
+              </article>
+
+              {/* Card 3: CS508 */}
+              <article className="bg-surface-container-lowest border border-border-default shadow-xs hover:shadow-sm transition-shadow">
+                <div className="p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-surface-warm border-b border-border-default">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-surface-container-high flex flex-col items-center justify-center shrink-0">
+                      <span className="font-label-sm text-label-sm text-secondary font-semibold tracking-wider">CSE</span>
+                      <span className="font-headline-md text-headline-md text-on-surface leading-tight font-bold">508</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="px-2 py-0.5 bg-surface-container text-on-surface font-label-sm text-label-sm uppercase font-semibold">
+                          Senior Elective
+                        </span>
+                        <span className="px-2 py-0.5 bg-success/10 text-success font-label-sm text-label-sm font-medium">
+                          93.8% Exemplary
+                        </span>
+                        <span className="px-2 py-0.5 bg-error/10 text-error font-label-sm text-label-sm font-medium">
+                          3 At-Risk (&lt;75%)
+                        </span>
+                        <span className="text-text-stone font-label-sm text-label-sm">• Cohort Senior Elective (36 Students)</span>
+                      </div>
+                      <h2 className="font-greeting-serif text-headline-lg text-on-surface mt-1.5 font-bold">Advanced Distributed Algorithms</h2>
+                      <div className="flex items-center gap-4 text-text-stone font-label-md text-label-md mt-1 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">meeting_room</span> Hall B (Amphitheater)
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]">schedule</span> Mon, Thu (03:00 – 04:30 PM)
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-secondary">fingerprint</span> High-Security Dynamic QR Ledger
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 self-start lg:self-center flex-wrap">
+                    <button
+                      onClick={() => openRosterModal("CS508", "Advanced Distributed Algorithms", "CSE-Elective", 36)}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">groups</span>
+                      <span>Manage Roster</span>
+                    </button>
+                    <button
+                      onClick={() => alert("Syllabus Progress: Unit 3 of 5 (Raft Consensus, Byzantine Fault Tolerance, Vector Clocks). 16 remaining lectures.")}
+                      className="px-3.5 py-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest font-label-md text-label-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[17px]">menu_book</span>
+                      <span>View Syllabus</span>
+                    </button>
+                    <button
+                      onClick={() => handleGenerateQR(lectures[2]?.id || lectures[0]?.id)}
+                      className="px-4 py-2 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md transition-all flex items-center gap-2 cursor-pointer font-semibold"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">play_circle</span>
+                      <span>Start Attendance</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-lowest">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Syllabus Completion</span>
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">20 / 36 Lectures (55.5%)</span>
+                    </div>
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-secondary h-2" style={{ width: "55.5%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-text-stone pt-1">On schedule with research paper seminar presentations.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Roster Integrity Status</span>
+                      <span className="font-label-md text-label-md text-warning font-semibold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">info</span> 3 Medical Deferrals
+                      </span>
+                    </div>
+                    <div className="w-full bg-surface-container h-2">
+                      <div className="bg-warning h-2" style={{ width: "82%" }}></div>
+                    </div>
+                    <p className="font-label-sm text-label-sm text-text-stone pt-1">Medical leave certificates verified by Department Head.</p>
+                  </div>
+                  <div className="bg-surface-container-low p-4 flex items-center justify-between border border-border-default">
+                    <div>
+                      <div className="font-label-sm text-label-sm text-text-stone uppercase font-semibold">Next Lecture Module</div>
+                      <div className="font-label-md text-label-md font-semibold text-on-surface">Paxos State Machine Replication</div>
+                      <div className="font-label-sm text-label-sm text-secondary">Thursday, 03:00 PM • Hall B</div>
+                    </div>
+                    <span className="material-symbols-outlined text-text-stone text-[24px]">calendar_month</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            {/* Quick Class Scheduling Card */}
+            <div className="bg-surface-warm border border-border-default rounded p-6 md:p-8 shadow-xs">
+              <h3 className="font-serif-display text-2xl text-primary mb-4 pb-3 border-b border-border-default">
+                Schedule New Lecture Session
+              </h3>
+              <form onSubmit={handleCreateLecture} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
+                    Subject ID
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={lectureForm.subject_id}
+                    onChange={(e) => setLectureForm({ ...lectureForm, subject_id: e.target.value })}
+                    placeholder="e.g. 1"
+                    className="w-full p-2.5 bg-white border border-border-default rounded text-primary focus:border-secondary outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
+                    Lecture Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={lectureForm.lecture_date}
+                    onChange={(e) => setLectureForm({ ...lectureForm, lecture_date: e.target.value })}
+                    className="w-full p-2.5 bg-white border border-border-default rounded text-primary focus:border-secondary outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5">
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    step="1"
+                    required
+                    value={lectureForm.start_time}
+                    onChange={(e) => setLectureForm({ ...lectureForm, start_time: e.target.value })}
+                    className="w-full p-2.5 bg-white border border-border-default rounded text-primary focus:border-secondary outline-none text-sm"
+                  />
+                </div>
+                <div>
                   <button
                     type="submit"
                     disabled={createLoading}
-                    className="w-full bg-[#B85C3A] text-white font-label-md py-3 px-6 rounded hover:bg-[#a05032] transition-colors shadow-xs font-semibold cursor-pointer disabled:opacity-50 mt-2"
+                    className="w-full bg-secondary text-on-secondary font-label-md py-2.5 px-4 rounded hover:opacity-90 transition-colors font-semibold cursor-pointer disabled:opacity-50"
                   >
-                    {createLoading ? "Scheduling..." : "Create Scheduled Class"}
+                    {createLoading ? "Scheduling..." : "+ Create Class"}
                   </button>
-                </form>
+                </div>
+              </form>
+              {createMessage && (
+                <div
+                  className={`mt-4 p-3 rounded text-sm ${
+                    createMessage.includes("success")
+                      ? "bg-success/10 text-success border border-success/30"
+                      : "bg-error-container/20 text-error border border-error/30"
+                  }`}
+                >
+                  {createMessage}
+                </div>
+              )}
+            </div>
+
+            {/* Pedagogical Policy & Threshold Rules Settings */}
+            <section className="bg-surface-container-lowest border border-border-default p-8 shadow-xs space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-secondary text-[22px]">policy</span>
+                    <h3 className="font-greeting-serif text-headline-md text-on-surface font-bold">
+                      Attendance Policy & Faculty Verification Protocols
+                    </h3>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                    Statutory university thresholds, grace periods, and physical verification radius enforced during attendance logging.
+                  </p>
+                </div>
+                <button
+                  onClick={() => alert("Faculty policy changes saved and synchronized across all active course modules.")}
+                  className="px-4 py-2 bg-on-surface text-surface-container-lowest hover:bg-secondary font-label-md text-label-md transition-colors self-start md:self-auto cursor-pointer font-semibold"
+                  type="button"
+                >
+                  Save Policy Configuration
+                </button>
               </div>
-
-              <div className="lg:col-span-7 flex flex-col gap-6">
-                <h3 className="font-serif-display text-2xl text-primary">Assigned Departmental Courses</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {facultyCourses.map((course) => (
-                    <div
-                      key={course.code}
-                      className="bg-surface-warm border border-border-default rounded p-5 flex flex-col justify-between shadow-xs hover:border-[#B85C3A] transition-colors"
-                    >
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-mono text-xs font-bold text-[#B85C3A] bg-[#B85C3A]/10 px-2 py-0.5 rounded">
-                            {course.code}
-                          </span>
-                          <span className="text-xs font-semibold text-success bg-success/10 px-2 py-0.5 rounded">
-                            {course.status}
-                          </span>
-                        </div>
-                        <h4 className="font-serif-display text-xl text-primary font-semibold mb-1">
-                          {course.name}
-                        </h4>
-                        <p className="text-xs text-text-stone mb-3">{course.room}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Board Thresholds */}
+                <div className="bg-surface-warm border border-border-default p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-text-stone text-[20px]">gavel</span>
+                    <span className="font-label-md text-label-md font-semibold text-on-surface uppercase tracking-wide">
+                      Board Thresholds
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="font-label-sm text-label-sm text-text-stone block font-semibold">
+                        Mandatory Exam Clearance
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          min="60"
+                          max="90"
+                          value={policyExamThreshold}
+                          onChange={(e) => setPolicyExamThreshold(Number(e.target.value))}
+                          className="w-20 px-3 py-1.5 bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-border-default focus:outline-none focus:bg-surface-container"
+                        />
+                        <span className="font-body-md text-body-md text-on-surface">% minimal attendance</span>
                       </div>
-
-                      <div className="border-t border-border-default pt-3 mt-2 flex items-center justify-between text-xs">
-                        <span className="text-text-muted">
-                          <strong className="text-primary">{course.enrolled}</strong> Students
-                        </span>
-                        <span className="text-text-muted">
-                          Avg: <strong className="text-primary">{course.avgAttendance}</strong>
-                        </span>
-                      </div>
+                      <span className="font-label-sm text-label-sm text-text-stone block mt-1">
+                        Below this requires Syndicate Academic Exemption.
+                      </span>
                     </div>
-                  ))}
+                    <div className="pt-2">
+                      <label className="font-label-sm text-label-sm text-text-stone block font-semibold">
+                        Automatic Dean Escalation
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          min="50"
+                          max="75"
+                          value={policyDeanThreshold}
+                          onChange={(e) => setPolicyDeanThreshold(Number(e.target.value))}
+                          className="w-20 px-3 py-1.5 bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-border-default focus:outline-none focus:bg-surface-container"
+                        />
+                        <span className="font-body-md text-body-md text-on-surface">% warning threshold</span>
+                      </div>
+                      <span className="font-label-sm text-label-sm text-text-stone block mt-1">
+                        Triggers registered SMS and email alerts to guardians.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grace Period Allowance */}
+                <div className="bg-surface-warm border border-border-default p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-text-stone text-[20px]">timelapse</span>
+                    <span className="font-label-md text-label-md font-semibold text-on-surface uppercase tracking-wide">
+                      Grace Period Allowance
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="font-label-sm text-label-sm text-text-stone block font-semibold">
+                        Post-Commencement Entry Buffer
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <select
+                          value={policyGraceMinutes}
+                          onChange={(e) => setPolicyGraceMinutes(e.target.value)}
+                          className="w-full px-3 py-2 bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-border-default focus:outline-none focus:bg-surface-container cursor-pointer"
+                        >
+                          <option value="5">5 Minutes (Strict)</option>
+                          <option value="10">10 Minutes (Standard Academic Norm)</option>
+                          <option value="15">15 Minutes (Lab & Seminar)</option>
+                        </select>
+                      </div>
+                      <span className="font-label-sm text-label-sm text-text-stone block mt-1">
+                        Late arrivals logged with timestamped yellow badges.
+                      </span>
+                    </div>
+                    <div className="pt-2">
+                      <label className="font-label-sm text-label-sm text-text-stone block font-semibold">
+                        Consecutive Absence Trigger
+                      </label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={policyConsecutiveAbsence}
+                          onChange={(e) => setPolicyConsecutiveAbsence(Number(e.target.value))}
+                          className="w-20 px-3 py-1.5 bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-border-default focus:outline-none focus:bg-surface-container"
+                        />
+                        <span className="font-body-md text-body-md text-on-surface">consecutive lectures</span>
+                      </div>
+                      <span className="font-label-sm text-label-sm text-text-stone block mt-1">
+                        Generates academic advisor intervention request.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verification Protocol Selector */}
+                <div className="bg-surface-warm border border-border-default p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-text-stone text-[20px]">shield</span>
+                    <span className="font-label-md text-label-md font-semibold text-on-surface uppercase tracking-wide">
+                      Verification Modality
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={policyCheckQr}
+                        onChange={(e) => setPolicyCheckQr(e.target.checked)}
+                        className="mt-1 accent-secondary"
+                      />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface font-medium">
+                          Dynamic QR Code (Refreshes 15s)
+                        </div>
+                        <div className="font-label-sm text-label-sm text-text-stone">Prevents proxy screen captures and forwarding.</div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={policyCheckBleGps}
+                        onChange={(e) => setPolicyCheckBleGps(e.target.checked)}
+                        className="mt-1 accent-secondary"
+                      />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface font-medium">
+                          BLE & GPS Geofencing (100m Radius)
+                        </div>
+                        <div className="font-label-sm text-label-sm text-text-stone">Ensures physical presence inside lecture theater.</div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={policyCheckFacial}
+                        onChange={(e) => setPolicyCheckFacial(e.target.checked)}
+                        className="mt-1 accent-secondary"
+                      />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface font-medium">
+                          On-Device Facial Biometrics
+                        </div>
+                        <div className="font-label-sm text-label-sm text-text-stone">Required for high-stakes test sessions and final exams.</div>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
+
+            {/* Roster Search Modal */}
+            {showRosterModal && (
+              <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-surface-container-lowest max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-border-default">
+                  <div className="p-6 bg-surface-warm border-b border-border-default flex items-center justify-between">
+                    <div>
+                      <span className="font-label-sm text-label-sm text-secondary uppercase font-semibold tracking-wider">
+                        Cohort Directory
+                      </span>
+                      <h3 className="font-greeting-serif text-headline-md text-on-surface font-bold">
+                        {rosterModalTitle}
+                      </h3>
+                      <p className="font-label-sm text-label-sm text-text-stone">
+                        {rosterModalSubtitle}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowRosterModal(false)}
+                      className="p-2 hover:bg-surface-container text-text-stone hover:text-on-surface cursor-pointer"
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[24px]">close</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-surface-container-low border-b border-border-default flex flex-col sm:flex-row items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-container-lowest border border-border-default flex-1 w-full">
+                      <span className="material-symbols-outlined text-text-stone text-[18px]">search</span>
+                      <input
+                        value={rosterSearchText}
+                        onChange={(e) => setRosterSearchText(e.target.value)}
+                        className="w-full bg-transparent font-label-md text-label-md text-on-surface placeholder:text-text-stone focus:outline-none"
+                        placeholder="Filter by Name, Roll No (e.g. 2026-CSE-01)..."
+                        type="text"
+                      />
+                    </div>
+                    <select
+                      value={rosterCourseFilter}
+                      onChange={(e) => setRosterCourseFilter(e.target.value)}
+                      className="px-3 py-2 bg-surface-container-lowest border border-border-default text-on-surface font-label-md text-label-md focus:outline-none w-full sm:w-auto cursor-pointer"
+                    >
+                      <option value="ALL">All Active Courses</option>
+                      <option value="CS501">CS501 — Database Systems</option>
+                      <option value="CS503">CS503 — Operating Systems</option>
+                      <option value="CS508">CS508 — Distributed Algorithms</option>
+                    </select>
+                  </div>
+
+                  <div className="overflow-y-auto p-6 max-h-[500px]">
+                    <table className="w-full text-left font-body-md text-body-md border-collapse">
+                      <thead>
+                        <tr className="text-text-stone font-label-sm text-label-sm uppercase tracking-wider bg-surface-warm border-b border-border-default">
+                          <th className="py-3 px-4">Roll Number</th>
+                          <th className="py-3 px-4">Student Name</th>
+                          <th className="py-3 px-4">Course</th>
+                          <th className="py-3 px-4">Lectures Attended</th>
+                          <th className="py-3 px-4">Attendance %</th>
+                          <th className="py-3 px-4">Statutory Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="font-label-md text-label-md divide-y divide-border-default">
+                        {filteredCandidates.map((cand) => (
+                          <tr key={cand.roll} className="hover:bg-surface-warm transition-colors">
+                            <td className="py-3.5 px-4 font-mono text-sm text-text-stone">{cand.roll}</td>
+                            <td className="py-3.5 px-4 font-medium text-on-surface">{cand.name}</td>
+                            <td className="py-3.5 px-4 text-text-stone">{cand.course} ({cand.cohort})</td>
+                            <td className="py-3.5 px-4 text-on-surface">{cand.attended}</td>
+                            <td
+                              className={`py-3.5 px-4 font-semibold ${
+                                cand.statusType === "error"
+                                  ? "text-error"
+                                  : cand.statusType === "warning"
+                                  ? "text-warning"
+                                  : cand.statusType === "success"
+                                  ? "text-success"
+                                  : "text-on-surface"
+                              }`}
+                            >
+                              {cand.pct}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`px-2 py-0.5 text-xs font-medium ${
+                                  cand.statusType === "error"
+                                    ? "bg-error/10 text-error"
+                                    : cand.statusType === "warning"
+                                    ? "bg-warning/10 text-warning"
+                                    : cand.statusType === "success"
+                                    ? "bg-success/10 text-success"
+                                    : "bg-surface-container text-text-stone"
+                                }`}
+                              >
+                                {cand.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <button
+                                onClick={() =>
+                                  alert(
+                                    `Student Log: ${cand.name} (${cand.roll})\nCourse: ${cand.course}\nAttendance: ${cand.pct} (${cand.attended})\nVerification Status: Verified Biometric Ledger.`
+                                  )
+                                }
+                                className="text-secondary hover:underline text-xs cursor-pointer font-semibold"
+                                type="button"
+                              >
+                                View Log
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="p-4 bg-surface-warm border-t border-border-default flex items-center justify-between">
+                    <span className="font-label-sm text-label-sm text-text-stone">
+                      Showing live cohort records from Autumn 2026 registrar database
+                    </span>
+                    <button
+                      onClick={() => setShowRosterModal(false)}
+                      className="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md cursor-pointer"
+                      type="button"
+                    >
+                      Close Directory
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
