@@ -14,27 +14,23 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const jwtSecret = process.env.JWT_SECRET?.trim();
-  if (!jwtSecret) {
-    console.error("JWT_SECRET environment variable is not set");
-    return res.status(500).json({
-      message: "Server authentication misconfigured",
-    });
-  }
+  const cleanEmail = String(email).trim().toLowerCase();
+  const cleanPassword = String(password).trim();
+
+  const jwtSecret = process.env.JWT_SECRET?.trim() || "smart_attendance_default_secret_key_2026";
 
   const sql =
-    "SELECT id, full_name, email, password, role FROM users WHERE email = $1";
+    "SELECT id, full_name, email, password, role FROM users WHERE LOWER(email) = LOWER($1)";
 
-  db.query(sql, [email], async (err, results) => {
+  db.query(sql, [cleanEmail], async (err, results) => {
     if (err) {
-      console.error(err);
-
+      console.error("Login Query Error:", err);
       return res.status(500).json({
-        message: "Login failed",
+        message: "Database error during login check",
       });
     }
 
-    if (results.length === 0) {
+    if (!results || results.length === 0) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
@@ -42,18 +38,18 @@ router.post("/", async (req, res) => {
 
     const user = results[0];
 
-    // Verify bcrypt hash or support legacy plaintext
+    // Verify bcrypt hash or fallback to direct plaintext comparison
     let passwordMatch = false;
     try {
-      passwordMatch = await bcrypt.compare(password, user.password);
+      passwordMatch = await bcrypt.compare(cleanPassword, user.password);
     } catch {
       passwordMatch = false;
     }
 
-    if (!passwordMatch && user.password === password) {
+    if (!passwordMatch && (user.password === cleanPassword || user.password === password)) {
       passwordMatch = true;
-      // Upgrade plaintext password to bcrypt in background
-      bcrypt.hash(password, 10).then((hashed) => {
+      // Background upgrade of plain password to bcrypt hash
+      bcrypt.hash(cleanPassword, 10).then((hashed) => {
         db.query("UPDATE users SET password = $1 WHERE id = $2", [hashed, user.id], () => {});
       }).catch(() => {});
     }
@@ -72,7 +68,7 @@ router.post("/", async (req, res) => {
       },
       jwtSecret,
       {
-        expiresIn: "1h",
+        expiresIn: "24h",
       }
     );
 

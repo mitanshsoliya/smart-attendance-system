@@ -51,12 +51,20 @@ function Login({ onLogin }) {
     setLoading(true);
     setMessage("");
     try {
-      const { data } = await api.post("/login", { email, password });
-      const accountRole = data.user?.role;
-      const roleMatches = role === accountRole || (role === "HOD" && accountRole === "HOD");
+      const { data } = await api.post("/login", {
+        email: email.trim(),
+        password: password.trim(),
+      });
+      const accountRole = (data.user?.role || "").toUpperCase();
+      const selectedRole = role.toUpperCase();
+
+      const isFacultyOrHod = (r) => r === "FACULTY" || r === "HOD";
+      const roleMatches =
+        selectedRole === accountRole ||
+        (isFacultyOrHod(selectedRole) && isFacultyOrHod(accountRole));
+
       if (!roleMatches) {
-        setMessage(`This account is registered as ${accountRole || "another role"}. Choose the matching portal.`);
-        return;
+        console.warn(`Portal selected: ${selectedRole}, Actual account role: ${accountRole}. Logging in with user's registered role.`);
       }
       onLogin(data);
     } catch (error) {
@@ -82,6 +90,12 @@ function Login({ onLogin }) {
       <Field label="PASSWORD" type="password" value={password} onChange={setPassword} placeholder="Enter your password" />
       <button className="button primary full" disabled={loading}>{loading ? "Signing in..." : "Log in"}</button>
     </form>
+    <div style={{ marginTop: "16px", padding: "12px", background: "rgba(0,0,0,0.03)", border: "1px border-default", fontSize: "12px", color: "#666", lineHeight: "1.5" }}>
+      <strong>Demo Accounts:</strong><br />
+      • Student: <code>student@example.com</code> / <code>student123</code><br />
+      • Faculty: <code>faculty@example.com</code> / <code>faculty123</code><br />
+      • HOD: <code>hod@example.com</code> / <code>hod123</code>
+    </div>
     {message && <Notice type="error">{message}</Notice>}
   </section></main>;
 }

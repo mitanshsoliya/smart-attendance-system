@@ -173,6 +173,28 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
     return () => clearInterval(timer);
   }, []);
 
+  // Live attendance status polling (every 3s for real-time dashboard updates)
+  const fetchLiveAttendance = async () => {
+    const targetId = selectedLectureId || (lectures[0]?.id ? String(lectures[0].id) : "1");
+    if (!targetId || !token) return;
+    try {
+      const { data } = await api.get(`/attendance/lecture/${targetId}`, auth(token));
+      if (data && data.attendance) {
+        setStatusList(data.attendance);
+      }
+    } catch {
+      // ignore transient poll errors
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveAttendance();
+    const livePoll = setInterval(() => {
+      fetchLiveAttendance();
+    }, 3000);
+    return () => clearInterval(livePoll);
+  }, [selectedLectureId, token]);
+
   // Generate QR session
   const handleGenerateQR = async (lectureIdToUse) => {
     const targetId = lectureIdToUse || selectedLectureId || (lectures[0]?.id ? String(lectures[0].id) : "1");
