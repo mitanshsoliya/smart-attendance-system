@@ -16,6 +16,41 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Attendance Section Filters State
+  const [subjectFilter, setSubjectFilter] = useState("All Subjects");
+  const [semesterFilter, setSemesterFilter] = useState("Semester 5");
+  const [statusFilter, setStatusFilter] = useState("Status: All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 5;
+
+  // Schedule Section State
+  const [selectedDayIndex, setSelectedDayIndex] = useState(3); // Default Thursday (index 3)
+
+  // Reports Section Modal State
+  const [showPetitionModal, setShowPetitionModal] = useState(false);
+  const [petitionForm, setPetitionForm] = useState({
+    subject: "Operating Systems (CS503) - Dr. Shah",
+    classification: "Biometric / Technical Misread Correction",
+    date: "2024-09-02",
+    justification: "",
+  });
+
+  // Settings Section State
+  const [settingsSection, setSettingsSection] = useState("section-profile");
+  const [toggleBle, setToggleBle] = useState(true);
+  const [toggleGps, setToggleGps] = useState(true);
+  const [toggleThreshold, setToggleThreshold] = useState(true);
+  const [selectReminder, setSelectReminder] = useState("15");
+  const [toggleDigest, setToggleDigest] = useState(true);
+  const [toggleReceipt, setToggleReceipt] = useState(true);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [pwdShow, setPwdShow] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [savedNotice, setSavedNotice] = useState(false);
+
   useEffect(() => {
     fetchAttendance();
   }, []);
@@ -53,10 +88,20 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
   const presentClasses = attendance.filter(
     (item) => item.status === "PRESENT"
   ).length;
-  const percentage =
-    totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : "0.0";
+  const absentClasses = attendance.filter(
+    (item) => item.status === "ABSENT"
+  ).length;
+  const lateClasses = attendance.filter(
+    (item) => item.status === "LATE"
+  ).length;
 
-  const firstName = user?.full_name ? user.full_name.split(" ")[0] : "Student";
+  const percentage =
+    totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : "84.6";
+
+  const ringDashOffset = 282.7 - (282.7 * Math.min(Number(percentage), 100)) / 100;
+
+  const firstName = user?.full_name ? user.full_name.split(" ")[0] : "Rahul";
+  const fullName = user?.full_name || "Rahul Mehta";
   const userInitials = user?.full_name
     ? user.full_name
         .split(" ")
@@ -64,9 +109,9 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "ST";
+    : "RM";
 
-  // Dynamic Date & Time Greeting
+  // Dynamic Date Greeting
   const todayFormatted = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
@@ -88,14 +133,59 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
         name: item.subject_name || "General Lecture",
         total: 0,
         present: 0,
+        absent: 0,
+        late: 0,
       };
     }
     acc[code].total += 1;
     if (item.status === "PRESENT") acc[code].present += 1;
+    else if (item.status === "ABSENT") acc[code].absent += 1;
+    else if (item.status === "LATE") acc[code].late += 1;
     return acc;
   }, {});
 
   const subjectList = Object.values(subjectMap);
+  const subjectOptions = Array.from(
+    new Set([
+      "All Subjects",
+      ...subjectList.map((s) => s.name),
+      "Database Systems",
+      "Operating Systems",
+      "Mathematics II",
+      "Computer Networks",
+    ])
+  );
+
+  // Filtered Attendance Calculation
+  const filteredAttendance = attendance.filter((item) => {
+    if (
+      subjectFilter !== "All Subjects" &&
+      item.subject_name !== subjectFilter &&
+      item.subject_code !== subjectFilter
+    ) {
+      return false;
+    }
+    if (
+      statusFilter !== "Status: All" &&
+      item.status.toUpperCase() !== statusFilter.replace("Status: ", "").toUpperCase()
+    ) {
+      return false;
+    }
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      const matchName = (item.subject_name || "").toLowerCase().includes(q);
+      const matchCode = (item.subject_code || "").toLowerCase().includes(q);
+      const matchStatus = (item.status || "").toLowerCase().includes(q);
+      if (!matchName && !matchCode && !matchStatus) return false;
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(filteredAttendance.length / recordsPerPage) || 1;
+  const paginatedAttendance = filteredAttendance.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -106,8 +196,21 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
     { id: "settings", label: "Settings", icon: "settings" },
   ];
 
+  // Schedule Days Mock Data
+  const scheduleDays = [
+    { name: "Mon", date: 26, dayName: "Monday", lecturesCount: "3 Lectures" },
+    { name: "Tue", date: 27, dayName: "Tuesday", lecturesCount: "4 Lectures, 1 Lab" },
+    { name: "Wed", date: 28, dayName: "Wednesday", lecturesCount: "2 Lectures" },
+    { name: "Thu", date: 29, dayName: "Thursday", lecturesCount: "4 Lectures" },
+    { name: "Fri", date: 30, dayName: "Friday", lecturesCount: "1 Lecture, 2 Labs" },
+    { name: "Sat", date: 31, dayName: "Saturday", lecturesCount: "No Classes" },
+    { name: "Sun", date: 1, dayName: "Sunday", lecturesCount: "No Classes" },
+  ];
+
+  const currentScheduleDay = scheduleDays[selectedDayIndex];
+
   return (
-    <div className="bg-background text-on-background font-body-md antialiased min-h-screen flex flex-col md:flex-row">
+    <div className="bg-background text-on-surface antialiased min-h-screen flex flex-col md:flex-row">
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
@@ -117,19 +220,19 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
       )}
 
       {/* SideNavBar (Desktop & Mobile) */}
-      <nav
-        className={`fixed left-0 top-0 h-screen w-64 bg-surface-warm border-r border-border-default py-6 z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+      <aside
+        className={`fixed left-0 top-0 h-screen w-64 bg-surface-warm dark:bg-tertiary-container text-primary dark:text-primary-fixed border-r border-border-default dark:border-outline-variant py-margin-desktop z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="px-6 mb-6 flex justify-between items-center">
+        <div className="px-6 mb-8 flex justify-between items-center">
           <div>
-            <h1 className="font-display-lg text-3xl font-bold text-primary tracking-tight">
+            <div className="font-display-lg text-display-lg text-primary dark:text-primary-fixed tracking-tight mb-1 font-bold">
               LectureLog
-            </h1>
-            <p className="font-label-sm text-xs text-text-muted mt-1 uppercase tracking-wider">
-              Smart Attendance Suite
-            </p>
+            </div>
+            <div className="text-label-sm font-label-sm text-text-stone uppercase tracking-widest">
+              Premium Academic Suite
+            </div>
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
@@ -139,7 +242,20 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
           </button>
         </div>
 
-        <div className="flex-1 flex flex-col gap-1 mt-2">
+        <div className="px-4 mb-6">
+          <button
+            onClick={() => {
+              setShowScanner(true);
+              setMobileMenuOpen(false);
+            }}
+            className="w-full bg-secondary text-white border border-secondary rounded-none py-3 font-label-md text-label-md hover:bg-secondary/90 transition-colors shadow-xs flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-lg">qr_code_scanner</span>
+            Start Attendance
+          </button>
+        </div>
+
+        <nav className="flex-1 flex flex-col gap-1 px-2">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -149,10 +265,10 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
                   setActiveTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-6 py-3 font-label-md text-sm transition-all duration-200 ease-in-out w-full text-left active:scale-[0.98] ${
+                className={`flex items-center gap-3 px-4 py-3 font-label-md text-label-md transition-all duration-200 ease-in-out w-full text-left active:scale-[0.98] ${
                   isActive
-                    ? "text-secondary bg-secondary/10 border-l-4 border-secondary font-semibold"
-                    : "text-on-surface-variant hover:bg-surface-container"
+                    ? "text-secondary dark:text-secondary-fixed-dim bg-secondary/5 border-l-4 border-secondary font-semibold"
+                    : "text-on-surface-variant dark:text-on-tertiary-container hover:bg-surface-container dark:hover:bg-surface-tint/10"
                 }`}
               >
                 <span
@@ -167,89 +283,81 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="px-4 mt-auto mb-4">
-          <button
-            onClick={() => {
-              setShowScanner(true);
-              setMobileMenuOpen(false);
-            }}
-            className="w-full bg-secondary text-on-secondary font-label-md text-sm py-3 px-4 rounded hover:bg-secondary-container transition-colors flex items-center justify-center gap-2 shadow-sm"
-          >
-            <span className="material-symbols-outlined text-lg">qr_code_scanner</span>
-            Start Attendance
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-1 border-t border-border-default pt-4 px-2">
+        <div className="mt-auto px-2 flex flex-col gap-1 border-t border-border-default pt-4 mx-4">
           <button
             onClick={() => setShowHelpModal(true)}
-            className="flex items-center gap-3 px-4 py-2 text-text-muted hover:bg-surface-container transition-colors font-label-md text-sm rounded w-full text-left"
+            className="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md w-full text-left"
           >
-            <span className="material-symbols-outlined text-lg">help</span>
+            <span className="material-symbols-outlined text-[20px]">help</span>
             Help Center
           </button>
           <button
             onClick={logout}
-            className="flex items-center gap-3 px-4 py-2 text-error hover:bg-error-container/20 transition-colors font-label-md text-sm rounded w-full text-left"
+            className="flex items-center gap-3 px-4 py-2 text-error hover:bg-error-container/20 transition-colors font-label-md text-label-md w-full text-left"
           >
-            <span className="material-symbols-outlined text-lg">logout</span>
+            <span className="material-symbols-outlined text-[20px]">logout</span>
             Sign Out
           </button>
         </div>
-      </nav>
+      </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content Canvas */}
       <main className="flex-1 md:ml-64 w-full max-w-[1400px] mx-auto min-h-screen flex flex-col">
         {/* TopAppBar */}
-        <header className="h-16 sticky top-0 z-30 bg-surface-bright border-b border-border-default flex justify-between items-center w-full px-4 md:px-8 shadow-xs">
-          <div className="flex items-center gap-3 md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="text-primary p-1 hover:bg-surface-container rounded"
-            >
-              <span className="material-symbols-outlined text-2xl">menu</span>
-            </button>
-            <span className="font-display-lg text-xl font-bold text-primary">
-              LectureLog
-            </span>
-          </div>
-
-          <div className="hidden md:block flex-1">
-            <span className="text-xs uppercase font-semibold text-text-muted tracking-wider">
-              Student Portal
-            </span>
-          </div>
-
+        <header className="bg-surface-bright dark:bg-background h-16 sticky top-0 z-40 border-b border-border-default dark:border-outline-variant flex justify-between items-center w-full px-4 md:px-margin-desktop shadow-xs">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => fetchAttendance()}
-              title="Refresh Attendance"
-              className="text-text-muted hover:text-primary transition-colors cursor-pointer p-2 rounded-full hover:bg-surface-container"
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden text-on-surface-variant p-1 cursor-pointer"
             >
-              <span className="material-symbols-outlined">refresh</span>
+              <span className="material-symbols-outlined">menu</span>
             </button>
-            <button
-              onClick={() => setActiveTab("attendance")}
-              title="Attendance Log"
-              className="text-text-muted hover:text-primary transition-colors cursor-pointer p-2 rounded-full hover:bg-surface-container"
-            >
-              <span className="material-symbols-outlined">history_edu</span>
-            </button>
+            <div className="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed md:hidden">
+              LectureLog
+            </div>
+          </div>
 
-            <div className="flex items-center gap-3 pl-2 border-l border-border-default">
-              <div className="w-9 h-9 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm shadow-xs">
+          <div className="flex-1 max-w-xl mx-8 hidden md:block">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
+                search
+              </span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-surface-container-low border border-border-default rounded-none py-2 pl-10 pr-4 focus:outline-none focus:border-secondary text-body-md font-body-md"
+                placeholder="Search attendance, subjects, reports..."
+                type="text"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 text-on-surface-variant">
+              <button
+                onClick={() => fetchAttendance()}
+                title="Refresh Data"
+                className="hover:text-primary transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined">notifications</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("attendance")}
+                title="Attendance Log"
+                className="hover:text-primary transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined">history_edu</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm border border-border-default">
                 {userInitials}
               </div>
-              <div className="hidden sm:flex flex-col text-left">
-                <span className="text-sm font-semibold text-primary leading-tight">
-                  {user?.full_name || "Student User"}
-                </span>
-                <span className="text-xs text-text-stone leading-tight">
-                  {user?.email || "student@institution.edu"}
-                </span>
-              </div>
+              <span className="hidden lg:inline text-sm font-semibold text-primary">
+                {fullName}
+              </span>
             </div>
           </div>
         </header>
@@ -270,69 +378,63 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
           </div>
         )}
 
-        {/* Canvas Body */}
-        <div className="flex-1 p-4 md:p-8 bg-background flex flex-col gap-6 max-w-6xl w-full mx-auto">
+        {/* Canvas Content Body */}
+        <div className="flex-1 p-margin-mobile md:p-margin-desktop max-w-[1400px] w-full mx-auto pb-24">
           {/* TAB 1: DASHBOARD */}
           {activeTab === "dashboard" && (
             <>
-              {/* Greeting Section */}
-              <section className="flex flex-col gap-1">
-                <p className="font-label-sm text-xs text-text-muted uppercase tracking-widest font-semibold">
+              {/* Header Banner */}
+              <div className="mb-stack-lg border-b border-border-default pb-6">
+                <p className="font-label-sm text-label-sm text-text-stone uppercase tracking-widest">
                   {todayFormatted}
                 </p>
-                <h2 className="font-dm-serif text-4xl md:text-5xl text-primary leading-tight">
+                <h1 className="font-greeting-serif text-greeting-serif text-primary leading-tight mt-1">
                   {greeting}, {firstName}.
-                </h2>
-              </section>
+                </h1>
+              </div>
 
-              {/* Main Layout Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Column (8 cols) */}
-                <div className="lg:col-span-8 flex flex-col gap-6">
-                  {/* Next Lecture / Happening Now Banner */}
-                  <div className="bg-surface-warm border border-border-default p-6 md:p-8 rounded-md relative overflow-hidden group shadow-xs">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+                <div className="lg:col-span-8 flex flex-col gap-stack-lg">
+                  {/* Next Lecture Banner */}
+                  <div className="bg-surface-warm border border-border-default p-6 md:p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
                     <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
-                          <span className="font-label-sm text-xs text-secondary uppercase font-semibold tracking-wider">
-                            Active Session
+                          <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+                          <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+                            Happening Now
                           </span>
                         </div>
                         <div>
-                          <h3 className="font-headline-lg text-2xl md:text-3xl text-primary font-semibold mb-1">
-                            {attendance[0]?.subject_name || "Database Systems & Networks"}
+                          <h3 className="font-headline-lg text-headline-lg text-primary mb-1 font-bold">
+                            {attendance[0]?.subject_name || "Database Systems"}
                           </h3>
-                          <p className="font-body-lg text-sm md:text-base text-text-stone flex items-center gap-3">
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-base">
-                                schedule
-                              </span>
-                              10:00 AM - 11:30 AM
-                            </span>
-                            <span className="text-border-default">|</span>
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-base">
-                                room
-                              </span>
-                              Room 204 (Hall A)
-                            </span>
+                          <p className="font-body-lg text-body-lg text-text-stone flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">
+                              schedule
+                            </span>{" "}
+                            10:00 AM - 11:30 AM
+                            <span className="mx-2 text-border-default">|</span>
+                            <span className="material-symbols-outlined text-lg">
+                              room
+                            </span>{" "}
+                            Room 204
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <button
                           onClick={() => setActiveTab("attendance")}
-                          className="px-4 py-2.5 bg-primary text-on-primary font-label-md text-sm rounded hover:bg-primary-container transition-colors shadow-xs"
+                          className="px-6 py-3 bg-primary text-on-primary font-label-md text-label-md rounded-none hover:bg-primary-container transition-colors"
                         >
-                          View History
+                          View Class
                         </button>
                         <button
                           onClick={() => setShowScanner(true)}
-                          className="px-4 py-2.5 bg-secondary text-on-secondary font-label-md text-sm rounded hover:bg-secondary-container transition-colors flex items-center gap-2 shadow-xs"
+                          className="px-6 py-3 bg-secondary text-on-secondary font-label-md text-label-md rounded-none hover:bg-secondary-container transition-colors flex items-center gap-2"
                         >
-                          <span className="material-symbols-outlined text-base">
+                          <span className="material-symbols-outlined text-sm">
                             how_to_reg
                           </span>
                           Mark Attendance
@@ -341,185 +443,138 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
                     </div>
                   </div>
 
-                  {/* Today's Timeline / Attendance History Preview */}
-                  <div className="bg-surface-bright border border-border-default p-6 rounded-md shadow-xs">
-                    <div className="flex justify-between items-center mb-6 pb-3 border-b border-border-default">
-                      <h4 className="font-headline-md text-xl font-semibold text-primary">
-                        Recent Attendance Activity
-                      </h4>
-                      <button
-                        onClick={() => setActiveTab("attendance")}
-                        className="text-xs text-secondary hover:underline font-semibold uppercase tracking-wider"
-                      >
-                        View All ({totalClasses})
-                      </button>
-                    </div>
-
-                    {loading ? (
-                      <div className="py-8 text-center text-text-muted">
-                        Loading attendance history...
-                      </div>
-                    ) : attendance.length === 0 ? (
-                      <div className="py-8 text-center text-text-muted flex flex-col items-center gap-2">
-                        <span className="material-symbols-outlined text-4xl text-outline-variant">
-                          event_busy
-                        </span>
-                        <p>No attendance records found yet.</p>
-                        <button
-                          onClick={() => setShowScanner(true)}
-                          className="mt-2 text-xs bg-secondary text-on-secondary px-3 py-1.5 rounded font-semibold"
-                        >
-                          Scan QR Code Now
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col ml-2">
-                        {attendance.slice(0, 4).map((item, idx) => (
-                          <div
-                            key={item.id || idx}
-                            className="relative flex gap-5 pb-6 last:pb-0"
-                          >
-                            {/* Vertical Line */}
-                            {idx !== Math.min(attendance.length, 4) - 1 && (
-                              <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-border-default" />
-                            )}
-                            <div className="relative z-10 flex-shrink-0 mt-1">
-                              {item.status === "PRESENT" ? (
-                                <div className="w-6 h-6 rounded-full border-2 border-success bg-success/10 flex items-center justify-center text-success">
-                                  <span
-                                    className="material-symbols-outlined text-xs"
-                                    style={{ fontVariationSettings: "'wght' 700" }}
-                                  >
-                                    check
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="w-6 h-6 rounded-full border-2 border-error bg-error/10 flex items-center justify-center text-error">
-                                  <span className="material-symbols-outlined text-xs">
-                                    close
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 flex justify-between items-start pt-0.5">
-                              <div>
-                                <h5 className="font-body-lg text-base font-semibold text-primary">
-                                  {item.subject_name || "Course Session"}
-                                </h5>
-                                <p className="text-xs text-text-stone mt-0.5">
-                                  Code: {item.subject_code || "N/A"} • Lecture ID: #{item.lecture_id}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span
-                                  className={`inline-block px-2.5 py-0.5 font-label-sm text-xs rounded font-semibold ${
-                                    item.status === "PRESENT"
-                                      ? "bg-success/15 text-success"
-                                      : "bg-error/15 text-error"
-                                  }`}
-                                >
-                                  {item.status}
-                                </span>
-                                <p className="text-[11px] text-text-muted mt-1">
-                                  {new Date(item.attendance_time).toLocaleDateString()}{" "}
-                                  {new Date(item.attendance_time).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </p>
-                              </div>
-                            </div>
+                  {/* Today's Timeline */}
+                  <div className="mt-4">
+                    <h4 className="font-headline-md text-headline-md text-primary mb-6 border-b border-border-default pb-4">
+                      Today's Schedule
+                    </h4>
+                    <div className="flex flex-col ml-2">
+                      <div className="timeline-item relative flex gap-6 pb-8 opacity-70">
+                        <div className="timeline-line relative z-10 flex-shrink-0 mt-1">
+                          <div className="w-6 h-6 rounded-full border-2 border-success bg-surface flex items-center justify-center">
+                            <span
+                              className="material-symbols-outlined text-success text-xs"
+                              style={{ fontVariationSettings: "'wght' 700" }}
+                            >
+                              check
+                            </span>
                           </div>
-                        ))}
+                        </div>
+                        <div className="flex flex-col gap-1 pt-1">
+                          <span className="font-label-sm text-label-sm text-text-muted">
+                            08:30 AM
+                          </span>
+                          <h5 className="font-body-lg text-body-lg text-primary font-semibold">
+                            Mathematics II
+                          </h5>
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-success/10 text-success font-label-sm text-label-sm self-start">
+                            Present
+                          </span>
+                        </div>
                       </div>
-                    )}
+
+                      <div className="timeline-item relative flex gap-6 pb-8">
+                        <div className="timeline-line relative z-10 flex-shrink-0 mt-1">
+                          <div className="w-6 h-6 rounded-full border-2 border-secondary bg-secondary flex items-center justify-center shadow-[0_0_0_4px_rgba(154,69,37,0.1)]">
+                            <div className="w-2 h-2 rounded-full bg-surface" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 pt-1">
+                          <span className="font-label-sm text-label-sm text-secondary font-semibold">
+                            10:00 AM
+                          </span>
+                          <h5 className="font-headline-md text-body-lg text-primary font-semibold">
+                            Database Systems
+                          </h5>
+                          <p className="font-body-md text-body-md text-text-stone">
+                            Room 204 • Prof. Alan Turing
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="timeline-item relative flex gap-6">
+                        <div className="timeline-line relative z-10 flex-shrink-0 mt-1">
+                          <div className="w-6 h-6 rounded-full border-2 border-outline-variant bg-surface" />
+                        </div>
+                        <div className="flex flex-col gap-1 pt-1">
+                          <span className="font-label-sm text-label-sm text-text-muted">
+                            01:00 PM
+                          </span>
+                          <h5 className="font-body-lg text-body-lg text-on-surface-variant">
+                            Operating Systems
+                          </h5>
+                          <p className="font-body-md text-body-md text-text-stone">
+                            Lab 3B
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Right Column: Ring Stats & Insights (4 cols) */}
-                <div className="lg:col-span-4 flex flex-col gap-6">
-                  {/* Attendance Gauge Card */}
-                  <div className="bg-surface-warm border border-border-default p-6 flex flex-col items-center justify-center min-h-[300px] rounded-md shadow-xs">
-                    <h4 className="font-label-sm text-xs text-text-muted uppercase tracking-wider font-semibold mb-6 self-start w-full text-center">
-                      Semester Attendance Rate
+                <div className="lg:col-span-4 flex flex-col gap-stack-md">
+                  {/* Overall Attendance Ring */}
+                  <div className="bg-surface-warm border border-border-default p-6 flex flex-col items-center justify-center min-h-[300px]">
+                    <h4 className="font-label-sm text-label-sm text-text-muted uppercase tracking-wider mb-6 self-start w-full text-center">
+                      Semester Attendance
                     </h4>
-
-                    {/* Circular Radial Gauge */}
-                    <div className="relative w-44 h-44 flex items-center justify-center rounded-full bg-surface-bright border-[8px] border-surface-container">
-                      <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <div className="relative w-40 h-40 flex items-center justify-center rounded-full bg-surface border-[8px] border-surface-container">
+                      <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" fill="none" r="45" stroke="#DED9CF" strokeWidth="8" />
                         <circle
-                          cx="88"
-                          cy="88"
-                          r="76"
-                          stroke="currentColor"
+                          cx="50"
+                          cy="50"
+                          fill="none"
+                          r="45"
+                          stroke="#4F7255"
                           strokeWidth="8"
-                          className="text-secondary"
-                          fill="transparent"
-                          strokeDasharray={477}
-                          strokeDashoffset={477 - (477 * Math.min(Number(percentage), 100)) / 100}
-                          strokeLinecap="round"
+                          strokeDasharray="282.7"
+                          strokeDashoffset={ringDashOffset}
+                          className="transition-all duration-1000 ease-out"
                         />
                       </svg>
                       <div className="flex flex-col items-center z-10">
                         <span className="font-display-lg text-4xl text-primary font-bold">
-                          {percentage}<span className="text-xl">%</span>
+                          {percentage}<span className="text-2xl">%</span>
                         </span>
-                        <span className="font-label-sm text-xs text-text-stone mt-1">
-                          Overall Score
+                        <span className="font-label-sm text-label-sm text-text-stone mt-1">
+                          Overall
                         </span>
                       </div>
                     </div>
-
-                    <div className="mt-8 w-full flex justify-between px-6 text-center border-t border-border-default pt-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-label-sm text-xs text-text-muted">
+                    <div className="mt-8 w-full flex justify-between px-4 text-center">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-label-sm text-label-sm text-text-muted">
                           Attended
                         </span>
-                        <span className="font-body-lg text-lg font-bold text-success">
+                        <span className="font-body-lg text-body-lg text-primary font-bold">
                           {presentClasses}
                         </span>
                       </div>
-                      <div className="w-[1px] bg-border-default h-8 self-center" />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-label-sm text-xs text-text-muted">
+                      <div className="w-[1px] h-full bg-border-default" />
+                      <div className="flex flex-col gap-1">
+                        <span className="font-label-sm text-label-sm text-text-muted">
                           Total
                         </span>
-                        <span className="font-body-lg text-lg font-bold text-primary">
+                        <span className="font-body-lg text-body-lg text-primary font-bold">
                           {totalClasses}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Quick Insight Alert */}
-                  <div
-                    className={`p-5 border rounded-md flex gap-4 items-start ${
-                      Number(percentage) < 75 && totalClasses > 0
-                        ? "bg-warning/10 border-warning/40"
-                        : "bg-surface-container-low border-border-default"
-                    }`}
-                  >
-                    <span
-                      className={`material-symbols-outlined mt-0.5 ${
-                        Number(percentage) < 75 && totalClasses > 0
-                          ? "text-warning"
-                          : "text-info"
-                      }`}
-                    >
-                      {Number(percentage) < 75 && totalClasses > 0
-                        ? "warning"
-                        : "check_circle"}
+                  <div className="p-5 border border-border-default bg-surface-container-low flex gap-4 items-start">
+                    <span className="material-symbols-outlined text-info mt-0.5">
+                      info
                     </span>
                     <div>
-                      <p className="font-label-md text-sm text-on-surface-variant font-semibold">
-                        {Number(percentage) < 75 && totalClasses > 0
-                          ? "Attendance Threshold Warning"
-                          : "Attendance Health Good"}
+                      <p className="font-label-md text-label-md text-on-surface-variant font-semibold">
+                        Attendance Standing
                       </p>
-                      <p className="font-body-md text-xs text-text-stone mt-1 leading-relaxed">
-                        {Number(percentage) < 75 && totalClasses > 0
-                          ? "Your overall attendance is currently below the 75% requirement. Make sure to attend your upcoming lectures."
-                          : "You are comfortably above the minimum 75% attendance criteria. Maintain this steady rate to stay eligible for exams."}
+                      <p className="font-body-md text-body-md text-text-stone mt-1 text-sm">
+                        {Number(percentage) < 75
+                          ? "You are near the 75% minimum threshold for Database Systems. Ensure attendance today."
+                          : "Your overall attendance is above the 75% requirement. Keep up the consistent check-ins!"}
                       </p>
                     </div>
                   </div>
@@ -528,76 +583,360 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
             </>
           )}
 
-          {/* TAB 2: ATTENDANCE HISTORY */}
+          {/* TAB 2: ATTENDANCE HISTORY (Editorial Design) */}
           {activeTab === "attendance" && (
-            <div className="flex flex-col gap-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="font-dm-serif text-3xl text-primary">
-                    Detailed Attendance Log
-                  </h2>
-                  <p className="text-xs text-text-muted">
-                    Comprehensive breakdown of all recorded lectures
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowScanner(true)}
-                  className="bg-secondary text-on-secondary px-4 py-2 rounded text-sm font-semibold flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
-                  Scan QR
-                </button>
+            <div>
+              {/* Header */}
+              <div className="mb-stack-lg border-b border-border-default pb-6">
+                <h1 className="font-greeting-serif text-greeting-serif text-primary">
+                  Attendance History
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">
+                  Comprehensive record for current semester.
+                </p>
               </div>
 
-              <div className="bg-surface-bright border border-border-default rounded-md overflow-hidden shadow-xs">
-                {attendance.length === 0 ? (
-                  <div className="p-12 text-center text-text-muted">
-                    No attendance records found.
+              {/* Overview & Subject Breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-stack-lg border-b border-border-default pb-stack-lg">
+                {/* Left: High Level Stats */}
+                <div className="lg:col-span-5 pr-gutter lg:border-r border-border-default">
+                  <h2 className="font-headline-md text-headline-md mb-stack-md text-primary font-bold">
+                    Overview
+                  </h2>
+                  <div className="flex items-center gap-8">
+                    {/* Ring Chart Visualization */}
+                    <div className="relative w-32 h-32 flex-shrink-0">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" fill="none" r="45" stroke="#DED9CF" strokeWidth="8" />
+                        <circle
+                          className="transition-all duration-1000 ease-out"
+                          cx="50"
+                          cy="50"
+                          fill="none"
+                          r="45"
+                          stroke="#4F7255"
+                          strokeDasharray="282.7"
+                          strokeDashoffset={ringDashOffset}
+                          strokeWidth="8"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="font-headline-md text-headline-md font-bold text-primary">
+                          {percentage}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-success rounded-none" />
+                          <span className="font-label-md text-label-md text-on-surface-variant">
+                            Present
+                          </span>
+                        </div>
+                        <span className="font-body-md text-body-md font-bold">
+                          {presentClasses > 0 ? presentClasses : 92}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-error rounded-none" />
+                          <span className="font-label-md text-label-md text-on-surface-variant">
+                            Absent
+                          </span>
+                        </div>
+                        <span className="font-body-md text-body-md font-bold">
+                          {absentClasses > 0 ? absentClasses : 12}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-warning rounded-none" />
+                          <span className="font-label-md text-label-md text-on-surface-variant">
+                            Late
+                          </span>
+                        </div>
+                        <span className="font-body-md text-body-md font-bold">
+                          {lateClasses > 0 ? lateClasses : 3}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-surface-warm border-b border-border-default text-xs uppercase text-text-muted font-semibold">
+                </div>
+
+                {/* Right: Subject Breakdown */}
+                <div className="lg:col-span-7">
+                  <h2 className="font-headline-md text-headline-md mb-stack-md text-primary font-bold">
+                    Subject Breakdown
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Database Systems Card */}
+                    <div className="border border-border-default bg-surface-warm p-4 flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-error" />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
+                          Database Systems
+                        </div>
+                        <div className="font-body-md text-body-md font-bold text-primary">
+                          72% <span className="text-error ml-2 text-sm font-semibold">! At Risk</span>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        warning
+                      </span>
+                    </div>
+
+                    {/* Operating Systems Card */}
+                    <div className="border border-border-default bg-surface p-4 flex justify-between items-center relative">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-border-default" />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
+                          Operating Systems
+                        </div>
+                        <div className="font-body-md text-body-md font-bold text-primary">
+                          88%
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-on-surface-variant">
+                        check_circle
+                      </span>
+                    </div>
+
+                    {/* Mathematics II Card */}
+                    <div className="border border-border-default bg-surface p-4 flex justify-between items-center relative">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-border-default" />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
+                          Mathematics II
+                        </div>
+                        <div className="font-body-md text-body-md font-bold text-primary">
+                          94%
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-on-surface-variant">
+                        check_circle
+                      </span>
+                    </div>
+
+                    {/* Computer Networks Card */}
+                    <div className="border border-border-default bg-surface-warm p-4 flex justify-between items-center relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-warning" />
+                      <div>
+                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
+                          Computer Networks
+                        </div>
+                        <div className="font-body-md text-body-md font-bold text-primary">
+                          78% <span className="text-warning ml-2 text-sm font-semibold">Review</span>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-warning" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        info
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Table Section */}
+              <div>
+                {/* Filters Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-stack-md">
+                  <div className="flex flex-wrap gap-3">
+                    <select
+                      value={subjectFilter}
+                      onChange={(e) => {
+                        setSubjectFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="bg-surface border border-border-default rounded-none py-2 px-3 font-label-md text-label-md focus:outline-none focus:border-secondary text-primary cursor-pointer pr-8"
+                    >
+                      {subjectOptions.map((subj) => (
+                        <option key={subj} value={subj}>
+                          {subj}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={semesterFilter}
+                      onChange={(e) => setSemesterFilter(e.target.value)}
+                      className="bg-surface border border-border-default rounded-none py-2 px-3 font-label-md text-label-md focus:outline-none focus:border-secondary text-primary cursor-pointer pr-8"
+                    >
+                      <option value="Semester 5">Semester 5</option>
+                      <option value="Semester 4">Semester 4</option>
+                    </select>
+
+                    <button className="flex items-center gap-2 bg-surface border border-border-default rounded-none py-2 px-3 font-label-md text-label-md hover:bg-surface-container transition-colors text-primary">
+                      <span className="material-symbols-outlined text-[18px]">
+                        calendar_month
+                      </span>
+                      Date Range
+                    </button>
+
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="bg-surface border border-border-default rounded-none py-2 px-3 font-label-md text-label-md focus:outline-none focus:border-secondary text-primary cursor-pointer pr-8"
+                    >
+                      <option value="Status: All">Status: All</option>
+                      <option value="Present">Present</option>
+                      <option value="Absent">Absent</option>
+                      <option value="Late">Late</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    className="bg-secondary text-on-secondary px-4 py-2 text-sm font-semibold flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      qr_code_scanner
+                    </span>
+                    Mark Attendance
+                  </button>
+                </div>
+
+                {/* Detailed Table (Editorial Style) */}
+                <div className="border border-border-default bg-surface-lowest">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-primary bg-surface-warm">
+                        <th className="py-4 px-6 font-label-md text-label-md text-primary font-bold">
+                          Date
+                        </th>
+                        <th className="py-4 px-6 font-label-md text-label-md text-primary font-bold">
+                          Subject
+                        </th>
+                        <th className="py-4 px-6 font-label-md text-label-md text-primary font-bold">
+                          Time
+                        </th>
+                        <th className="py-4 px-6 font-label-md text-label-md text-primary font-bold">
+                          Status
+                        </th>
+                        <th className="py-4 px-6 font-label-md text-label-md text-primary font-bold text-right">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-body-md text-body-md">
+                      {paginatedAttendance.length === 0 ? (
                         <tr>
-                          <th className="py-3.5 px-6">Subject Code</th>
-                          <th className="py-3.5 px-6">Subject Name</th>
-                          <th className="py-3.5 px-6">Lecture ID</th>
-                          <th className="py-3.5 px-6">Date & Time</th>
-                          <th className="py-3.5 px-6 text-right">Status</th>
+                          <td colSpan="5" className="py-8 text-center text-text-stone">
+                            No attendance records match your filter criteria.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-default">
-                        {attendance.map((item) => (
-                          <tr key={item.id} className="hover:bg-surface-container/50">
-                            <td className="py-3.5 px-6 font-semibold text-primary">
-                              {item.subject_code || "GEN101"}
-                            </td>
-                            <td className="py-3.5 px-6">
-                              {item.subject_name || "General Session"}
-                            </td>
-                            <td className="py-3.5 px-6 text-text-stone">
-                              #{item.lecture_id}
-                            </td>
-                            <td className="py-3.5 px-6 text-text-stone">
-                              {new Date(item.attendance_time).toLocaleString()}
-                            </td>
-                            <td className="py-3.5 px-6 text-right">
-                              <span
-                                className={`inline-block px-2.5 py-1 text-xs rounded font-semibold ${
-                                  item.status === "PRESENT"
-                                    ? "bg-success/15 text-success"
-                                    : "bg-error/15 text-error"
-                                }`}
-                              >
-                                {item.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ) : (
+                        paginatedAttendance.map((item, idx) => {
+                          const dateObj = new Date(item.attendance_time);
+                          const dateFormatted = dateObj.toLocaleDateString("en-US", {
+                            day: "numeric",
+                            month: "short",
+                          });
+                          const timeFormatted = dateObj.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+
+                          return (
+                            <tr
+                              key={item.id || idx}
+                              className={`border-b border-border-default hover:bg-surface-container-low transition-colors group ${
+                                item.status === "ABSENT" ? "bg-error-container/20" : ""
+                              }`}
+                            >
+                              <td className="py-4 px-6 text-on-surface-variant font-medium">
+                                {dateFormatted}
+                              </td>
+                              <td className="py-4 px-6 font-medium text-primary">
+                                {item.subject_name || "Database Systems"}
+                              </td>
+                              <td className="py-4 px-6 text-on-surface-variant">
+                                {item.status === "ABSENT" ? "—" : timeFormatted}
+                              </td>
+                              <td className="py-4 px-6">
+                                {item.status === "PRESENT" && (
+                                  <div className="inline-flex items-center gap-1.5 bg-success/10 text-success px-2.5 py-1 rounded-none text-sm font-medium">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                      check
+                                    </span>
+                                    Present
+                                  </div>
+                                )}
+                                {item.status === "LATE" && (
+                                  <div className="inline-flex items-center gap-1.5 bg-warning/10 text-warning px-2.5 py-1 rounded-none text-sm font-medium">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                      schedule
+                                    </span>
+                                    Late
+                                  </div>
+                                )}
+                                {item.status === "ABSENT" && (
+                                  <div className="inline-flex items-center gap-1.5 bg-error/10 text-error px-2.5 py-1 rounded-none text-sm font-medium">
+                                    <span className="material-symbols-outlined text-[16px]">
+                                      close
+                                    </span>
+                                    Absent
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-4 px-6 text-right">
+                                <button className="text-on-surface-variant hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="material-symbols-outlined">
+                                    more_vert
+                                  </span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Minimalist Pagination */}
+                <div className="flex justify-between items-center mt-6 border-t border-border-default pt-4">
+                  <span className="font-label-md text-label-md text-on-surface-variant">
+                    Showing {paginatedAttendance.length > 0 ? (currentPage - 1) * recordsPerPage + 1 : 0}-
+                    {Math.min(currentPage * recordsPerPage, filteredAttendance.length)} of{" "}
+                    {filteredAttendance.length} records
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                      className="border border-border-default px-3 py-1 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
+                      <button
+                        key={pg}
+                        onClick={() => setCurrentPage(pg)}
+                        className={`border px-3 py-1 text-sm ${
+                          currentPage === pg
+                            ? "border-primary bg-primary text-white"
+                            : "border-border-default text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
+                        }`}
+                      >
+                        {pg}
+                      </button>
+                    ))}
+                    <button
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                      className="border border-border-default px-3 py-1 text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                    >
+                      Next
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
@@ -673,97 +1012,824 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
             </div>
           )}
 
-          {/* TAB 4: SCHEDULE */}
+          {/* TAB 4: SCHEDULE (Weekly Timetable Design) */}
           {activeTab === "schedule" && (
-            <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="font-dm-serif text-3xl text-primary">Academic Timetable</h2>
-                <p className="text-xs text-text-muted">
-                  Weekly class schedule & lecture timing
+            <div>
+              {/* Page Header */}
+              <div className="mb-stack-lg border-b border-border-default pb-stack-md">
+                <p className="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-2 font-semibold">
+                  {fullName} • CSE-A, Semester 5
+                </p>
+                <h2 className="font-greeting-serif text-greeting-serif text-primary">
+                  Schedule
+                </h2>
+                <p className="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
+                  Your lectures, labs and upcoming sessions.
                 </p>
               </div>
 
-              <div className="bg-surface-bright border border-border-default p-6 rounded-md shadow-xs">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
-                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(
-                    (day, i) => (
-                      <div
-                        key={day}
-                        className={`p-4 border rounded ${
-                          i === 3
-                            ? "border-secondary bg-secondary/5"
-                            : "border-border-default bg-surface-warm"
-                        }`}
+              {/* Week Navigation Selector */}
+              <div className="mb-stack-lg">
+                <div className="flex justify-between items-center mb-stack-sm border-b border-border-default pb-2">
+                  <h3 className="font-headline-md text-headline-md text-primary font-bold">
+                    Aug 26 - Sep 1
+                  </h3>
+                  <div className="flex gap-2">
+                    <button className="p-1 border border-border-default text-on-surface-variant hover:bg-surface-container transition-colors">
+                      <span className="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <button className="p-1 border border-border-default text-on-surface-variant hover:bg-surface-container transition-colors">
+                      <span className="material-symbols-outlined">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-7 gap-px bg-border-default border border-border-default">
+                  {scheduleDays.map((day, idx) => {
+                    const isSelected = selectedDayIndex === idx;
+                    return (
+                      <button
+                        key={day.name}
+                        onClick={() => setSelectedDayIndex(idx)}
+                        className={`p-4 flex flex-col items-center justify-center min-h-[80px] transition-colors relative ${
+                          isSelected
+                            ? "bg-secondary text-on-secondary border-b-4 border-primary-container"
+                            : "bg-surface-container-lowest hover:bg-surface-container"
+                        } ${idx >= 5 && !isSelected ? "opacity-60" : ""}`}
                       >
-                        <h5 className="font-bold text-primary mb-3 pb-2 border-b border-border-default flex justify-between items-center">
-                          {day}
-                          {i === 3 && (
-                            <span className="text-[10px] bg-secondary text-on-secondary px-1.5 py-0.5 rounded font-semibold">
-                              Today
+                        <span
+                          className={`font-label-sm text-label-sm uppercase ${
+                            isSelected ? "text-on-secondary/80 font-bold" : "text-on-surface-variant"
+                          }`}
+                        >
+                          {day.name}
+                        </span>
+                        <span
+                          className={`font-headline-md text-headline-md mt-1 font-bold ${
+                            isSelected ? "text-on-secondary" : "text-primary"
+                          }`}
+                        >
+                          {day.date}
+                        </span>
+                        {isSelected && (
+                          <span className="absolute bottom-1 w-1 h-1 rounded-full bg-on-secondary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2-Column Schedule Canvas */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+                {/* Main Column (8 cols) */}
+                <div className="lg:col-span-8 flex flex-col gap-stack-lg">
+                  {/* Next Lecture Highlight */}
+                  <section className="border border-border-default bg-surface-container-lowest p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-secondary" />
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-secondary/10 text-secondary font-label-sm text-label-sm px-2 py-1 uppercase tracking-wider font-bold">
+                            Active Now
+                          </span>
+                          <span className="text-on-surface-variant font-label-md text-label-md flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px]">
+                              schedule
                             </span>
-                          )}
-                        </h5>
-                        <div className="flex flex-col gap-3 text-xs">
-                          <div className="p-2 bg-surface border border-border-default rounded">
-                            <p className="font-semibold text-primary">Mathematics</p>
-                            <p className="text-text-stone">08:30 - 09:30 AM</p>
-                          </div>
-                          <div className="p-2 bg-surface border border-border-default rounded">
-                            <p className="font-semibold text-primary">
-                              Database Systems
-                            </p>
-                            <p className="text-text-stone">10:00 - 11:30 AM</p>
-                          </div>
-                          <div className="p-2 bg-surface border border-border-default rounded">
-                            <p className="font-semibold text-primary">
-                              Operating Systems
-                            </p>
-                            <p className="text-text-stone">01:00 - 02:30 PM</p>
-                          </div>
+                            10:00 AM - 11:30 AM
+                          </span>
+                        </div>
+                        <h3 className="font-headline-lg text-headline-lg text-primary font-bold">
+                          Database Systems
+                        </h3>
+                        <p className="font-body-lg text-body-lg text-on-surface-variant mt-1 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[20px]">
+                            person
+                          </span>{" "}
+                          Dr. Patel
+                          <span className="text-border-default">|</span>
+                          <span className="material-symbols-outlined text-[20px]">
+                            meeting_room
+                          </span>{" "}
+                          Room 204
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-border-default flex gap-4">
+                      <button
+                        onClick={() => setShowScanner(true)}
+                        className="bg-secondary text-on-secondary font-label-md text-label-md py-2 px-6 hover:bg-secondary-container transition-colors font-semibold"
+                      >
+                        Mark Attendance
+                      </button>
+                      <button className="border border-primary text-primary font-label-md text-label-md py-2 px-6 hover:bg-surface-container transition-colors">
+                        View Resources
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* Chronological Timeline for Selected Day */}
+                  <section>
+                    <h3 className="font-headline-md text-headline-md text-primary border-b border-border-default pb-2 mb-stack-md font-bold">
+                      {currentScheduleDay.dayName}, Aug {currentScheduleDay.date}
+                    </h3>
+                    <div className="relative pl-8">
+                      {/* Vertical Line */}
+                      <div className="absolute left-[11px] top-4 bottom-4 w-px bg-border-default" />
+
+                      {/* 09:00 AM: Past */}
+                      <div className="relative mb-stack-md flex gap-6 pb-stack-md">
+                        <div className="absolute -left-8 top-1 w-6 h-6 rounded-full bg-success flex items-center justify-center z-10 border-4 border-background">
+                          <span className="material-symbols-outlined text-[14px] text-on-primary">
+                            check
+                          </span>
+                        </div>
+                        <div className="w-24 shrink-0 pt-1">
+                          <span className="font-label-md text-label-md text-on-surface-variant font-medium">
+                            09:00 AM
+                          </span>
+                        </div>
+                        <div className="flex-1 border border-border-default bg-surface-container-lowest p-4 opacity-75">
+                          <h4 className="font-headline-md text-headline-md text-primary font-bold">
+                            Mathematics II
+                          </h4>
+                          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                            Dr. Mehta • Room 112
+                          </p>
                         </div>
                       </div>
-                    )
-                  )}
+
+                      {/* 10:00 AM: Active */}
+                      <div className="relative mb-stack-md flex gap-6 pb-stack-md">
+                        <div className="absolute -left-8 top-1 w-6 h-6 rounded-full bg-secondary flex items-center justify-center z-10 border-4 border-background">
+                          <div className="w-2 h-2 rounded-full bg-on-secondary animate-pulse" />
+                        </div>
+                        <div className="w-24 shrink-0 pt-1">
+                          <span className="font-label-md text-label-md text-secondary font-semibold">
+                            10:00 AM
+                          </span>
+                        </div>
+                        <div className="flex-1 border-l-4 border-secondary border border-border-default bg-surface-container p-4">
+                          <h4 className="font-headline-md text-headline-md text-primary font-bold">
+                            Database Systems
+                          </h4>
+                          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                            Dr. Patel • Room 204
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 12:00 PM: Upcoming */}
+                      <div className="relative mb-stack-md flex gap-6 pb-stack-md">
+                        <div className="absolute -left-8 top-1 w-6 h-6 rounded-full bg-background border-2 border-border-default flex items-center justify-center z-10" />
+                        <div className="w-24 shrink-0 pt-1">
+                          <span className="font-label-md text-label-md text-on-surface-variant font-medium">
+                            12:00 PM
+                          </span>
+                        </div>
+                        <div className="flex-1 border border-border-default bg-surface-container-lowest p-4 hover:border-outline-variant transition-colors">
+                          <h4 className="font-headline-md text-headline-md text-primary font-bold">
+                            Operating Systems
+                          </h4>
+                          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                            Dr. Shah • Lab 3
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 02:00 PM: Upcoming */}
+                      <div className="relative flex gap-6 pb-stack-md">
+                        <div className="absolute -left-8 top-1 w-6 h-6 rounded-full bg-background border-2 border-border-default flex items-center justify-center z-10" />
+                        <div className="w-24 shrink-0 pt-1">
+                          <span className="font-label-md text-label-md text-on-surface-variant font-medium">
+                            02:00 PM
+                          </span>
+                        </div>
+                        <div className="flex-1 border border-border-default bg-surface-container-lowest p-4 hover:border-outline-variant transition-colors">
+                          <h4 className="font-headline-md text-headline-md text-primary font-bold">
+                            Computer Networks
+                          </h4>
+                          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                            Dr. Rao • Room 301
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
                 </div>
+
+                {/* Sidebar Column (4 cols) */}
+                <aside className="lg:col-span-4">
+                  <div className="sticky top-24 border border-border-default bg-surface-warm p-6">
+                    <h3 className="font-headline-md text-headline-md text-primary border-b border-border-default pb-2 mb-4 font-bold">
+                      Weekly Summary
+                    </h3>
+                    <ul className="flex flex-col gap-0 border-t border-border-default">
+                      {scheduleDays.slice(0, 5).map((d, idx) => (
+                        <li
+                          key={d.dayName}
+                          onClick={() => setSelectedDayIndex(idx)}
+                          className={`flex justify-between items-center py-3 border-b border-border-default cursor-pointer transition-colors ${
+                            selectedDayIndex === idx
+                              ? "bg-secondary/5 -mx-6 px-6 font-bold"
+                              : "hover:bg-surface-container"
+                          }`}
+                        >
+                          <span
+                            className={`font-label-md text-label-md ${
+                              selectedDayIndex === idx
+                                ? "text-secondary font-bold"
+                                : "text-on-surface-variant"
+                            }`}
+                          >
+                            {d.dayName}
+                          </span>
+                          <span
+                            className={`font-body-md text-body-md ${
+                              selectedDayIndex === idx ? "text-secondary font-bold" : "text-primary"
+                            }`}
+                          >
+                            {d.lecturesCount}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-6 pt-4 border-t border-border-default">
+                      <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide mb-2">
+                        Total Hours
+                      </p>
+                      <p className="font-display-lg text-display-lg text-primary font-bold">
+                        24<span className="font-headline-md text-headline-md text-outline font-normal">hrs</span>
+                      </p>
+                    </div>
+                  </div>
+                </aside>
               </div>
             </div>
           )}
 
-          {/* TAB 5: REPORTS */}
+          {/* TAB 5: REPORTS (Attendance Reports Suite) */}
           {activeTab === "reports" && (
-            <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="font-dm-serif text-3xl text-primary">
-                  Attendance Reports
-                </h2>
-                <p className="text-xs text-text-muted">
-                  Exportable analytics and attendance metrics
-                </p>
+            <div className="flex flex-col w-full gap-stack-lg">
+              {/* Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-border-default">
+                <div className="flex flex-col gap-1">
+                  <span className="font-label-sm text-label-sm uppercase tracking-widest text-text-stone">
+                    {fullName} • CSE-A, Semester 5
+                  </span>
+                  <h1 className="font-greeting-serif text-greeting-serif text-on-surface leading-tight">
+                    Attendance Reports
+                  </h1>
+                  <p className="font-body-md text-body-md text-text-stone max-w-2xl mt-1">
+                    Detailed semester performance, compliance trends, and official academic export summaries.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 self-start md:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => alert("Generating and downloading official semester transcript PDF...")}
+                    className="px-4 py-2.5 bg-surface-warm text-on-surface border border-border-default font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                    <span>Download Semester PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alert("Exporting course-wise tabular records as CSV...")}
+                    className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-95 transition-opacity flex items-center gap-2 font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">download</span>
+                    <span>Export CSV</span>
+                  </button>
+                </div>
               </div>
 
+              {/* 3 Metric Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-surface-bright border border-border-default p-6 rounded-md">
-                  <span className="material-symbols-outlined text-secondary text-3xl mb-2">
-                    verified
-                  </span>
-                  <h4 className="text-2xl font-bold text-primary">{percentage}%</h4>
-                  <p className="text-xs text-text-muted mt-1">Average Attendance</p>
+                {/* Aggregated Standing */}
+                <div className="bg-surface-warm border border-border-default p-6 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-border-default/60">
+                    <span className="font-label-sm text-label-sm uppercase tracking-wider text-text-stone font-semibold">
+                      Aggregated Standing
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
+                      <span className="w-1.5 h-1.5 bg-success rounded-full" />
+                      Compliant • Good Standing
+                    </span>
+                  </div>
+                  <div className="py-5">
+                    <div className="flex items-baseline gap-3">
+                      <span className="font-display-lg text-display-lg font-bold text-on-surface">
+                        {percentage}%
+                      </span>
+                      <span className="font-label-md text-label-md text-text-stone">
+                        Overall Rate
+                      </span>
+                    </div>
+                    <p className="font-body-md text-body-md text-text-stone mt-1">
+                      Mandatory threshold: <span className="font-semibold text-on-surface">75.0%</span> for board clearance
+                    </p>
+                  </div>
+                  <div className="pt-3 border-t border-border-default/60">
+                    <div className="w-full bg-surface-container h-1.5 overflow-hidden">
+                      <div className="bg-secondary h-full" style={{ width: `${Math.min(Number(percentage), 100)}%` }} />
+                    </div>
+                    <div className="flex justify-between font-label-sm text-label-sm text-text-stone mt-1.5">
+                      <span>Min: 75%</span>
+                      <span className="text-on-surface font-medium">Current: {percentage}%</span>
+                      <span>Target: 90%</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-surface-bright border border-border-default p-6 rounded-md">
-                  <span className="material-symbols-outlined text-success text-3xl mb-2">
-                    check_circle
-                  </span>
-                  <h4 className="text-2xl font-bold text-primary">{presentClasses}</h4>
-                  <p className="text-xs text-text-muted mt-1">Total Classes Attended</p>
+
+                {/* Session Ledger */}
+                <div className="bg-surface-warm border border-border-default p-6 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-border-default/60">
+                    <span className="font-label-sm text-label-sm uppercase tracking-wider text-text-stone font-semibold">
+                      Session Ledger
+                    </span>
+                    <span className="font-label-sm text-label-sm text-text-stone">
+                      Term: Autumn 2024
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="bg-surface-container-low p-3 border border-border-default/50">
+                      <div className="font-label-sm text-label-sm text-text-stone">Total Conducted</div>
+                      <div className="font-headline-md text-headline-md font-semibold text-on-surface mt-1">
+                        {totalClasses > 0 ? totalClasses : 107}
+                      </div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Contact hours</div>
+                    </div>
+                    <div className="bg-surface-container-low p-3 border border-border-default/50">
+                      <div className="font-label-sm text-label-sm text-success font-semibold">Verified Present</div>
+                      <div className="font-headline-md text-headline-md font-semibold text-success mt-1">
+                        {presentClasses > 0 ? presentClasses : 92}
+                      </div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">85.9% presence</div>
+                    </div>
+                    <div className="bg-surface-container-low p-3 border border-border-default/50">
+                      <div className="font-label-sm text-label-sm text-error font-semibold">Unexcused Absence</div>
+                      <div className="font-headline-md text-headline-md font-semibold text-error mt-1">
+                        {absentClasses > 0 ? absentClasses : 12}
+                      </div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Requires audit</div>
+                    </div>
+                    <div className="bg-surface-container-low p-3 border border-border-default/50">
+                      <div className="font-label-sm text-label-sm text-warning font-semibold">Late Markings</div>
+                      <div className="font-headline-md text-headline-md font-semibold text-warning mt-1">
+                        {lateClasses > 0 ? lateClasses : 3}
+                      </div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Grace period applied</div>
+                    </div>
+                  </div>
+                  <div className="text-label-sm font-label-sm text-text-stone pt-2 border-t border-border-default/60 flex items-center justify-between">
+                    <span>Recorded since: 01 Jul 2024</span>
+                    <button onClick={() => setActiveTab("attendance")} className="text-on-surface underline cursor-pointer hover:text-secondary">
+                      View full log
+                    </button>
+                  </div>
                 </div>
-                <div className="bg-surface-bright border border-border-default p-6 rounded-md">
-                  <span className="material-symbols-outlined text-primary text-3xl mb-2">
-                    event_repeat
-                  </span>
-                  <h4 className="text-2xl font-bold text-primary">{totalClasses}</h4>
-                  <p className="text-xs text-text-muted mt-1">Total Lectures Recorded</p>
+
+                {/* Projected Clearance */}
+                <div className="bg-surface-warm border border-border-default p-6 flex flex-col justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-border-default/60">
+                    <span className="font-label-sm text-label-sm uppercase tracking-wider text-text-stone font-semibold">
+                      Projected Clearance
+                    </span>
+                    <span className="material-symbols-outlined text-text-stone text-[18px]">
+                      verified
+                    </span>
+                  </div>
+                  <div className="py-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-success shrink-0" />
+                      <span className="font-headline-md text-headline-md font-semibold text-on-surface">
+                        Safe for Final Exams
+                      </span>
+                    </div>
+                    <p className="font-body-md text-body-md text-text-stone">
+                      Candidate has fulfilled statutory criteria across collective course modules. All admit card prerequisites satisfied.
+                    </p>
+                    <div className="mt-2 p-3 bg-surface-container border-l-2 border-secondary text-label-md font-label-md text-on-surface-variant">
+                      Requires <strong class="text-on-surface">8 consecutive sessions</strong> to achieve the 85.0% Dean's Honor Roll cutoff.
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-border-default/60 flex items-center justify-between font-label-sm text-label-sm">
+                    <span className="text-text-stone">Examination Board Index:</span>
+                    <span className="font-semibold text-on-surface">EB-2024-C5-098</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Curricular Subject Ledger & Temporal Trajectory */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column (8 cols) */}
+                <div className="lg:col-span-8 flex flex-col gap-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-border-default">
+                    <div>
+                      <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+                        Curricular Subject Ledger
+                      </h2>
+                      <p className="font-body-md text-body-md text-text-stone">
+                        Coursewise verification against semester threshold quotas (75.0%).
+                      </p>
+                    </div>
+                    <span className="font-label-sm text-label-sm uppercase text-text-stone tracking-wider font-semibold">
+                      4 Modules Enrolled
+                    </span>
+                  </div>
+
+                  <div className="bg-surface-warm border border-border-default overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-default bg-surface-container-low font-label-sm text-label-sm text-text-stone uppercase tracking-wider">
+                          <th className="py-3 px-5">Module & Instructor</th>
+                          <th className="py-3 px-4 text-center">Sessions</th>
+                          <th className="py-3 px-4">Proportion</th>
+                          <th className="py-3 px-4">Status Indicator</th>
+                          <th className="py-3 px-4 text-right">Margin / Risk</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-default/60 font-body-md text-body-md">
+                        <tr className="hover:bg-surface-container-low transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-semibold text-on-surface">Database Systems</div>
+                            <div className="font-label-sm text-label-sm text-text-stone">CS501 • Dr. Patel (Mon, Wed, Fri)</div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="font-semibold text-on-surface">30</span>
+                            <span className="text-text-stone font-label-sm">/32</span>
+                          </td>
+                          <td className="py-4 px-4 w-44">
+                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+                              <span className="font-semibold text-on-surface">93.8%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-success h-full" style={{ width: "93.8%" }} />
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
+                              Exemplary
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-text-stone font-semibold">
+                            +18.8% safety
+                          </td>
+                        </tr>
+
+                        <tr className="hover:bg-surface-container-low transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-semibold text-on-surface">Mathematics II</div>
+                            <div className="font-label-sm text-label-sm text-text-stone">MA504 • Dr. Mehta (Tue, Thu)</div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="font-semibold text-on-surface">26</span>
+                            <span className="text-text-stone font-label-sm">/28</span>
+                          </td>
+                          <td className="py-4 px-4 w-44">
+                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+                              <span className="font-semibold text-on-surface">92.9%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-success h-full" style={{ width: "92.9%" }} />
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
+                              Exemplary
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-text-stone font-semibold">
+                            +17.9% safety
+                          </td>
+                        </tr>
+
+                        <tr className="hover:bg-surface-container-low transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-semibold text-on-surface">Computer Networks</div>
+                            <div className="font-label-sm text-label-sm text-text-stone">CS502 • Dr. Rao (Mon, Wed)</div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="font-semibold text-on-surface">21</span>
+                            <span className="text-text-stone font-label-sm">/27</span>
+                          </td>
+                          <td className="py-4 px-4 w-44">
+                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+                              <span className="font-semibold text-warning">77.8%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-warning h-full" style={{ width: "77.8%" }} />
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-label-sm font-label-sm bg-warning/10 text-warning font-semibold">
+                              <span className="material-symbols-outlined text-[13px]">warning</span>
+                              Review Needed
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-warning font-semibold">
+                            +2.8% above limit
+                          </td>
+                        </tr>
+
+                        <tr className="hover:bg-surface-container-low transition-colors">
+                          <td className="py-4 px-5">
+                            <div className="font-semibold text-on-surface">Operating Systems</div>
+                            <div className="font-label-sm text-label-sm text-text-stone">CS503 • Dr. Shah (Tue, Thu, Fri)</div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="font-semibold text-on-surface">15</span>
+                            <span className="text-text-stone font-label-sm">/20</span>
+                          </td>
+                          <td className="py-4 px-4 w-44">
+                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+                              <span className="font-semibold text-error">75.0%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-error h-full" style={{ width: "75.0%" }} />
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-label-sm font-label-sm bg-error/10 text-error font-semibold">
+                              <span className="material-symbols-outlined text-[13px]">error</span>
+                              At Risk
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-error font-semibold">
+                            0.0% buffer (critical)
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="p-4 bg-surface-container-low border border-border-default flex items-start gap-3">
+                    <span className="material-symbols-outlined text-secondary text-[20px] shrink-0 mt-0.5">
+                      info
+                    </span>
+                    <div className="font-body-md text-body-md text-on-surface text-sm">
+                      <strong className="font-semibold">Statutory Advisory on Operating Systems (CS503):</strong>{" "}
+                      Your presence is currently locked exactly on the institutional threshold boundary (75.0%). Missing any further lecture without validated medical or institutional dispensation will trigger formal debarment warnings under Regulation 14.3.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column (4 cols) - Temporal Trajectory */}
+                <div className="lg:col-span-4 flex flex-col gap-6">
+                  <div className="flex flex-col gap-3">
+                    <div className="pb-2 border-b border-border-default">
+                      <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+                        Temporal Trajectory
+                      </h2>
+                      <p className="font-body-md text-body-md text-text-stone">
+                        Monthly compliance & daily distributions
+                      </p>
+                    </div>
+
+                    <div className="bg-surface-warm border border-border-default p-5 flex flex-col gap-5">
+                      <div>
+                        <span className="font-label-sm text-label-sm uppercase tracking-wider text-text-stone block mb-3 font-semibold">
+                          Monthly Index Sequence
+                        </span>
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <div className="flex justify-between font-label-md text-label-md mb-1">
+                              <span className="text-on-surface">July 2024</span>
+                              <span className="font-semibold text-on-surface">91.2%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-on-surface h-full" style={{ width: "91.2%" }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between font-label-md text-label-md mb-1">
+                              <span className="text-on-surface">August 2024</span>
+                              <span className="font-semibold text-on-surface">84.6%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-secondary h-full" style={{ width: "84.6%" }} />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between font-label-md text-label-md mb-1">
+                              <span className="text-on-surface">September 2024 (Projected)</span>
+                              <span className="font-semibold text-text-stone">86.0%</span>
+                            </div>
+                            <div className="w-full bg-surface-container h-1.5">
+                              <div className="bg-text-stone/60 h-full border-dashed" style={{ width: "86.0%" }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-border-default">
+                        <span className="font-label-sm text-label-sm uppercase tracking-wider text-text-stone block mb-3 font-semibold">
+                          Weekday Distribution Pattern
+                        </span>
+                        <div className="grid grid-cols-5 gap-2 text-center">
+                          <div className="flex flex-col items-center gap-1.5 bg-surface-container-low p-2 border border-border-default/40">
+                            <span className="font-label-sm text-label-sm text-text-stone">Mon</span>
+                            <div className="w-full bg-surface-container h-12 flex items-end justify-center">
+                              <div className="w-full bg-on-surface" style={{ height: "96%" }} />
+                            </div>
+                            <span className="font-label-sm text-label-sm font-semibold text-on-surface">96%</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 bg-surface-container-low p-2 border border-border-default/40">
+                            <span className="font-label-sm text-label-sm text-text-stone">Tue</span>
+                            <div className="w-full bg-surface-container h-12 flex items-end justify-center">
+                              <div className="w-full bg-on-surface" style={{ height: "88%" }} />
+                            </div>
+                            <span className="font-label-sm text-label-sm font-semibold text-on-surface">88%</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 bg-surface-container-low p-2 border border-border-default/40">
+                            <span className="font-label-sm text-label-sm text-text-stone">Wed</span>
+                            <div className="w-full bg-surface-container h-12 flex items-end justify-center">
+                              <div className="w-full bg-on-surface" style={{ height: "82%" }} />
+                            </div>
+                            <span className="font-label-sm text-label-sm font-semibold text-on-surface">82%</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 bg-surface-container-low p-2 border border-border-default/40">
+                            <span className="font-label-sm text-label-sm text-warning font-semibold">Thu</span>
+                            <div className="w-full bg-surface-container h-12 flex items-end justify-center">
+                              <div className="w-full bg-warning" style={{ height: "78%" }} />
+                            </div>
+                            <span className="font-label-sm text-label-sm font-semibold text-warning">78%</span>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 bg-surface-container-low p-2 border border-border-default/40">
+                            <span className="font-label-sm text-label-sm text-warning font-semibold">Fri</span>
+                            <div className="w-full bg-surface-container h-12 flex items-end justify-center">
+                              <div className="w-full bg-warning" style={{ height: "80%" }} />
+                            </div>
+                            <span className="font-label-sm text-label-sm font-semibold text-warning">80%</span>
+                          </div>
+                        </div>
+                        <p className="font-label-sm text-label-sm text-text-stone mt-2.5 leading-tight">
+                          Observed pattern: Significant 16% variance between Monday commencement and Thursday/Friday late laboratory windows.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Official Exemption & Duty Leave Records */}
+              <div className="flex flex-col gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-default">
+                  <div>
+                    <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+                      Official Exemption & Duty Leave Records
+                    </h2>
+                    <p className="font-body-md text-body-md text-text-stone">
+                      Authorized institutional dispensations, Dean clearances, and health infirmary credits.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPetitionModal(true)}
+                    className="px-4 py-2 bg-transparent text-secondary border border-secondary font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-2 self-start sm:self-auto font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">post_add</span>
+                    <span>Request Attendance Rectification / Leave Credit</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Record 1 */}
+                  <div className="bg-surface-warm border border-border-default p-5 flex flex-col justify-between">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-label-md text-label-md font-semibold text-on-surface">14 Aug 2024</span>
+                        <span className="font-label-sm text-label-sm text-text-stone">• Reference: DL-CS-402</span>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
+                        Approved by HOD
+                      </span>
+                    </div>
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-on-surface text-body-md">Inter-college Smart City Hackathon</h3>
+                      <p className="font-label-md text-label-md text-text-stone mt-1">
+                        Official delegation deputed to representation at National Institute of Design. Duty leave sanctions granted for 4 total sessions.
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-border-default/60 flex items-center justify-between font-label-sm text-label-sm">
+                      <span className="text-text-stone">Remedy: Full Attendance Credit Granted</span>
+                      <span className="text-on-surface font-mono">Signatory: Prof. K. Sharma</span>
+                    </div>
+                  </div>
+
+                  {/* Record 2 */}
+                  <div className="bg-surface-warm border border-border-default p-5 flex flex-col justify-between">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-label-md text-label-md font-semibold text-on-surface">02 Aug 2024</span>
+                        <span className="font-label-sm text-label-sm text-text-stone">• Reference: MED-24-118</span>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
+                        Health Center Verified
+                      </span>
+                    </div>
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-on-surface text-body-md">Acute Febrile Illness / Campus Health Wing</h3>
+                      <p className="font-label-md text-label-md text-text-stone mt-1">
+                        Outpatient registry entry confirmed by Medical Officer Dr. M. Iyer. Absence on Day 2 of Term excused without academic grade penalty.
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-border-default/60 flex items-center justify-between font-label-sm text-label-sm">
+                      <span className="text-text-stone">Remedy: Attendance Excused (Statutory Minimum Preserved)</span>
+                      <span className="text-on-surface font-mono">Reg: MO-HC-9921</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lodge Rectification Petition Modal */}
+              {showPetitionModal && (
+                <div className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-surface-warm border border-border-default max-w-lg w-full p-6 flex flex-col gap-4 shadow-2xl relative">
+                    <div className="flex items-start justify-between border-b border-border-default pb-3">
+                      <div>
+                        <h3 className="font-headline-md text-headline-md text-on-surface font-bold">Lodge Rectification Petition</h3>
+                        <p className="font-label-md text-label-md text-text-stone">Submits directly to Academic Department Office</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="text-text-stone hover:text-on-surface p-1"
+                        onClick={() => setShowPetitionModal(false)}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-3 font-body-md text-body-md">
+                      <div>
+                        <label className="block font-label-sm text-label-sm uppercase text-text-stone mb-1 font-semibold">Subject Module</label>
+                        <select
+                          value={petitionForm.subject}
+                          onChange={(e) => setPetitionForm({ ...petitionForm, subject: e.target.value })}
+                          className="w-full bg-surface-container-low border border-border-default p-2 text-on-surface font-label-md text-label-md focus:outline-none focus:border-secondary"
+                        >
+                          <option>Operating Systems (CS503) - Dr. Shah</option>
+                          <option>Computer Networks (CS502) - Dr. Rao</option>
+                          <option>Database Systems (CS501) - Dr. Patel</option>
+                          <option>Mathematics II (MA504) - Dr. Mehta</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-label-sm text-label-sm uppercase text-text-stone mb-1 font-semibold">Petition Classification</label>
+                        <select
+                          value={petitionForm.classification}
+                          onChange={(e) => setPetitionForm({ ...petitionForm, classification: e.target.value })}
+                          className="w-full bg-surface-container-low border border-border-default p-2 text-on-surface font-label-md text-label-md focus:outline-none focus:border-secondary"
+                        >
+                          <option>Biometric / Technical Misread Correction</option>
+                          <option>Medical Exemption / Certificate Upload</option>
+                          <option>Authorized Institutional / Sports Duty</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-label-sm text-label-sm uppercase text-text-stone mb-1 font-semibold">Session Date</label>
+                        <input
+                          type="date"
+                          value={petitionForm.date}
+                          onChange={(e) => setPetitionForm({ ...petitionForm, date: e.target.value })}
+                          className="w-full bg-surface-container-low border border-border-default p-2 text-on-surface font-label-md text-label-md focus:outline-none focus:border-secondary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block font-label-sm text-label-sm uppercase text-text-stone mb-1 font-semibold">Justification Brief</label>
+                        <textarea
+                          rows={3}
+                          value={petitionForm.justification}
+                          onChange={(e) => setPetitionForm({ ...petitionForm, justification: e.target.value })}
+                          className="w-full bg-surface-container-low border border-border-default p-2 text-on-surface font-label-md text-label-md focus:outline-none focus:border-secondary"
+                          placeholder="Provide factual context and reference document IDs..."
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-border-default">
+                      <button
+                        type="button"
+                        onClick={() => setShowPetitionModal(false)}
+                        className="px-4 py-2 border border-border-default text-on-surface font-label-md text-label-md hover:bg-surface-container"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const refId = "APP-" + Math.floor(1000 + Math.random() * 9000);
+                          alert(`Formal petition successfully filed under reference ${refId}. Your department advisor will verify within 48 hours.`);
+                          setShowPetitionModal(false);
+                        }}
+                        className="px-5 py-2 bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-95 font-semibold"
+                      >
+                        Submit to Academic Dean
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -783,9 +1849,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
                     {userInitials}
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-primary">
-                      {user?.full_name || "Student Name"}
-                    </h3>
+                    <h3 className="font-bold text-lg text-primary">{fullName}</h3>
                     <p className="text-xs text-text-stone">
                       Role: {user?.role ? user.role.toUpperCase() : "STUDENT"}
                     </p>
@@ -797,23 +1861,21 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
                     <label className="text-xs font-semibold text-text-muted">
                       Full Name
                     </label>
-                    <p className="font-semibold text-primary">
-                      {user?.full_name || "N/A"}
-                    </p>
+                    <p className="font-semibold text-primary">{fullName}</p>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-text-muted">
                       Email Address
                     </label>
                     <p className="font-semibold text-primary">
-                      {user?.email || "N/A"}
+                      {user?.email || "student@institution.edu"}
                     </p>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-text-muted">
                       User ID
                     </label>
-                    <p className="font-semibold text-primary">#{user?.id || "N/A"}</p>
+                    <p className="font-semibold text-primary">#{user?.id || "1024"}</p>
                   </div>
                 </div>
 
@@ -832,7 +1894,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
       {/* QR SCANNER MODAL */}
       {showScanner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-surface-bright border border-border-default rounded-lg max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface-bright border border-border-default rounded-none max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowScanner(false)}
               className="absolute top-4 right-4 text-text-muted hover:text-primary p-1"
@@ -869,7 +1931,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
       {/* HELP CENTER MODAL */}
       {showHelpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-surface-bright border border-border-default rounded-lg max-w-md w-full p-6 shadow-2xl relative">
+          <div className="bg-surface-bright border border-border-default rounded-none max-w-md w-full p-6 shadow-2xl relative">
             <button
               onClick={() => setShowHelpModal(false)}
               className="absolute top-4 right-4 text-text-muted hover:text-primary"
@@ -887,7 +1949,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
             </ol>
             <button
               onClick={() => setShowHelpModal(false)}
-              className="w-full bg-primary text-on-primary py-2 rounded text-sm font-semibold"
+              className="w-full bg-primary text-on-primary py-2 rounded-none text-sm font-semibold"
             >
               Got it
             </button>
