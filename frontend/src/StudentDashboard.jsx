@@ -1833,58 +1833,794 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
             </div>
           )}
 
-          {/* TAB 6: SETTINGS */}
+          {/* TAB 6: SETTINGS (Full Academic Settings Suite) */}
           {activeTab === "settings" && (
-            <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="font-dm-serif text-3xl text-primary">Student Account</h2>
-                <p className="text-xs text-text-muted">
-                  Personal information & system preferences
-                </p>
+            <div className="flex flex-col w-full">
+              {/* Page Header & Academic Metainfo */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between pb-8 border-b border-border-default gap-6">
+                <div className="flex flex-col max-w-2xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-secondary" />
+                    <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">
+                      Account & Preferences
+                    </span>
+                    <span className="text-text-stone text-[12px] font-label-sm">•</span>
+                    <span className="font-label-sm text-label-sm text-text-stone uppercase tracking-widest">
+                      Academic Year 2024–25
+                    </span>
+                  </div>
+                  <h1 className="font-greeting-serif text-greeting-serif text-on-surface leading-none tracking-tight">
+                    Settings
+                  </h1>
+                  <p className="font-body-md text-body-md text-text-stone mt-3">
+                    Manage your student profile, verification devices, notification alerts, and security credentials across the institutional network.
+                  </p>
+                </div>
+
+                {/* Quick Status Strip */}
+                <div className="flex items-center gap-4 bg-surface-warm p-4 rounded-lg border border-border-default self-start md:self-auto">
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-text-stone uppercase">Academic Stance</span>
+                    <span className="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                      Good Standing ({percentage}% Avg)
+                    </span>
+                  </div>
+                  <div className="h-8 w-px bg-border-default" />
+                  <div className="flex flex-col">
+                    <span className="font-label-sm text-label-sm text-text-stone uppercase">Hardware Trust</span>
+                    <span className="font-label-md text-label-md text-secondary font-semibold flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-[16px]">verified_user</span>
+                      Secured Enclave
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-surface-bright border border-border-default p-6 rounded-md max-w-xl flex flex-col gap-4">
-                <div className="flex items-center gap-4 pb-4 border-b border-border-default">
-                  <div className="w-16 h-16 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-2xl">
-                    {userInitials}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-primary">{fullName}</h3>
-                    <p className="text-xs text-text-stone">
-                      Role: {user?.role ? user.role.toUpperCase() : "STUDENT"}
-                    </p>
-                  </div>
-                </div>
+              {/* Main Layout Grid: Sidebar Tabs + Content Pane */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-8">
+                {/* Navigation Column (3 cols) */}
+                <aside className="lg:col-span-3 flex flex-col gap-6">
+                  <nav className="flex flex-col bg-surface-warm rounded-lg border border-border-default divide-y divide-border-default">
+                    <button
+                      type="button"
+                      onClick={() => setSettingsSection("section-profile")}
+                      className={`text-left px-5 py-4 flex items-center justify-between group transition-colors border-l-4 ${
+                        settingsSection === "section-profile"
+                          ? "bg-surface-container font-semibold text-on-surface border-secondary"
+                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined text-[20px] ${settingsSection === "section-profile" ? "text-secondary" : "text-text-stone"}`}>
+                          badge
+                        </span>
+                        <span className="font-label-md text-label-md">Profile & Identity</span>
+                      </div>
+                      <span className="material-symbols-outlined text-[16px] text-text-stone group-hover:translate-x-0.5 transition-transform">
+                        chevron_right
+                      </span>
+                    </button>
 
-                <div className="flex flex-col gap-3 text-sm">
-                  <div>
-                    <label className="text-xs font-semibold text-text-muted">
-                      Full Name
-                    </label>
-                    <p className="font-semibold text-primary">{fullName}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-text-muted">
-                      Email Address
-                    </label>
-                    <p className="font-semibold text-primary">
-                      {user?.email || "student@institution.edu"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-text-muted">
-                      User ID
-                    </label>
-                    <p className="font-semibold text-primary">#{user?.id || "1024"}</p>
-                  </div>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsSection("section-device")}
+                      className={`text-left px-5 py-4 flex items-center justify-between group transition-colors border-l-4 ${
+                        settingsSection === "section-device"
+                          ? "bg-surface-container font-semibold text-on-surface border-secondary"
+                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined text-[20px] ${settingsSection === "section-device" ? "text-secondary" : "text-text-stone"}`}>
+                          location_searching
+                        </span>
+                        <span className="font-label-md text-label-md">Geolocation & Device</span>
+                      </div>
+                      <span className="material-symbols-outlined text-[16px] text-text-stone group-hover:translate-x-0.5 transition-transform">
+                        chevron_right
+                      </span>
+                    </button>
 
-                <button
-                  onClick={logout}
-                  className="mt-4 bg-error text-on-error py-2.5 rounded font-semibold text-sm hover:opacity-90 transition-opacity"
-                >
-                  Sign Out of Account
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSettingsSection("section-notifications")}
+                      className={`text-left px-5 py-4 flex items-center justify-between group transition-colors border-l-4 ${
+                        settingsSection === "section-notifications"
+                          ? "bg-surface-container font-semibold text-on-surface border-secondary"
+                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined text-[20px] ${settingsSection === "section-notifications" ? "text-secondary" : "text-text-stone"}`}>
+                          notifications_active
+                        </span>
+                        <span className="font-label-md text-label-md">Notifications & Alerts</span>
+                      </div>
+                      <span className="material-symbols-outlined text-[16px] text-text-stone group-hover:translate-x-0.5 transition-transform">
+                        chevron_right
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSettingsSection("section-security")}
+                      className={`text-left px-5 py-4 flex items-center justify-between group transition-colors border-l-4 ${
+                        settingsSection === "section-security"
+                          ? "bg-surface-container font-semibold text-on-surface border-secondary"
+                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`material-symbols-outlined text-[20px] ${settingsSection === "section-security" ? "text-secondary" : "text-text-stone"}`}>
+                          shield
+                        </span>
+                        <span className="font-label-md text-label-md">Security & Sessions</span>
+                      </div>
+                      <span className="material-symbols-outlined text-[16px] text-text-stone group-hover:translate-x-0.5 transition-transform">
+                        chevron_right
+                      </span>
+                    </button>
+                  </nav>
+
+                  {/* Institutional Notice Card */}
+                  <div className="bg-surface-warm p-5 rounded-lg border border-border-default flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-warning">
+                      <span className="material-symbols-outlined text-[20px]">info</span>
+                      <span className="font-label-sm text-label-sm uppercase tracking-wider font-semibold">
+                        Institutional Lock
+                      </span>
+                    </div>
+                    <p className="font-body-md text-[13px] leading-relaxed text-text-stone">
+                      Core degree attributes and RFID token bindings are cryptographically signed by the Registrar’s Office. Submissions to amend require Form REG-11B.
+                    </p>
+                    <div className="pt-2 border-t border-border-default flex items-center justify-between">
+                      <span className="font-label-sm text-[11px] text-text-stone uppercase font-mono tracking-wider">
+                        Sync: Auto (LMS-v4)
+                      </span>
+                      <a href="#" className="font-label-sm text-label-sm text-secondary hover:underline flex items-center gap-1 font-semibold">
+                        Registry Portal
+                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                      </a>
+                    </div>
+                  </div>
+                </aside>
+
+                {/* Content Panels Container (9 cols) */}
+                <main className="lg:col-span-9 flex flex-col gap-10">
+                  {/* SECTION 1: PROFILE & IDENTITY */}
+                  {(settingsSection === "section-profile" || settingsSection === "all") && (
+                    <section className="flex flex-col gap-6">
+                      <div className="flex flex-col border-b border-border-default pb-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">
+                              Identity Matrix
+                            </span>
+                            <h2 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-0.5 font-bold">
+                              Profile & Registry
+                            </h2>
+                          </div>
+                          <span className="px-2.5 py-1 bg-surface-container rounded font-label-sm text-label-sm text-text-stone border border-border-default uppercase tracking-wider font-semibold">
+                            Enrolled • Verified
+                          </span>
+                        </div>
+                        <p className="font-body-md text-body-md text-text-stone mt-1">
+                          Personal identity credentials and immutable academic affiliations verified by the university directory.
+                        </p>
+                      </div>
+
+                      {/* Student Master Card */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
+                        <div className="relative shrink-0">
+                          <div className="w-24 h-24 rounded-full overflow-hidden bg-secondary text-on-secondary border-2 border-border-default flex items-center justify-center font-bold text-3xl">
+                            {userInitials}
+                          </div>
+                          <button
+                            type="button"
+                            title="Upload new portrait photo"
+                            className="absolute bottom-0 right-0 p-1.5 bg-primary text-on-primary rounded-full hover:bg-on-surface-variant transition-colors shadow-sm"
+                          >
+                            <span className="material-symbols-outlined text-[16px] block">photo_camera</span>
+                          </button>
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h3 className="font-headline-md text-headline-md text-on-surface font-bold">
+                              {fullName}
+                            </h3>
+                            <span className="px-2 py-0.5 bg-success/10 text-success rounded font-label-sm text-label-sm uppercase font-semibold">
+                              Undergraduate
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 mt-2 font-body-md text-text-stone text-[14px]">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">fingerprint</span>
+                              <span>Roll No: <span className="font-medium text-on-surface font-mono">21CSE041</span></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">mail</span>
+                              <span className="font-mono text-on-surface">{user?.email || "rahul.mehta@university.edu"}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">call</span>
+                              <span>+91 98450 12890</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">calendar_month</span>
+                              <span>Cohort: 2022 – 2026</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex md:flex-col gap-2 w-full md:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => alert("Contact detail editing window opened.")}
+                            className="flex-1 md:flex-initial px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors flex items-center justify-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                            Edit Contact
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Read-Only Institutional Record */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border-default bg-surface-container-low flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[20px] text-secondary">account_balance</span>
+                            <span className="font-label-md text-label-md font-semibold text-on-surface">Institutional Ledger Record</span>
+                          </div>
+                          <span className="font-label-sm text-[11px] text-text-stone font-mono uppercase tracking-wider">Registrar Seal: Signed #8841-B</span>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Institution / University</label>
+                            <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
+                              <span>St. Xavier’s College of Engineering & Technology</span>
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">lock</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Academic Department</label>
+                            <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
+                              <span>Computer Science & Engineering</span>
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">lock</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Section & Current Semester</label>
+                            <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
+                              <span>CSE-A • Semester 5 (Class of 2026)</span>
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">lock</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Physical RFID Token Identifier</label>
+                            <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
+                              <div className="flex items-center gap-2 font-mono text-[14px]">
+                                <span className="w-2 h-2 rounded-full bg-success" />
+                                <span>ID-9042-8812</span>
+                                <span className="text-text-stone font-label-sm text-[11px]">(Active & Paired)</span>
+                              </div>
+                              <span className="material-symbols-outlined text-[18px] text-text-stone">nfc</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-6 py-3 bg-surface-container-low border-t border-border-default flex items-center justify-between text-[13px] text-text-stone">
+                          <span>Discrepancies in course catalog or section assignment?</span>
+                          <a href="#" className="font-semibold text-secondary hover:underline">Submit Academic Dispute Ticket →</a>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* SECTION 2: GEOLOCATION & HARDWARE VERIFICATION */}
+                  {(settingsSection === "section-device" || settingsSection === "all") && (
+                    <section className="flex flex-col gap-6">
+                      <div className="flex flex-col border-b border-border-default pb-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">Hardware Telemetry</span>
+                            <h2 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-0.5 font-bold">Geolocation & Device</h2>
+                          </div>
+                          <span className="px-2.5 py-1 bg-success/10 text-success rounded font-label-sm text-label-sm font-semibold uppercase tracking-wider">
+                            Enclave Verified
+                          </span>
+                        </div>
+                        <p className="font-body-md text-body-md text-text-stone mt-1">
+                          Configure biometric hardware, beacon handshakes, and micro-geofencing parameters for instantaneous in-lecture attendance confirmation.
+                        </p>
+                      </div>
+
+                      {/* Primary Device Card */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-surface-container border border-border-default flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[28px] text-secondary">smartphone</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-label-md text-[17px] font-semibold text-on-surface">iPhone 15 Pro</h3>
+                              <span className="px-2 py-0.5 bg-surface-container rounded text-text-stone font-label-sm text-[11px] uppercase font-mono">This Device</span>
+                            </div>
+                            <p className="font-body-md text-[13px] text-text-stone mt-0.5">
+                              Hardware UUID: <span className="font-mono text-on-surface">FA88-29B1-90E2-44AC</span> • iOS 17.5.1
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5 font-label-sm text-label-sm text-success font-semibold">
+                              <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                              <span>Paired for Classroom Geofence & BLE Verification</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                          <button
+                            type="button"
+                            onClick={() => alert("Hardware diagnostics clean: BLE 5.3 Ok, GPS accuracy ± 3 meters.")}
+                            className="px-3.5 py-2 border border-border-default rounded font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors font-semibold"
+                          >
+                            Device Diagnostics
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => alert("Device unpairing requires password confirmation.")}
+                            className="px-3.5 py-2 border border-error/30 text-error hover:bg-error/5 rounded font-label-md text-label-md transition-colors font-semibold"
+                          >
+                            Unpair
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Toggle Controls Stack */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default divide-y divide-border-default">
+                        {/* BLE Beacons */}
+                        <div className="p-6 flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">podcasts</span>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleBle(!toggleBle)}>
+                                Bluetooth Beacon Proximity Handshake
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Enable instant BLE classroom check-in detection when entering designated lecture halls (L-101 through L-408).
+                              </p>
+                              <span className="font-label-sm text-[12px] text-text-stone mt-1.5 flex items-center gap-1 font-mono">
+                                <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                                Active Protocol: iBeacon / Eddystone 2.4GHz
+                              </span>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                            <input type="checkbox" checked={toggleBle} onChange={(e) => setToggleBle(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary" />
+                          </label>
+                        </div>
+
+                        {/* High Precision GPS */}
+                        <div className="p-6 flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">my_location</span>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleGps(!toggleGps)}>
+                                High-Precision Location Services
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Allow 10-meter classroom radius validation during live lecture roll calls to prevent off-campus spoofing.
+                              </p>
+                              <span className="font-label-sm text-[12px] text-text-stone mt-1.5 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[15px] text-success">lock</span>
+                                Coordinates are discarded immediately post-validation; zero location trace kept.
+                              </span>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                            <input type="checkbox" checked={toggleGps} onChange={(e) => setToggleGps(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary" />
+                          </label>
+                        </div>
+
+                        {/* Face Biometric Data */}
+                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-surface-container-low/50">
+                          <div className="flex items-start gap-4">
+                            <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">face</span>
+                            <div className="flex flex-col">
+                              <span className="font-label-md text-label-md font-semibold text-on-surface">Face Biometric Hash & Vector</span>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Stored securely on local device enclave. Mathematical vectors are compared against classroom terminal camera feeds without cloud transfer.
+                              </p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="font-label-sm text-[11px] font-mono text-text-stone uppercase">Enrolled: 12 Aug 2024</span>
+                                <span className="text-text-stone">•</span>
+                                <span className="font-label-sm text-[11px] font-mono text-success uppercase font-semibold">Hash Validated</span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert("Face ID re-enrollment camera launched.")}
+                            className="shrink-0 px-4 py-2 border border-secondary text-secondary hover:bg-secondary hover:text-on-secondary rounded font-label-md text-label-md font-semibold transition-colors flex items-center gap-2 self-start md:self-auto"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">cached</span>
+                            Re-scan Face ID
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* SECTION 3: NOTIFICATION & ALERT THRESHOLDS */}
+                  {(settingsSection === "section-notifications" || settingsSection === "all") && (
+                    <section className="flex flex-col gap-6">
+                      <div className="flex flex-col border-b border-border-default pb-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">Alert Dispatch</span>
+                            <h2 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-0.5 font-bold">Notification & Thresholds</h2>
+                          </div>
+                          <span className="px-2.5 py-1 bg-surface-container rounded font-label-sm text-label-sm text-text-stone border border-border-default uppercase tracking-wider font-semibold">
+                            Push • Email
+                          </span>
+                        </div>
+                        <p className="font-body-md text-body-md text-text-stone mt-1">
+                          Configure safety margins, lecture alert intervals, and attendance short-fall warnings before dean escalation.
+                        </p>
+                      </div>
+
+                      <div className="bg-surface-warm rounded-lg border border-border-default divide-y divide-border-default">
+                        {/* Deficit Warning System */}
+                        <div className="p-6 flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded bg-warning/10 text-warning flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="material-symbols-outlined text-[22px]">warning</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleThreshold(!toggleThreshold)}>
+                                Deficit Warning System (Below 80%)
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Send immediate priority push and email alerts when any individual course drops below the statutory 80.0% exam eligibility floor.
+                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="font-label-sm text-label-sm text-warning font-semibold bg-warning/10 px-2 py-0.5 rounded">
+                                  Mandatory Academic Threshold
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                            <input type="checkbox" checked={toggleThreshold} onChange={(e) => setToggleThreshold(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary" />
+                          </label>
+                        </div>
+
+                        {/* Upcoming Lecture Lead Time */}
+                        <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded bg-surface-container text-on-surface flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="material-symbols-outlined text-[22px]">schedule</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface" htmlFor="select-reminder">
+                                Upcoming Lecture Lead Time
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-lg">
+                                Choose advance notification time window before each timetable block begins, including room transfer estimates.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="shrink-0 w-full md:w-64">
+                            <select
+                              id="select-reminder"
+                              value={selectReminder}
+                              onChange={(e) => setSelectReminder(e.target.value)}
+                              className="w-full px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-[14px] text-on-surface focus:outline-none focus:border-secondary transition-colors"
+                            >
+                              <option value="5">5 minutes before lecture</option>
+                              <option value="10">10 minutes before lecture</option>
+                              <option value="15">15 minutes before lecture</option>
+                              <option value="30">30 minutes before lecture</option>
+                              <option value="none">Disabled</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Daily Attendance Summary */}
+                        <div className="p-6 flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded bg-surface-container text-on-surface flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="material-symbols-outlined text-[22px]">summarize</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleDigest(!toggleDigest)}>
+                                Daily Attendance Evening Digest
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Receive an automated recap report at 6:00 PM highlighting logged lectures, recorded absences, and updated course percentages.
+                              </p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                            <input type="checkbox" checked={toggleDigest} onChange={(e) => setToggleDigest(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary" />
+                          </label>
+                        </div>
+
+                        {/* Real-time Check-in Receipts */}
+                        <div className="p-6 flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded bg-surface-container text-on-surface flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="material-symbols-outlined text-[22px]">receipt_long</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleReceipt(!toggleReceipt)}>
+                                Real-time Check-in Receipts
+                              </label>
+                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
+                                Trigger an instantaneous silent push ping confirmation with transaction hash immediately upon faculty terminal acceptance.
+                              </p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                            <input type="checkbox" checked={toggleReceipt} onChange={(e) => setToggleReceipt(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary" />
+                          </label>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* SECTION 4: SECURITY & SESSIONS */}
+                  {(settingsSection === "section-security" || settingsSection === "all") && (
+                    <section className="flex flex-col gap-6">
+                      <div className="flex flex-col border-b border-border-default pb-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">Access Control</span>
+                            <h2 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-0.5 font-bold">Security & Password</h2>
+                          </div>
+                          <span className="px-2.5 py-1 bg-success/10 text-success rounded font-label-sm text-label-sm font-semibold uppercase tracking-wider">
+                            2FA Enabled
+                          </span>
+                        </div>
+                        <p className="font-body-md text-body-md text-text-stone mt-1">
+                          Maintain account passwords, multi-factor authenticators, and terminate dormant network sessions.
+                        </p>
+                      </div>
+
+                      {/* Password Change Box */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default p-6 md:p-8">
+                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-default">
+                          <div>
+                            <h3 className="font-headline-md text-[20px] text-on-surface font-bold">Update Password</h3>
+                            <p className="font-body-md text-[14px] text-text-stone mt-0.5">Passwords must contain at least 12 characters, numbers, and symbols.</p>
+                          </div>
+                          <span className="material-symbols-outlined text-text-stone text-[22px]">password</span>
+                        </div>
+                        <form className="grid grid-cols-1 md:grid-cols-3 gap-6" onSubmit={(e) => e.preventDefault()}>
+                          <div className="flex flex-col gap-2">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold" htmlFor="current-pwd">Current Password</label>
+                            <div className="relative">
+                              <input
+                                id="current-pwd"
+                                type={pwdShow ? "text" : "password"}
+                                value={currentPwd}
+                                onChange={(e) => setCurrentPwd(e.target.value)}
+                                placeholder="••••••••••••"
+                                className="w-full px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-[14px] text-on-surface focus:outline-none focus:border-secondary font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setPwdShow(!pwdShow)}
+                                className="absolute right-3 top-2.5 text-text-stone hover:text-on-surface"
+                                title="Reveal password"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">
+                                  {pwdShow ? "visibility_off" : "visibility"}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold" htmlFor="new-pwd">New Password</label>
+                            <div className="relative">
+                              <input
+                                id="new-pwd"
+                                type={pwdShow ? "text" : "password"}
+                                value={newPwd}
+                                onChange={(e) => setNewPwd(e.target.value)}
+                                placeholder="Enter new password"
+                                className="w-full px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-[14px] text-on-surface focus:outline-none focus:border-secondary font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold" htmlFor="confirm-pwd">Confirm Password</label>
+                            <div className="relative">
+                              <input
+                                id="confirm-pwd"
+                                type={pwdShow ? "text" : "password"}
+                                value={confirmPwd}
+                                onChange={(e) => setConfirmPwd(e.target.value)}
+                                placeholder="Repeat new password"
+                                className="w-full px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-[14px] text-on-surface focus:outline-none focus:border-secondary font-mono"
+                              />
+                            </div>
+                          </div>
+                        </form>
+                        <div className="mt-6 pt-4 border-t border-border-default flex items-center justify-between">
+                          <span className="font-label-sm text-[12px] text-text-stone">Last modified: 42 days ago</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newPwd || newPwd !== confirmPwd) {
+                                alert("New passwords do not match!");
+                                return;
+                              }
+                              alert("Password credentials updated successfully.");
+                              setCurrentPwd("");
+                              setNewPwd("");
+                              setConfirmPwd("");
+                            }}
+                            className="px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors"
+                          >
+                            Update Credential
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Two-Factor Authentication Status */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[26px]">vpn_key</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-label-md text-[17px] font-semibold text-on-surface">Two-Factor Authentication (2FA)</h3>
+                              <span className="px-2 py-0.5 bg-success/10 text-success rounded font-label-sm text-label-sm font-semibold uppercase">Active</span>
+                            </div>
+                            <p className="font-body-md text-[14px] text-text-stone mt-1">
+                              Secured through <span className="font-medium text-on-surface">Campus Authenticator (TOTP)</span>. Secondary passcode requested on all off-campus logins.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => alert("TOTP key configuration modal opened.")}
+                          className="shrink-0 px-4 py-2 border border-border-default hover:bg-surface-container rounded font-label-md text-label-md text-on-surface font-semibold transition-colors"
+                        >
+                          Configure Keys
+                        </button>
+                      </div>
+
+                      {/* Active Sessions Registry */}
+                      <div className="bg-surface-warm rounded-lg border border-border-default overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border-default flex items-center justify-between bg-surface-container-low">
+                          <div>
+                            <span className="font-label-md text-label-md font-semibold text-on-surface">Active Logged-in Sessions</span>
+                            <p className="font-label-sm text-[12px] text-text-stone mt-0.5">Revoke unrecognised device access immediately.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alert("All other active sessions terminated.")}
+                            className="font-label-sm text-label-sm text-error hover:underline font-semibold"
+                          >
+                            Terminate Other Sessions
+                          </button>
+                        </div>
+                        <div className="divide-y divide-border-default">
+                          {/* Session 1: Mobile */}
+                          <div className="p-5 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded bg-surface-container border border-border-default flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-[20px] text-on-surface">phone_iphone</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-label-md text-label-md font-semibold text-on-surface">Mobile App • iOS 17.5</span>
+                                  <span className="px-2 py-0.2 bg-success/15 text-success rounded font-label-sm text-[11px] font-semibold uppercase">Current Device</span>
+                                </div>
+                                <span className="font-body-md text-[13px] text-text-stone mt-0.5">
+                                  Campus Wi-Fi (Hostel-Block-C) • IP: <span className="font-mono">10.14.88.204</span>
+                                </span>
+                              </div>
+                            </div>
+                            <span className="font-label-sm text-[12px] text-success font-semibold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                              Active now
+                            </span>
+                          </div>
+
+                          {/* Session 2: Desktop */}
+                          <div className="p-5 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded bg-surface-container border border-border-default flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-[20px] text-on-surface">laptop_mac</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-label-md text-label-md font-semibold text-on-surface">Chrome Browser • macOS Sonoma</span>
+                                </div>
+                                <span className="font-body-md text-[13px] text-text-stone mt-0.5">
+                                  Bengaluru, India • IP: <span className="font-mono">115.240.90.12</span>
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="font-label-sm text-[12px] text-text-stone">2 hours ago</span>
+                              <button
+                                type="button"
+                                title="Revoke this session"
+                                onClick={() => alert("Desktop session revoked.")}
+                                className="text-error hover:text-error/80 p-1 rounded"
+                              >
+                                <span className="material-symbols-outlined text-[18px] block">logout</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+                </main>
+              </div>
+
+              {/* Global Action Sticky Tray */}
+              <div className="sticky bottom-4 z-20 bg-surface-warm/95 backdrop-blur border border-border-default rounded-lg p-4 flex items-center justify-between gap-4 shadow-sm mt-8">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-text-stone text-[18px]">info</span>
+                  <span className="font-body-md text-[13px] text-text-stone hidden sm:inline">Unsaved modifications are cached locally in safe buffer.</span>
+                  <span className="font-body-md text-[13px] text-text-stone sm:hidden">Changes pending save.</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSavingSettings(false);
+                      setSavedNotice(false);
+                      alert("Changes discarded.");
+                    }}
+                    className="px-4 py-2 border border-border-default hover:bg-surface-container text-on-surface rounded font-label-md text-label-md font-semibold transition-colors"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSavingSettings(true);
+                      setTimeout(() => {
+                        setSavingSettings(false);
+                        setSavedNotice(true);
+                        setTimeout(() => setSavedNotice(false), 3000);
+                      }, 800);
+                    }}
+                    disabled={savingSettings}
+                    className={`px-6 py-2 rounded font-label-md text-label-md font-semibold transition-colors flex items-center gap-2 ${
+                      savedNotice
+                        ? "bg-success text-white"
+                        : "bg-primary hover:bg-primary-container text-on-primary"
+                    }`}
+                  >
+                    {savingSettings ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                        <span>Saving...</span>
+                      </>
+                    ) : savedNotice ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">done_all</span>
+                        <span>Changes Saved</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        <span>Save Changes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
