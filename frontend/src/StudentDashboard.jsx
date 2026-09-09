@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import QRScanner from "./QRScanner";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 function StudentDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
@@ -17,7 +19,7 @@ function StudentDashboard() {
   const fetchAttendance = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/attendance/my",
+        `${API_BASE}/attendance/my`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

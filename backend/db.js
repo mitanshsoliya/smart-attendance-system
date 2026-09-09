@@ -1,65 +1,280 @@
 require("dotenv").config();
-const { Pool } = require("pg");
+const path = require("path");
+const fs = require("fs");
+const bcrypt = require("bcryptjs");
 
 const connectionString = process.env.DATABASE_URL?.trim();
 let pool = null;
-let configurationError = null;
+let sqliteDb = null;
+let isSqlite = false;
 
-if (!connectionString) {
-  configurationError = new Error("DATABASE_URL is not configured. Add your Supabase PostgreSQL connection string to backend/.env.");
-} else if (!/^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)) {
-  configurationError = new Error("DATABASE_URL is invalid. Use the complete postgresql:// connection string from Supabase and replace all placeholders.");
-} else {
+if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)) {
+  const { Pool } = require("pg");
   try {
     pool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
     });
+    console.log("Database engine: PostgreSQL (Supabase)");
   } catch (error) {
-    configurationError = new Error(`DATABASE_URL is invalid: ${error.message}`);
+    console.error("PostgreSQL pool creation error:", error.message);
   }
 }
 
-if (configurationError) {
-  console.error(configurationError.message);
+if (!pool) {
+  isSqlite = true;
+  const sqlite3 = require("sqlite3").verbose();
+  const dbPath = path.join(__dirname, "database", "local.sqlite");
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  sqliteDb = new sqlite3.Database(dbPath);
+  console.log(`Database engine: Local SQLite (${dbPath})`);
 }
 
-// Dual callback & promise compatible database helper
+// Convert PostgreSQL $1, $2 query syntax to SQLite ? syntax
+function formatSqliteQuery(sql, values) {
+  let paramCount = 0;
+  // Replace $1, $2 with ?
+  let formattedSql = sql.replace(/\$\d+/g, () => "?");
+  
+  // Replace ON CONFLICT (col) DO NOTHING with ON CONFLICT (col) DO NOTHING or OR IGNORE
+  // Replace ON CONFLICT (user_id) DO NOTHING -> SQLite 3.24+ supports ON CONFLICT (user_id) DO NOTHING
+  
+  // Convert boolean values or dates if necessary
+  const formattedValues = (values || []).map((val) => {
+    if (val instanceof Date) {
+      return val.toISOString();
+    }
+    return val;
+  });
+
+  return { formattedSql, formattedValues };
+}
+
+function initSqliteSchemaAndSeed() {
+  return new Promise((resolve, reject) => {
+    sqliteDb.serialize(async () => {
+      sqliteDb.run("PRAGMA foreign_keys = ON;");
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          full_name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          password TEXT NOT NULL,
+          role TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS students (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS faculty (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS subjects (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subject_code TEXT NOT NULL UNIQUE,
+          subject_name TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS lectures (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          subject_id INTEGER NOT NULL REFERENCES subjects(id),
+          faculty_id INTEGER NOT NULL REFERENCES faculty(id),
+          lecture_date TEXT NOT NULL,
+          start_time TEXT NOT NULL,
+          end_time TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS qr_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lecture_id INTEGER NOT NULL REFERENCES lectures(id),
+          session_token TEXT NOT NULL UNIQUE,
+          expires_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS attendance (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          lecture_id INTEGER NOT NULL REFERENCES lectures(id),
+          student_id INTEGER NOT NULL REFERENCES students(id),
+          status TEXT NOT NULL DEFAULT 'PRESENT',
+          attendance_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (lecture_id, student_id)
+        );
+      `);
+
+      // Check if users exist to seed default data
+      sqliteDb.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
+        if (err) return reject(err);
+        if (row && row.count > 0) return resolve();
+
+        console.log("Seeding local SQLite database with demo credentials...");
+        try {
+          const studentPass = await bcrypt.hash("student123", 10);
+          const facultyPass = await bcrypt.hash("faculty123", 10);
+          const hodPass = await bcrypt.hash("hod123", 10);
+
+          sqliteDb.run(
+            `INSERT INTO subjects (subject_code, subject_name) VALUES ('DEMO-101', 'Introduction to Computer Science'), ('CS-202', 'Data Structures & Algorithms') ON CONFLICT DO NOTHING;`
+          );
+
+          sqliteDb.run(
+            `INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)`,
+            ["Demo Student", "student@example.com", studentPass, "STUDENT"],
+            function () {
+              sqliteDb.run(`INSERT INTO students (user_id) VALUES (?)`, [this.lastID]);
+            }
+          );
+
+          sqliteDb.run(
+            `INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)`,
+            ["Dr. Demo Faculty", "faculty@example.com", facultyPass, "FACULTY"],
+            function () {
+              const facUserId = this.lastID;
+              sqliteDb.run(`INSERT INTO faculty (user_id) VALUES (?)`, [facUserId], function () {
+                const facultyId = this.lastID;
+                const today = new Date().toISOString().split("T")[0];
+                sqliteDb.run(
+                  `INSERT INTO lectures (subject_id, faculty_id, lecture_date, start_time, end_time) VALUES (1, ?, ?, '09:00:00', '10:00:00'), (2, ?, ?, '11:00:00', '12:00:00')`,
+                  [facultyId, today, facultyId, today]
+                );
+              });
+            }
+          );
+
+          sqliteDb.run(
+            `INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)`,
+            ["Prof. Demo HOD", "hod@example.com", hodPass, "HOD"],
+            function () {
+              sqliteDb.run(`INSERT INTO faculty (user_id) VALUES (?)`, [this.lastID]);
+            }
+          );
+
+          console.log("Local SQLite database seeded successfully!");
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+}
+
+let sqliteInitPromise = isSqlite ? initSqliteSchemaAndSeed() : Promise.resolve();
+
 const db = {
   pool,
+  isSqlite,
   query(sql, values, callback) {
     if (typeof values === "function") {
       callback = values;
       values = [];
     }
 
-    if (!pool) {
+    if (!isSqlite) {
       if (typeof callback === "function") {
-        callback(configurationError);
+        pool.query(sql, values, (error, result) => {
+          callback(error, result ? result.rows : undefined);
+        });
         return;
       }
-      return Promise.reject(configurationError);
+      return pool.query(sql, values).then((result) => result.rows);
     }
+
+    const exec = async () => {
+      await sqliteInitPromise;
+      const { formattedSql, formattedValues } = formatSqliteQuery(sql, values);
+
+      return new Promise((resolve, reject) => {
+        const isSelect = /^\s*SELECT/i.test(formattedSql);
+
+        if (isSelect) {
+          sqliteDb.all(formattedSql, formattedValues, (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows || []);
+          });
+        } else {
+          // For INSERT / UPDATE / DELETE
+          sqliteDb.all(formattedSql, formattedValues, function (err, rows) {
+            if (err) {
+              if (err.message && err.message.includes("UNIQUE constraint failed")) {
+                err.code = "23505"; // Match PG duplicate key code
+              }
+              return reject(err);
+            }
+            // If RETURNING id was requested or if rows returned
+            if (rows && rows.length > 0) {
+              return resolve(rows);
+            }
+            // If RETURNING was requested but sqlite3 didn't yield rows in .all, use lastID
+            if (/RETURNING\s+id/i.test(formattedSql) && this && this.lastID) {
+              return resolve([{ id: this.lastID }]);
+            }
+            resolve(rows || []);
+          });
+        }
+      });
+    };
 
     if (typeof callback === "function") {
-      pool.query(sql, values, (error, result) => {
-        callback(error, result ? result.rows : undefined);
-      });
+      exec()
+        .then((rows) => callback(null, rows))
+        .catch((err) => callback(err));
       return;
     }
 
-    return pool.query(sql, values).then((result) => result.rows);
+    return exec();
   },
+
   async getClient() {
-    if (!pool) throw configurationError;
-    return pool.connect();
+    if (!isSqlite) {
+      return pool.connect();
+    }
+
+    await sqliteInitPromise;
+    return {
+      query: async (sql, values) => {
+        const rows = await db.query(sql, values);
+        return { rows };
+      },
+      release: () => {},
+    };
   },
+
   connect(callback) {
-    if (!pool) {
-      callback(configurationError);
+    if (!isSqlite) {
+      pool.query("SELECT 1", (error) => callback(error));
       return;
     }
-    pool.query("SELECT 1", (error) => callback(error));
+
+    sqliteInitPromise
+      .then(() => callback(null))
+      .catch((err) => callback(err));
   },
 };
 
