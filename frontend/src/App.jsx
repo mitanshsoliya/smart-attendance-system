@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import QRScanner from "./QRScanner";
 import FacultyDashboard from "./FacultyDashboard";
+import StudentDashboard from "./StudentDashboard";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -92,36 +93,7 @@ function Dashboard({ user, token, onLogout }) {
     return <FacultyDashboard user={user} token={token} onLogout={onLogout} />;
   }
 
-  const [view, setView] = useState("student-mark");
-  const [mobileNav, setMobileNav] = useState(false);
-
-  return <div className="app-shell">
-    <aside className={`sidebar ${mobileNav ? "open" : ""}`}>
-      <Brand />
-      <p className="tagline">Smart attendance. Simple academics.</p>
-      <nav>
-        <NavItem active={view === "student-mark"} onClick={() => { setView("student-mark"); setMobileNav(false); }}>Mark Attendance</NavItem>
-        <NavItem active={view === "student-my"} onClick={() => { setView("student-my"); setMobileNav(false); }}>My Attendance</NavItem>
-      </nav>
-      <button className="logout-link" onClick={onLogout}>Log out <span>↗</span></button>
-    </aside>
-    {mobileNav && <button className="scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
-    <main className="main-content">
-      <header className="topbar">
-        <button className="menu-button" onClick={() => setMobileNav(true)} aria-label="Open menu">☰</button>
-        <div>
-          <p className="eyebrow">STUDENT DESK</p>
-          <h1>Good morning, {user.full_name?.split(" ")[0]}.</h1>
-        </div>
-        <div className="profile">
-          <span className="avatar">{user.full_name?.charAt(0)}</span>
-          <span className="profile-name">{user.full_name}</span>
-          <span className="role-badge">{user.role}</span>
-        </div>
-      </header>
-      <StudentView token={token} view={view} />
-    </main>
-  </div>;
+  return <StudentDashboard user={user} token={token} onLogout={onLogout} />;
 }
 
 function FacultyView({ token, view, setView }) {
