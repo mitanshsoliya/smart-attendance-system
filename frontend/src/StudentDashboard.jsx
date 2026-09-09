@@ -4,7 +4,7 @@ import QRScanner from "./QRScanner";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
+function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggleRole }) {
   const user = userProp || JSON.parse(localStorage.getItem("user") || "{}");
   const token = tokenProp || localStorage.getItem("token");
 
@@ -352,6 +352,16 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout }) {
               </button>
             </div>
             <div className="flex items-center gap-3">
+            {onToggleRole && (
+              <button
+                onClick={() => onToggleRole("FACULTY")}
+                className="px-2.5 py-1 text-xs bg-[#B85C3A] text-white hover:bg-[#a05032] rounded font-semibold flex items-center gap-1 cursor-pointer"
+                title="Switch to Faculty Portal View"
+              >
+                <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
+                <span className="hidden sm:inline">Faculty View</span>
+              </button>
+            )}
               <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm border border-border-default">
                 {userInitials}
               </div>
