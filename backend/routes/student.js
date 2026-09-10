@@ -1,12 +1,13 @@
 const express = require("express");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireStudent } = require("../middleware/auth");
 
 const router = express.Router();
 
-router.get("/dashboard", verifyToken, (req, res) => {
+// Enforce student role on student dashboard endpoint
+router.get("/dashboard", verifyToken, requireStudent, (req, res) => {
   res.json({
     message: "Student Dashboard Access Granted",
-    user: req.user
+    user: req.user,
   });
 });
 

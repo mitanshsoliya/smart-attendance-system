@@ -1,23 +1,12 @@
 const express = require("express");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireStudent, requireFacultyOrHod } = require("../middleware/auth");
+const { validateAttendanceMark } = require("../middleware/validator");
 const db = require("../db");
 
 const router = express.Router();
 
-router.post("/mark", verifyToken, (req, res) => {
-  if (req.user.role !== "STUDENT") {
-    return res.status(403).json({
-      message: "Only students can mark attendance",
-    });
-  }
-
+router.post("/mark", verifyToken, requireStudent, validateAttendanceMark, (req, res) => {
   const { lecture_id: inputLectureId, session_token } = req.body;
-
-  if (!session_token && !inputLectureId) {
-    return res.status(400).json({
-      message: "Session token or QR code is required",
-    });
-  }
 
   const tokenToUse = (session_token || "").trim();
 
@@ -134,13 +123,7 @@ router.post("/mark", verifyToken, (req, res) => {
 });
 
 // Get logged-in student's attendance
-router.get("/my", verifyToken, (req, res) => {
-  if (req.user.role !== "STUDENT") {
-    return res.status(403).json({
-      message: "Only students can access attendance",
-    });
-  }
-
+router.get("/my", verifyToken, requireStudent, (req, res) => {
   const sql = `
     SELECT
       a.id,
@@ -173,12 +156,7 @@ router.get("/my", verifyToken, (req, res) => {
 });
 
 // Get attendance for one lecture owned by faculty/HOD or for live verification
-router.get("/lecture/:lectureId", verifyToken, (req, res) => {
-  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
-    return res.status(403).json({
-      message: "Only faculty or HOD can access lecture attendance",
-    });
-  }
+router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, (req, res) => {
 
   const sql = `
     SELECT

@@ -1,26 +1,15 @@
 const express = require("express");
 const crypto = require("crypto");
 const QRCode = require("qrcode");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireFacultyOrHod } = require("../middleware/auth");
+const { validateQrSession } = require("../middleware/validator");
 const db = require("../db");
 
 const router = express.Router();
 
-router.post("/create", verifyToken, async (req, res) => {
+router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, async (req, res) => {
   try {
-    if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
-      return res.status(403).json({
-        message: "Only Faculty or HOD can create QR sessions",
-      });
-    }
-
     const { lecture_id } = req.body;
-
-    if (!lecture_id) {
-      return res.status(400).json({
-        message: "lecture_id is required",
-      });
-    }
 
     const session_token = crypto.randomBytes(32).toString("hex");
 

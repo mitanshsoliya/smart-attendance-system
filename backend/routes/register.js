@@ -13,11 +13,17 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const allowedRoles = ["HOD", "FACULTY", "STUDENT"];
+  const cleanRole = String(role).toUpperCase();
 
-  if (!allowedRoles.includes(role)) {
+  if (cleanRole === "FACULTY" || cleanRole === "HOD" || cleanRole === "ADMIN") {
+    return res.status(403).json({
+      message: "Forbidden: Faculty and HOD/Admin accounts cannot be created via public registration. Contact departmental administration.",
+    });
+  }
+
+  if (cleanRole !== "STUDENT") {
     return res.status(400).json({
-      message: "Invalid role",
+      message: "Invalid role. Only STUDENT registration is permitted publicly.",
     });
   }
 

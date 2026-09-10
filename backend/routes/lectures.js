@@ -1,17 +1,12 @@
 const express = require("express");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireFacultyOrHod } = require("../middleware/auth");
+const { validateLecture } = require("../middleware/validator");
 const db = require("../db");
 
 const router = express.Router();
 
 // Get Faculty / HOD Lectures
-router.get("/my", verifyToken, (req, res) => {
-  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
-    return res.status(403).json({
-      message: "Only faculty or HOD can access lectures",
-    });
-  }
-
+router.get("/my", verifyToken, requireFacultyOrHod, (req, res) => {
   const sql = `
     SELECT
       l.id,
@@ -44,27 +39,13 @@ router.get("/my", verifyToken, (req, res) => {
 });
 
 // Create Lecture
-router.post("/create", verifyToken, (req, res) => {
-  if (req.user.role !== "FACULTY" && req.user.role !== "HOD") {
-    return res.status(403).json({
-      message: "Only faculty or HOD can create lectures",
-    });
-  }
-
+router.post("/create", verifyToken, requireFacultyOrHod, validateLecture, (req, res) => {
   const {
     subject_id,
     lecture_date,
     start_time,
     end_time,
   } = req.body;
-
-  // Check required fields
-  if (!subject_id || !lecture_date || !start_time || !end_time) {
-    return res.status(400).json({
-      message:
-        "subject_id, lecture_date, start_time and end_time are required",
-    });
-  }
 
   // Find faculty ID using logged-in user ID
   const facultySql = `
