@@ -2454,30 +2454,18 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
           </div>
         )}
 
-<<<<<<< HEAD
-        {/* ================= TAB 5: REPORTS / ATTENDANCE ANALYTICS ================= */}
-=======
         {/* ================= TAB 5: REPORTS & ANALYTICS ================= */}
->>>>>>> faculty-dashboard-update
         {activeTab === "reports" && (
           <div className="flex flex-col w-full">
             {/* Top Archival Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border-default">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 mb-2">
-<<<<<<< HEAD
-                  <span className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+                  <span className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider font-semibold">
                     Accreditation Cycle AY 2026-27
                   </span>
                   <span className="text-text-stone text-label-sm">•</span>
-                  <span className="font-label-sm text-label-sm text-text-stone">Mid-Term Mandatory Ledger</span>
-=======
-                  <span className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider font-semibold">
-                    Accreditation Cycle AY 2024-25
-                  </span>
-                  <span className="text-text-stone text-label-sm">•</span>
                   <span className="font-label-sm text-label-sm text-text-stone font-medium">Mid-Term Mandatory Ledger</span>
->>>>>>> faculty-dashboard-update
                 </div>
                 <h1 className="font-greeting-serif text-display-lg text-on-surface tracking-tight leading-none font-bold">
                   Attendance Analytics & Reports
@@ -2490,11 +2478,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               {/* Primary Archival Actions */}
               <div className="flex flex-wrap items-center gap-3">
                 <button
-<<<<<<< HEAD
-                  onClick={() => alert("Downloading official PDF Audit Report...")}
-=======
                   onClick={() => alert("Downloading PDF Audit Report...")}
->>>>>>> faculty-dashboard-update
                   className="px-4 py-2 bg-surface-container-lowest border border-border-default hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors flex items-center gap-2 cursor-pointer"
                   type="button"
                 >
@@ -2502,11 +2486,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   <span>Download PDF Audit</span>
                 </button>
                 <button
-<<<<<<< HEAD
-                  onClick={() => alert("Exporting complete attendance CSV ledger...")}
-=======
                   onClick={() => alert("Exporting CSV Ledger...")}
->>>>>>> faculty-dashboard-update
                   className="px-4 py-2 bg-surface-container-lowest border border-border-default hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors flex items-center gap-2 cursor-pointer"
                   type="button"
                 >
@@ -2514,13 +2494,8 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   <span>Export CSV Ledger</span>
                 </button>
                 <button
-<<<<<<< HEAD
-                  onClick={() => alert("Statutory notice filed to Dean of Academic Affairs.")}
-                  className="px-4 py-2 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md transition-all flex items-center gap-2 cursor-pointer font-medium"
-=======
                   onClick={() => alert("Formal Notice transmitted to Dean of Academic Affairs.")}
                   className="px-4 py-2 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md transition-all flex items-center gap-2 cursor-pointer font-semibold"
->>>>>>> faculty-dashboard-update
                   type="button"
                 >
                   <span className="material-symbols-outlined text-[18px]">verified</span>
@@ -2530,19 +2505,10 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
             </div>
 
             {/* Macro Performance Ledger Numbers */}
-<<<<<<< HEAD
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border-b border-border-default divide-y sm:divide-y-0 sm:divide-x divide-border-default bg-surface-warm">
-              <div className="p-6 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-text-stone">
-                  <span className="font-label-sm text-label-sm tracking-widest uppercase font-semibold">
-                    Aggregate Attendance
-                  </span>
-=======
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 border-b border-border-default divide-y sm:divide-y-0 sm:divide-x divide-border-default bg-surface-warm my-6">
               <div className="p-6 flex flex-col justify-between">
                 <div className="flex items-center justify-between text-text-stone">
                   <span className="font-label-sm text-label-sm tracking-widest uppercase font-semibold">Aggregate Attendance</span>
->>>>>>> faculty-dashboard-update
                   <span className="material-symbols-outlined text-[20px]">equalizer</span>
                 </div>
                 <div className="mt-4">
@@ -2554,7 +2520,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   </div>
                 </div>
               </div>
-<<<<<<< HEAD
 
               <div className="p-6 flex flex-col justify-between">
                 <div className="flex items-center justify-between text-text-stone">
@@ -2602,7 +2567,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     122<span className="font-body-md text-headline-md text-text-stone font-normal"> / 129</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="px-1.5 py-0.2 bg-error/10 text-error font-label-sm text-label-sm font-semibold">
+                    <span className="px-1.5 py-0.5 bg-error/10 text-error font-label-sm text-label-sm font-semibold">
                       7 Students Under 75%
                     </span>
                   </div>
@@ -2780,6 +2745,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     </div>
                   </div>
                 </div>
+
                 <div className="mt-6 p-3.5 bg-surface-container border-l-2 border-secondary text-label-sm font-label-sm text-on-surface-variant leading-relaxed">
                   <strong className="font-semibold text-on-surface">Pattern Observation:</strong> Friday late-afternoon practicals (CS503 Lab, 3:30 PM - 5:30 PM) account for 68% of unexcused absences this month. Notice proposed to Academic Dean for scheduling adjustments.
                 </div>
@@ -2799,61 +2765,6 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   <p className="text-text-stone text-sm">
                     Inspect verified biometric & BLE check-ins from active backend lecture sessions.
                   </p>
-=======
-              <div className="p-6 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-text-stone">
-                  <span className="font-label-sm text-label-sm tracking-widest uppercase font-semibold">Sessions Logged</span>
-                  <span className="material-symbols-outlined text-[20px]">history_edu</span>
-                </div>
-                <div className="mt-4">
-                  <div className="font-greeting-serif text-[42px] leading-tight text-on-surface font-bold">76</div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="font-label-sm text-label-sm text-on-surface-variant font-medium">54 Lectures</span>
-                    <span className="text-text-stone text-label-sm">/</span>
-                    <span className="font-label-sm text-label-sm text-text-stone">22 Practical Labs</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-text-stone">
-                  <span className="font-label-sm text-label-sm tracking-widest uppercase font-semibold">Punctuality Score</span>
-                  <span className="material-symbols-outlined text-[20px]">schedule</span>
-                </div>
-                <div className="mt-4">
-                  <div className="font-greeting-serif text-[42px] leading-tight text-on-surface font-bold">94.2%</div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="font-label-sm text-label-sm text-text-stone">Within 5m Grace Window</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-text-stone">
-                  <span className="font-label-sm text-label-sm tracking-widest uppercase font-semibold">Clearance Status</span>
-                  <span className="material-symbols-outlined text-[20px]">fact_check</span>
-                </div>
-                <div className="mt-4">
-                  <div className="font-greeting-serif text-[42px] leading-tight text-on-surface font-bold">
-                    122<span className="font-body-md text-headline-md text-text-stone font-normal"> / 129</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="px-1.5 py-0.5 bg-error/10 text-error font-label-sm text-label-sm font-semibold">
-                      7 Students Under 75%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Backend Roster Inspection Panel */}
-            <div className="bg-surface-warm border border-border-default rounded p-6 shadow-xs mb-8">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-border-default pb-4">
-                <div>
-                  <span className="bg-secondary/10 text-secondary font-label-sm text-label-sm px-2.5 py-1 rounded font-semibold uppercase tracking-wider mb-1 inline-block">
-                    Live Attendance Check-In Roster
-                  </span>
-                  <h3 className="font-greeting-serif text-3xl text-primary font-bold">Lecture Attendance Register</h3>
-                  <p className="text-text-stone text-sm">Review real-time verified student check-in records for selected lectures.</p>
->>>>>>> faculty-dashboard-update
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -2863,19 +2774,11 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                       setSelectedLectureId(e.target.value);
                       handleLoadStatus(e.target.value);
                     }}
-<<<<<<< HEAD
-                    className="p-2.5 bg-white border border-border-default rounded text-primary text-sm flex-1 sm:flex-none cursor-pointer"
-                  >
-                    {lectures.map((lec) => (
-                      <option key={lec.id} value={lec.id}>
-                        {lec.subject_code} • {lec.subject_name} ({formatShortDate(lec.lecture_date)})
-=======
                     className="p-2.5 bg-white border border-border-default rounded text-primary text-sm flex-1 sm:flex-none cursor-pointer focus:outline-none"
                   >
                     {lectures.map((lec) => (
                       <option key={lec.id} value={lec.id}>
-                        {lec.subject_code} • {lec.subject_name}
->>>>>>> faculty-dashboard-update
+                        {lec.subject_code} • {lec.subject_name} {lec.lecture_date ? `(${formatShortDate(lec.lecture_date)})` : ""}
                       </option>
                     ))}
                   </select>
@@ -2883,11 +2786,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   <button
                     onClick={() => handleLoadStatus(selectedLectureId)}
                     disabled={statusLoading}
-<<<<<<< HEAD
-                    className="bg-secondary text-on-secondary px-4 py-2.5 rounded text-sm font-semibold hover:opacity-90 transition-colors cursor-pointer"
-=======
                     className="bg-secondary text-on-secondary px-4 py-2.5 rounded text-sm font-semibold hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
->>>>>>> faculty-dashboard-update
                   >
                     {statusLoading ? "Loading..." : "Refresh Roster"}
                   </button>
@@ -2895,79 +2794,47 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               </div>
 
               {statusMessage && (
-<<<<<<< HEAD
-                <div className="p-3 bg-error-container/20 text-error border border-error/30 rounded text-sm">
-=======
                 <div className="p-3 bg-error-container/20 text-error border border-error/30 rounded text-sm mb-4">
->>>>>>> faculty-dashboard-update
                   {statusMessage}
                 </div>
               )}
 
-<<<<<<< HEAD
               <div className="overflow-x-auto border border-border-default rounded bg-surface-container-lowest">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-border-default text-xs uppercase tracking-wider text-text-stone bg-surface-warm">
-=======
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-border-default text-xs uppercase tracking-wider text-text-stone bg-surface-container">
->>>>>>> faculty-dashboard-update
                       <th className="py-3 px-4 font-semibold">Student Name</th>
                       <th className="py-3 px-4 font-semibold">Email Address</th>
                       <th className="py-3 px-4 font-semibold">Check-in Time</th>
                       <th className="py-3 px-4 font-semibold">Verification Status</th>
                     </tr>
                   </thead>
-<<<<<<< HEAD
                   <tbody className="divide-y divide-border-default text-sm">
                     {statusList.length > 0 ? (
                       statusList.map((item) => (
                         <tr key={item.id} className="hover:bg-surface-warm/80 transition-colors">
                           <td className="py-3.5 px-4 font-semibold text-on-surface">{item.full_name}</td>
-=======
-                  <tbody className="divide-y divide-border-default text-sm font-label-md">
-                    {statusList.length > 0 ? (
-                      statusList.map((item) => (
-                        <tr key={item.id} className="hover:bg-surface-container/50 transition-colors">
-                          <td className="py-3.5 px-4 font-semibold text-primary">{item.full_name}</td>
->>>>>>> faculty-dashboard-update
                           <td className="py-3.5 px-4 text-text-stone font-mono text-xs">{item.email}</td>
                           <td className="py-3.5 px-4 text-text-stone">
                             {item.attendance_time
                               ? new Date(item.attendance_time).toLocaleTimeString([], {
                                   hour: "2-digit",
                                   minute: "2-digit",
-<<<<<<< HEAD
                                   second: "2-digit",
-=======
->>>>>>> faculty-dashboard-update
                                 })
                               : "-"}
                           </td>
                           <td className="py-3.5 px-4">
-<<<<<<< HEAD
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-success/10 text-success">
                               <span className="w-1.5 h-1.5 rounded-full bg-success" />
                               {item.status || "Verified Present"}
-=======
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-success/10 text-success">
-                              <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                              {item.status || "Present"}
->>>>>>> faculty-dashboard-update
                             </span>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-<<<<<<< HEAD
                         <td colSpan="4" className="py-8 text-center text-text-stone text-sm">
-=======
-                        <td colSpan="4" className="py-8 text-center text-text-stone">
->>>>>>> faculty-dashboard-update
                           No check-ins recorded for this lecture session yet.
                         </td>
                       </tr>
@@ -2977,187 +2844,8 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               </div>
             </div>
 
-<<<<<<< HEAD
             {/* At-Risk & Statutory Warning Ledger */}
             <div className="p-6 bg-surface-container-lowest border-b border-border-default">
-=======
-            {/* Primary Academic Row: Curricular Visualizations & Temporal Distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 border border-border-default divide-y lg:divide-y-0 lg:divide-x divide-border-default mb-8">
-              {/* Course Breakdown (7 Cols) */}
-              <div className="lg:col-span-7 p-6 bg-surface-container-lowest">
-                <div className="flex items-center justify-between pb-4 border-b border-border-default">
-                  <div>
-                    <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
-                      Curricular Compliance by Subject
-                    </h2>
-                    <p className="font-label-sm text-label-sm text-text-stone">
-                      Direct correlation against 75% statutory accreditation threshold
-                    </p>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-4 text-label-sm font-label-sm text-text-stone">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-secondary inline-block"></span>CS501
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-on-surface inline-block"></span>CS503
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 bg-success inline-block"></span>CS702
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-6 pt-6">
-                  {/* Subject 1 */}
-                  <div>
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-label-md text-label-md font-semibold text-on-surface">
-                          CS501: Relational Database Systems
-                        </span>
-                        <span className="px-1.5 py-0.5 bg-surface-container text-text-stone font-label-sm text-label-sm">
-                          Sec A & B
-                        </span>
-                      </div>
-                      <div className="font-label-md text-label-md text-on-surface font-semibold">
-                        91.4% <span className="text-text-stone font-normal text-label-sm">(38 Sessions)</span>
-                      </div>
-                    </div>
-                    <div className="relative w-full h-3 bg-surface-container overflow-hidden">
-                      <div className="h-full bg-secondary" style={{ width: "91.4%" }}></div>
-                      <div className="absolute top-0 bottom-0 left-[75%] w-0.5 bg-error z-10" title="75% Cutoff Marker"></div>
-                    </div>
-                    <div className="flex justify-between items-center text-label-sm font-label-sm text-text-stone mt-1.5">
-                      <span>52 Enrolled</span>
-                      <span className="text-error font-medium">2 At-Risk</span>
-                    </div>
-                  </div>
-                  {/* Subject 2 */}
-                  <div>
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-label-md text-label-md font-semibold text-on-surface">
-                          CS503: Modern Operating Systems Architecture
-                        </span>
-                        <span className="px-1.5 py-0.5 bg-surface-container text-text-stone font-label-sm text-label-sm">
-                          Sec B
-                        </span>
-                      </div>
-                      <div className="font-label-md text-label-md text-on-surface font-semibold">
-                        84.1% <span className="text-text-stone font-normal text-label-sm">(38 Sessions)</span>
-                      </div>
-                    </div>
-                    <div className="relative w-full h-3 bg-surface-container overflow-hidden">
-                      <div className="h-full bg-on-surface" style={{ width: "84.1%" }}></div>
-                      <div className="absolute top-0 bottom-0 left-[75%] w-0.5 bg-error z-10" title="75% Cutoff Marker"></div>
-                    </div>
-                    <div className="flex justify-between items-center text-label-sm font-label-sm text-text-stone mt-1.5">
-                      <span>45 Enrolled</span>
-                      <span className="text-error font-medium">4 At-Risk (Post-Recess Dip)</span>
-                    </div>
-                  </div>
-                  {/* Subject 3 */}
-                  <div>
-                    <div className="flex justify-between items-baseline mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-label-md text-label-md font-semibold text-on-surface">
-                          CS702: Distributed Consensus & Cloud Algorithms
-                        </span>
-                        <span className="px-1.5 py-0.5 bg-surface-container text-text-stone font-label-sm text-label-sm">
-                          Elective VI
-                        </span>
-                      </div>
-                      <div className="font-label-md text-label-md text-on-surface font-semibold">
-                        93.8% <span className="text-text-stone font-normal text-label-sm">(24 Sessions)</span>
-                      </div>
-                    </div>
-                    <div className="relative w-full h-3 bg-surface-container overflow-hidden">
-                      <div className="h-full bg-success" style={{ width: "93.8%" }}></div>
-                      <div className="absolute top-0 bottom-0 left-[75%] w-0.5 bg-error z-10" title="75% Cutoff Marker"></div>
-                    </div>
-                    <div className="flex justify-between items-center text-label-sm font-label-sm text-text-stone mt-1.5">
-                      <span>32 Enrolled</span>
-                      <span className="text-success font-medium">1 At-Risk (Medical Excusal Pending)</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-8 pt-4 border-t border-border-default flex items-center justify-between text-label-sm font-label-sm text-text-stone">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
-                    Red marker delineates university statutory exam disqualification line (75%)
-                  </span>
-                  <button
-                    onClick={() => setActiveTab("courses")}
-                    className="text-secondary hover:underline font-medium cursor-pointer bg-transparent border-0"
-                  >
-                    View Detailed Syllabi Log →
-                  </button>
-                </div>
-              </div>
-
-              {/* Day-of-Week Compliance Breakdown (5 Cols) */}
-              <div className="lg:col-span-5 p-6 bg-surface-warm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between pb-4 border-b border-border-default">
-                    <div>
-                      <h2 className="font-headline-md text-headline-md text-on-surface font-bold">Temporal Variance</h2>
-                      <p className="font-label-sm text-label-sm text-text-stone">Weekly attendance distribution cycle</p>
-                    </div>
-                    <span className="px-2 py-1 bg-surface-container text-text-stone font-label-sm text-label-sm">
-                      Fall 2024
-                    </span>
-                  </div>
-
-                  {/* Weekly SVG Bar Chart */}
-                  <div className="pt-6">
-                    <div className="h-44 w-full flex items-end justify-between gap-3 px-2">
-                      <div className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="font-label-sm text-label-sm text-on-surface font-semibold">92%</span>
-                        <div className="w-full bg-surface-container h-36 flex items-end">
-                          <div className="w-full bg-on-surface transition-all group-hover:bg-secondary" style={{ height: "92%" }}></div>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-text-stone uppercase">Mon</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="font-label-sm text-label-sm text-on-surface font-semibold">88%</span>
-                        <div className="w-full bg-surface-container h-36 flex items-end">
-                          <div className="w-full bg-on-surface transition-all group-hover:bg-secondary" style={{ height: "88%" }}></div>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-text-stone uppercase">Tue</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="font-label-sm text-label-sm text-on-surface font-semibold">89%</span>
-                        <div className="w-full bg-surface-container h-36 flex items-end">
-                          <div className="w-full bg-on-surface transition-all group-hover:bg-secondary" style={{ height: "89%" }}></div>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-text-stone uppercase">Wed</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="font-label-sm text-label-sm text-on-surface font-semibold">86%</span>
-                        <div className="w-full bg-surface-container h-36 flex items-end">
-                          <div className="w-full bg-on-surface transition-all group-hover:bg-secondary" style={{ height: "86%" }}></div>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-text-stone uppercase">Thu</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="font-label-sm text-label-sm text-error font-semibold">79%</span>
-                        <div className="w-full bg-surface-container h-36 flex items-end">
-                          <div className="w-full bg-error transition-all group-hover:opacity-80" style={{ height: "79%" }}></div>
-                        </div>
-                        <span className="font-label-sm text-label-sm text-error uppercase font-medium">Fri</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 p-3.5 bg-surface-container border-l-2 border-secondary text-label-sm font-label-sm text-on-surface-variant leading-relaxed">
-                  <strong className="font-semibold text-on-surface">Pattern Observation:</strong> Friday late-afternoon practicals (CS503 Lab, 3:30 PM - 5:30 PM) account for 68% of unexcused absences this month. Notice proposed to Academic Dean for scheduling adjustments.
-                </div>
-              </div>
-            </div>
-
-            {/* At-Risk & Statutory Warning Ledger */}
-            <div className="p-6 bg-surface-container-lowest border border-border-default mb-8">
->>>>>>> faculty-dashboard-update
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-border-default">
                 <div>
                   <div className="flex items-center gap-2.5">
@@ -3175,11 +2863,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 </div>
                 <div className="flex items-center gap-3">
                   <button
-<<<<<<< HEAD
-                    onClick={() => alert("Batch warning emails dispatched to 3 flagged candidates.")}
-=======
                     onClick={() => alert("Batch Warning Emails dispatched to 3 flagged candidates.")}
->>>>>>> faculty-dashboard-update
                     className="px-3.5 py-1.5 bg-surface-warm border border-border-default font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
                     type="button"
                   >
@@ -3193,11 +2877,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               <div className="overflow-x-auto mt-4">
                 <table className="w-full text-left border-collapse">
                   <thead>
-<<<<<<< HEAD
-                    <tr className="border-b border-border-default text-text-stone font-label-sm text-label-sm uppercase tracking-wider">
-=======
                     <tr className="border-b border-border-default text-text-stone font-label-sm text-label-sm uppercase tracking-wider bg-surface-warm">
->>>>>>> faculty-dashboard-update
                       <th className="py-3 px-4 font-semibold">Student Name & ID</th>
                       <th className="py-3 px-4 font-semibold">Course Code & Section</th>
                       <th className="py-3 px-4 font-semibold text-right">Attendance Ratio</th>
