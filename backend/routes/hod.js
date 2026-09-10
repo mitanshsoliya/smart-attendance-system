@@ -1,18 +1,8 @@
 const express = require("express");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireHod } = require("../middleware/auth");
 const db = require("../db");
 
 const router = express.Router();
-
-// Middleware: restrict to HOD role
-const requireHod = (req, res, next) => {
-  if (req.user?.role !== "HOD") {
-    return res.status(403).json({
-      message: "Access denied. HOD authorization required.",
-    });
-  }
-  next();
-};
 
 router.use(verifyToken);
 router.use(requireHod);

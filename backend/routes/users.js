@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
-const verifyToken = require("../middleware/auth");
+const { verifyToken, requireHod, requireFacultyOrHod } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -13,14 +13,7 @@ router.use(verifyToken);
  * Permitted roles: FACULTY, HOD
  * Forbidden roles: STUDENT, Anonymous
  */
-router.post("/students", async (req, res) => {
-  const requesterRole = req.user?.role;
-
-  if (requesterRole !== "FACULTY" && requesterRole !== "HOD") {
-    return res.status(403).json({
-      message: "Forbidden: Only Faculty and HOD/Admin are authorized to register students.",
-    });
-  }
+router.post("/students", requireFacultyOrHod, async (req, res) => {
 
   const { full_name, email, password, roll_number, section } = req.body;
 
@@ -118,17 +111,8 @@ router.post("/students", async (req, res) => {
  * Forbidden roles: FACULTY, STUDENT, Anonymous
  * Cannot create role HOD / Admin
  */
-router.post("/faculty", async (req, res) => {
-  const requesterRole = req.user?.role;
-
-  // 1. Enforce HOD administrative authorization
-  if (requesterRole !== "HOD") {
-    return res.status(403).json({
-      message: "Forbidden: Only HOD/Admin is authorized to register faculty accounts.",
-    });
-  }
-
-  // 2. Prevent HOD self-replication or creation of additional HOD/Admin accounts
+router.post("/faculty", requireHod, async (req, res) => {
+  // Prevent HOD self-replication or creation of additional HOD/Admin accounts
   const requestedRole = String(req.body.role || "FACULTY").toUpperCase();
   if (requestedRole === "HOD" || requestedRole === "ADMIN") {
     return res.status(403).json({
@@ -214,14 +198,7 @@ router.post("/faculty", async (req, res) => {
  * GET /users/students
  * Permitted roles: FACULTY, HOD
  */
-router.get("/students", async (req, res) => {
-  const requesterRole = req.user?.role;
-  if (requesterRole !== "FACULTY" && requesterRole !== "HOD") {
-    return res.status(403).json({
-      message: "Forbidden: Only Faculty and HOD/Admin can view student roster data.",
-    });
-  }
-
+router.get("/students", requireFacultyOrHod, async (req, res) => {
   try {
     const rows = await db.query(`
       SELECT 
@@ -258,12 +235,7 @@ router.get("/students", async (req, res) => {
  * GET /users/faculty
  * Permitted roles: HOD
  */
-router.get("/faculty", async (req, res) => {
-  if (req.user?.role !== "HOD") {
-    return res.status(403).json({
-      message: "Forbidden: Only HOD/Admin can view full faculty directory.",
-    });
-  }
+router.get("/faculty", requireHod, async (req, res) => {
 
   try {
     const rows = await db.query(`

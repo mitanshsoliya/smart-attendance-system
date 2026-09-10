@@ -22,14 +22,44 @@ function App() {
   const [overrideRole, setOverrideRole] = useState(
     localStorage.getItem("overrideRole") || null
   );
+  const [sessionNotice, setSessionNotice] = useState("");
 
-  const logout = () => {
+  // Revalidate session with /auth/me on application mount
+  useEffect(() => {
+    if (token) {
+      api
+        .get("/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => {
+          if (res.data?.user) {
+            setUser(res.data.user);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+          }
+        })
+        .catch((err) => {
+          const status = err.response?.status;
+          if (status === 401 || status === 403) {
+            console.warn("Session invalidated or expired. Clearing auth state.");
+            logout("Session expired or invalid. Please sign in again.");
+          }
+        });
+    }
+  }, [token]);
+
+  const logout = async (notice = "") => {
+    if (token) {
+      try {
+        await api.post("/auth/logout", {}, { headers: { Authorization: `Bearer ${token}` } });
+      } catch {
+        // Continue local cleanup even if network request fails
+      }
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("overrideRole");
     setToken(null);
     setUser(null);
     setOverrideRole(null);
+    if (notice) setSessionNotice(notice);
   };
 
   const handleToggleRole = (newRole) => {
@@ -40,6 +70,8 @@ function App() {
   if (!token || !user) {
     return (
       <Login
+        sessionNotice={sessionNotice}
+        onClearNotice={() => setSessionNotice("")}
         onLogin={(data) => {
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
@@ -47,6 +79,7 @@ function App() {
           setToken(data.token);
           setUser(data.user);
           setOverrideRole(null);
+          setSessionNotice("");
         }}
       />
     );
@@ -61,13 +94,13 @@ function App() {
     <Dashboard
       user={activeUser}
       token={token}
-      onLogout={logout}
+      onLogout={() => logout()}
       onToggleRole={handleToggleRole}
     />
   );
 }
 
-function Login({ onLogin }) {
+function Login({ onLogin, sessionNotice, onClearNotice }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("FACULTY");
@@ -76,6 +109,7 @@ function Login({ onLogin }) {
 
   const fillDemo = (demoRole) => {
     setRole(demoRole);
+    if (onClearNotice) onClearNotice();
     if (demoRole === "STUDENT") {
       setEmail("student@example.com");
       setPassword("student123");
@@ -90,6 +124,7 @@ function Login({ onLogin }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (onClearNotice) onClearNotice();
     setLoading(true);
     setMessage("");
     try {
@@ -192,6 +227,7 @@ function Login({ onLogin }) {
             {loading ? "Signing in..." : "Log in"}
           </button>
         </form>
+        {sessionNotice && <Notice type="warning">{sessionNotice}</Notice>}
         {message && <Notice type="error">{message}</Notice>}
       </section>
     </main>

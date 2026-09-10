@@ -8,9 +8,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Login Route
-const loginRoute = require("./routes/login");
-app.use("/login", loginRoute);
+// Authentication & Security Routes (Login, /me, Logout)
+const authRoute = require("./routes/auth");
+app.use("/auth", authRoute);
+app.use("/login", authRoute);
+app.use("/me", (req, res, next) => {
+  req.url = "/me";
+  authRoute(req, res, next);
+});
+app.use("/logout", (req, res, next) => {
+  req.url = "/logout";
+  authRoute(req, res, next);
+});
 
 // Student Route
 const studentRoute = require("./routes/student");
