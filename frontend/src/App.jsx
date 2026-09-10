@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import FacultyDashboard from "./FacultyDashboard";
 import StudentDashboard from "./StudentDashboard";
+import HodDashboard from "./HodDashboard";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -198,9 +199,18 @@ function Login({ onLogin }) {
 }
 
 function Dashboard({ user, token, onLogout, onToggleRole }) {
-  const isFaculty = user.role === "FACULTY" || user.role === "HOD";
+  if (user.role === "HOD") {
+    return (
+      <HodDashboard
+        user={user}
+        token={token}
+        onLogout={onLogout}
+        onToggleRole={onToggleRole}
+      />
+    );
+  }
 
-  if (isFaculty) {
+  if (user.role === "FACULTY") {
     return (
       <FacultyDashboard
         user={user}

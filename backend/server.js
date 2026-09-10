@@ -31,6 +31,10 @@ app.use("/attendance", attendanceRoute);
 const lectureRoute = require("./routes/lectures");
 app.use("/lectures", lectureRoute);
 
+// HOD Administration Route
+const hodRoute = require("./routes/hod");
+app.use("/hod", hodRoute);
+
 // Verify the database before accepting API traffic.
 db.connect((err) => {
   if (err) {

@@ -353,14 +353,19 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
             </div>
             <div className="flex items-center gap-3">
             {onToggleRole && (
-              <button
-                onClick={() => onToggleRole("FACULTY")}
-                className="px-2.5 py-1 text-xs bg-[#B85C3A] text-white hover:bg-[#a05032] rounded font-semibold flex items-center gap-1 cursor-pointer"
-                title="Switch to Faculty Portal View"
-              >
-                <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
-                <span className="hidden sm:inline">Faculty View</span>
-              </button>
+              <div className="flex items-center bg-[#F0EDE6] border border-[#D9D4C7] rounded px-2 py-1 text-xs font-medium">
+                <span className="text-[#736F68] mr-1 font-semibold hidden sm:inline">Portal:</span>
+                <select
+                  value="STUDENT"
+                  onChange={(e) => onToggleRole(e.target.value)}
+                  className="bg-transparent text-[#1C1B1A] font-bold cursor-pointer focus:outline-none"
+                  title="Switch application portal preview"
+                >
+                  <option value="STUDENT">Student Portal</option>
+                  <option value="FACULTY">Faculty Portal</option>
+                  <option value="HOD">HOD Portal</option>
+                </select>
+              </div>
             )}
               <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-sm border border-border-default">
                 {userInitials}

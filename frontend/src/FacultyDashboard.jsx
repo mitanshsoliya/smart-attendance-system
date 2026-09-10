@@ -381,17 +381,21 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               history_edu
             </span>
           </div>
-
           <div className="flex items-center gap-3">
             {onToggleRole && (
-              <button
-                onClick={() => onToggleRole("STUDENT")}
-                className="px-2.5 py-1 text-xs bg-surface-container border border-border-default text-primary hover:bg-surface-container-high rounded font-semibold flex items-center gap-1 cursor-pointer"
-                title="Switch to Student Portal View"
-              >
-                <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
-                <span className="hidden sm:inline">Student View</span>
-              </button>
+              <div className="flex items-center bg-surface-container border border-border-default rounded px-2 py-1 text-xs font-medium">
+                <span className="text-text-stone mr-1 font-semibold hidden sm:inline">Portal:</span>
+                <select
+                  value={user?.role || "FACULTY"}
+                  onChange={(e) => onToggleRole(e.target.value)}
+                  className="bg-transparent text-primary font-bold cursor-pointer focus:outline-none"
+                  title="Switch application portal preview"
+                >
+                  <option value="FACULTY">Faculty Portal</option>
+                  <option value="HOD">HOD Portal</option>
+                  <option value="STUDENT">Student Portal</option>
+                </select>
+              </div>
             )}
             <div className="w-9 h-9 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md text-label-md font-medium tracking-tight border border-secondary">
               {user?.full_name ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2) : "SJ"}
