@@ -35,6 +35,10 @@ app.use("/lectures", lectureRoute);
 const hodRoute = require("./routes/hod");
 app.use("/hod", hodRoute);
 
+// Controlled User Management & Role Permissions
+const usersRoute = require("./routes/users");
+app.use("/users", usersRoute);
+
 // Verify the database before accepting API traffic.
 db.connect((err) => {
   if (err) {

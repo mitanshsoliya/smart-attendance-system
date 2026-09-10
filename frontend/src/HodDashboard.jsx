@@ -54,6 +54,30 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
   const [courseSubmitLoading, setCourseSubmitLoading] = useState(false);
   const [courseMessage, setCourseMessage] = useState("");
 
+  // Add Student Modal State (HOD / Faculty authority)
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [newStudentForm, setNewStudentForm] = useState({
+    fullName: "",
+    email: "",
+    password: "student123",
+    rollNumber: "",
+    section: "Sec A",
+  });
+  const [studentSubmitLoading, setStudentSubmitLoading] = useState(false);
+  const [studentModalError, setStudentModalError] = useState("");
+
+  // Add Faculty Modal State (HOD administrative authority)
+  const [showAddFacultyModal, setShowAddFacultyModal] = useState(false);
+  const [newFacultyForm, setNewFacultyForm] = useState({
+    fullName: "",
+    email: "",
+    password: "faculty123",
+    designation: "Assistant Professor",
+    department: "Department of Computer Science & Engineering",
+  });
+  const [facultySubmitLoading, setFacultySubmitLoading] = useState(false);
+  const [facultyModalError, setFacultyModalError] = useState("");
+
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastTarget, setBroadcastTarget] = useState("ALL_FACULTY");
   const [broadcastSubject, setBroadcastSubject] = useState("");
@@ -153,6 +177,84 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
       setCourseMessage(err.response?.data?.message || "Failed to register course.");
     } finally {
       setCourseSubmitLoading(false);
+    }
+  };
+
+  const handleCreateStudent = async (e) => {
+    e.preventDefault();
+    if (!newStudentForm.fullName.trim() || !newStudentForm.email.trim()) {
+      setStudentModalError("Full name and institutional email are required.");
+      return;
+    }
+
+    setStudentSubmitLoading(true);
+    setStudentModalError("");
+    try {
+      const { data } = await api.post(
+        "/users/students",
+        {
+          full_name: newStudentForm.fullName.trim(),
+          email: newStudentForm.email.trim(),
+          password: newStudentForm.password.trim(),
+          roll_number: newStudentForm.rollNumber.trim() || undefined,
+          section: newStudentForm.section.trim(),
+        },
+        auth(token)
+      );
+
+      setNewStudentForm({
+        fullName: "",
+        email: "",
+        password: "student123",
+        rollNumber: "",
+        section: "Sec A",
+      });
+      setShowAddStudentModal(false);
+      await fetchAllData();
+      alert(data.message || "Student enrolled successfully!");
+    } catch (err) {
+      setStudentModalError(err.response?.data?.message || "Failed to register student.");
+    } finally {
+      setStudentSubmitLoading(false);
+    }
+  };
+
+  const handleCreateFaculty = async (e) => {
+    e.preventDefault();
+    if (!newFacultyForm.fullName.trim() || !newFacultyForm.email.trim()) {
+      setFacultyModalError("Full name and institutional email are required.");
+      return;
+    }
+
+    setFacultySubmitLoading(true);
+    setFacultyModalError("");
+    try {
+      const { data } = await api.post(
+        "/users/faculty",
+        {
+          full_name: newFacultyForm.fullName.trim(),
+          email: newFacultyForm.email.trim(),
+          password: newFacultyForm.password.trim(),
+          designation: newFacultyForm.designation.trim(),
+          department: newFacultyForm.department.trim(),
+        },
+        auth(token)
+      );
+
+      setNewFacultyForm({
+        fullName: "",
+        email: "",
+        password: "faculty123",
+        designation: "Assistant Professor",
+        department: "Department of Computer Science & Engineering",
+      });
+      setShowAddFacultyModal(false);
+      await fetchAllData();
+      alert(data.message || "Faculty member onboarded successfully!");
+    } catch (err) {
+      setFacultyModalError(err.response?.data?.message || "Failed to onboard faculty member.");
+    } finally {
+      setFacultySubmitLoading(false);
     }
   };
 
@@ -696,13 +798,23 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
                   Supervise teaching loads, syllabus progress, lecture completion percentages, and biometric session attendance.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => alert("Official Department Teaching Load Dossier prepared for Dean.")}
-                className="px-4 py-2 bg-[#1C242E] text-white text-xs font-bold rounded hover:bg-[#12181F] cursor-pointer shadow-xs"
-              >
-                Download Faculty Performance Dossier
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddFacultyModal(true)}
+                  className="px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  <span>Add Faculty</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert("Official Department Teaching Load Dossier prepared for Dean.")}
+                  className="px-4 py-2 bg-[#1C242E] text-white text-xs font-bold rounded hover:bg-[#12181F] cursor-pointer shadow-xs"
+                >
+                  Download Faculty Performance Dossier
+                </button>
+              </div>
             </div>
 
             {/* Search */}
@@ -793,6 +905,14 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
               </div>
 
               <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStudentModal(true)}
+                  className="px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  <span>Add Student</span>
+                </button>
                 <button
                   type="button"
                   onClick={exportFormalLedger}
@@ -1600,6 +1720,272 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
                   className="px-4 py-1.5 text-xs font-bold bg-[#9E3D24] text-white rounded cursor-pointer disabled:opacity-50"
                 >
                   {courseSubmitLoading ? "Registering..." : "Accredit Course"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADD STUDENT ================= */}
+      {showAddStudentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-[#FFFFFF] border-2 border-[#D8D2C4] rounded max-w-lg w-full p-6 shadow-xl">
+            <div className="flex justify-between items-center pb-3 border-b border-[#D8D2C4]">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#9E3D24]">
+                  STUDENT REGISTRATION
+                </span>
+                <h3 className="font-serif text-xl font-bold text-[#12181F]">
+                  Enrol New Student Candidate
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddStudentModal(false)}
+                className="text-[#6B7280] hover:text-[#12181F] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {studentModalError && (
+              <div className="mt-3 p-2.5 bg-[#BA1A1A]/10 text-[#BA1A1A] border border-[#BA1A1A]/30 rounded text-xs">
+                {studentModalError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateStudent} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Student Full Name *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Arvind Mehta"
+                    value={newStudentForm.fullName}
+                    onChange={(e) =>
+                      setNewStudentForm({ ...newStudentForm, fullName: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Institutional Email Address *
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="e.g. arvind.mehta@student.edu"
+                    value={newStudentForm.email}
+                    onChange={(e) =>
+                      setNewStudentForm({ ...newStudentForm, email: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Roll Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2024-CSE-095"
+                    value={newStudentForm.rollNumber}
+                    onChange={(e) =>
+                      setNewStudentForm({ ...newStudentForm, rollNumber: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] uppercase font-mono focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Cohort Section
+                  </label>
+                  <select
+                    value={newStudentForm.section}
+                    onChange={(e) =>
+                      setNewStudentForm({ ...newStudentForm, section: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] font-semibold cursor-pointer"
+                  >
+                    <option value="Sec A">Section A</option>
+                    <option value="Sec B">Section B</option>
+                    <option value="Sec C">Section C</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Temporary Initial Password *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    minLength={6}
+                    value={newStudentForm.password}
+                    onChange={(e) =>
+                      setNewStudentForm({ ...newStudentForm, password: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] font-mono focus:outline-none"
+                  />
+                  <span className="text-[10px] text-[#6B7280]">Default: student123 (min 6 characters)</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#D8D2C4] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddStudentModal(false)}
+                  className="px-3.5 py-1.5 text-xs font-semibold bg-[#F3EFE6] rounded text-[#12181F] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={studentSubmitLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-[#9E3D24] text-white rounded cursor-pointer disabled:opacity-50"
+                >
+                  {studentSubmitLoading ? "Enrolling..." : "Enrol Candidate"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADD FACULTY ================= */}
+      {showAddFacultyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-[#FFFFFF] border-2 border-[#D8D2C4] rounded max-w-lg w-full p-6 shadow-xl">
+            <div className="flex justify-between items-center pb-3 border-b border-[#D8D2C4]">
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#9E3D24]">
+                  FACULTY APPOINTMENT
+                </span>
+                <h3 className="font-serif text-xl font-bold text-[#12181F]">
+                  Onboard Faculty Member
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddFacultyModal(false)}
+                className="text-[#6B7280] hover:text-[#12181F] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {facultyModalError && (
+              <div className="mt-3 p-2.5 bg-[#BA1A1A]/10 text-[#BA1A1A] border border-[#BA1A1A]/30 rounded text-xs">
+                {facultyModalError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateFaculty} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Faculty Full Name & Honorific *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Dr. K. Ramanathan"
+                    value={newFacultyForm.fullName}
+                    onChange={(e) =>
+                      setNewFacultyForm({ ...newFacultyForm, fullName: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Faculty Institutional Email *
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="e.g. k.ramanathan@faculty.edu"
+                    value={newFacultyForm.email}
+                    onChange={(e) =>
+                      setNewFacultyForm({ ...newFacultyForm, email: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Academic Designation
+                  </label>
+                  <select
+                    value={newFacultyForm.designation}
+                    onChange={(e) =>
+                      setNewFacultyForm({ ...newFacultyForm, designation: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] font-semibold cursor-pointer"
+                  >
+                    <option value="Assistant Professor">Assistant Professor</option>
+                    <option value="Associate Professor">Associate Professor</option>
+                    <option value="Professor">Professor</option>
+                    <option value="Visiting Lecturer">Visiting Lecturer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Department Unit
+                  </label>
+                  <input
+                    type="text"
+                    value={newFacultyForm.department}
+                    onChange={(e) =>
+                      setNewFacultyForm({ ...newFacultyForm, department: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] text-xs font-medium focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-mono uppercase font-bold text-[#6B7280] mb-1">
+                    Initial Authentication Password *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    minLength={6}
+                    value={newFacultyForm.password}
+                    onChange={(e) =>
+                      setNewFacultyForm({ ...newFacultyForm, password: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5] font-mono focus:outline-none"
+                  />
+                  <span className="text-[10px] text-[#6B7280]">Default: faculty123 (min 6 characters)</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#D8D2C4] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddFacultyModal(false)}
+                  className="px-3.5 py-1.5 text-xs font-semibold bg-[#F3EFE6] rounded text-[#12181F] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={facultySubmitLoading}
+                  className="px-4 py-1.5 text-xs font-bold bg-[#9E3D24] text-white rounded cursor-pointer disabled:opacity-50"
+                >
+                  {facultySubmitLoading ? "Onboarding..." : "Onboard Faculty"}
                 </button>
               </div>
             </form>

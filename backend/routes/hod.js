@@ -92,6 +92,8 @@ router.get("/students", async (req, res) => {
     const students = await db.query(`
       SELECT 
         st.id as student_id,
+        st.roll_number,
+        st.section,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -100,7 +102,7 @@ router.get("/students", async (req, res) => {
       FROM students st
       JOIN users u ON st.user_id = u.id
       LEFT JOIN attendance a ON st.id = a.student_id AND a.status = 'PRESENT'
-      GROUP BY st.id, u.id, u.full_name, u.email, u.created_at
+      GROUP BY st.id, st.roll_number, st.section, u.id, u.full_name, u.email, u.created_at
       ORDER BY u.full_name ASC
     `);
 
@@ -117,8 +119,8 @@ router.get("/students", async (req, res) => {
         userId: s.user_id,
         fullName: s.full_name,
         email: s.email,
-        rollNumber: `2024-CSE-${String(s.student_id || i + 1).padStart(3, "0")}`,
-        section: i % 2 === 0 ? "Sec A" : "Sec B",
+        rollNumber: s.roll_number || `2024-CSE-${String(s.student_id || i + 1).padStart(3, "0")}`,
+        section: s.section || (i % 2 === 0 ? "Sec A" : "Sec B"),
         attendedLectures: attended,
         totalLectures: total,
         attendancePercentage: pct,
@@ -166,6 +168,8 @@ router.get("/faculty", async (req, res) => {
     const faculty = await db.query(`
       SELECT 
         f.id as faculty_id,
+        f.department,
+        f.designation,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -174,7 +178,7 @@ router.get("/faculty", async (req, res) => {
       FROM faculty f
       JOIN users u ON f.user_id = u.id
       LEFT JOIN lectures l ON f.id = l.faculty_id
-      GROUP BY f.id, u.id, u.full_name, u.email, u.role
+      GROUP BY f.id, f.department, f.designation, u.id, u.full_name, u.email, u.role
       ORDER BY u.full_name ASC
     `);
 
@@ -200,6 +204,8 @@ router.get("/faculty", async (req, res) => {
       fullName: fac.full_name,
       email: fac.email,
       role: fac.role,
+      department: fac.department || "Department of Computer Science & Engineering",
+      designation: fac.designation || (fac.role === "HOD" ? "Professor & HOD" : "Assistant Professor"),
       lecturesConducted: Number(fac.lectures_conducted || 0),
       courses: subjectsMap[fac.faculty_id] || ["Curriculum Assigned"],
       complianceRate: 96.5,

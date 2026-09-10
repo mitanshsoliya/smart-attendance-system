@@ -74,6 +74,8 @@ function initSqliteSchemaAndSeed() {
         CREATE TABLE IF NOT EXISTS students (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          roll_number TEXT,
+          section TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -82,9 +84,17 @@ function initSqliteSchemaAndSeed() {
         CREATE TABLE IF NOT EXISTS faculty (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+          department TEXT DEFAULT 'Department of Computer Science & Engineering',
+          designation TEXT DEFAULT 'Assistant Professor',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
+
+      // Safe column additions for existing SQLite databases
+      sqliteDb.run("ALTER TABLE students ADD COLUMN roll_number TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE students ADD COLUMN section TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE faculty ADD COLUMN department TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE faculty ADD COLUMN designation TEXT;", () => {});
 
       sqliteDb.run(`
         CREATE TABLE IF NOT EXISTS subjects (

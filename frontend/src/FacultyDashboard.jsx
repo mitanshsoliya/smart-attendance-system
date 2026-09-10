@@ -121,6 +121,19 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
   const [rosterCourseFilter, setRosterCourseFilter] = useState("ALL");
   const [rosterSearchText, setRosterSearchText] = useState("");
 
+  // Faculty Add Student Modal State
+  const [showFacultyAddStudentModal, setShowFacultyAddStudentModal] = useState(false);
+  const [facultyStudentForm, setFacultyStudentForm] = useState({
+    fullName: "",
+    email: "",
+    password: "student123",
+    rollNumber: "",
+    section: "Sec A",
+    course: "CS501",
+  });
+  const [facultyStudentLoading, setFacultyStudentLoading] = useState(false);
+  const [facultyStudentError, setFacultyStudentError] = useState("");
+
   const [policyExamThreshold, setPolicyExamThreshold] = useState(75);
   const [policyDeanThreshold, setPolicyDeanThreshold] = useState(70);
   const [policyGraceMinutes, setPolicyGraceMinutes] = useState("10");
@@ -328,14 +341,65 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
 
   const currentScheduleDay = scheduleDays[selectedDayIndex];
 
-  // Roster Candidates List
-  const cohortCandidates = [
+  // Roster Candidates List State
+  const [cohortCandidates, setCohortCandidates] = useState([
     { roll: "2026-CSE-01", name: "Aarav Sharma", course: "CS501", cohort: "CSE-A", attended: "31 / 32", pct: "96.8%", status: "Exemplary", statusType: "success" },
     { roll: "2026-CSE-22", name: "Marcus Vance", course: "CS503", cohort: "CSE-B", attended: "16 / 24", pct: "66.6%", status: "At Risk (Dean Alert)", statusType: "error" },
     { roll: "2026-CSE-08", name: "Elena Rostova", course: "CS508", cohort: "Elective", attended: "19 / 20", pct: "95.0%", status: "Exemplary", statusType: "success" },
     { roll: "2026-CSE-31", name: "Devon Chu", course: "CS503", cohort: "CSE-B", attended: "17 / 24", pct: "70.8%", status: "Warning Sent", statusType: "warning" },
     { roll: "2026-CSE-14", name: "Priya Nair", course: "CS501", cohort: "CSE-A", attended: "29 / 32", pct: "90.6%", status: "Compliant", statusType: "neutral" },
-  ];
+  ]);
+
+  const handleFacultyCreateStudent = async (e) => {
+    e.preventDefault();
+    if (!facultyStudentForm.fullName.trim() || !facultyStudentForm.email.trim()) {
+      setFacultyStudentError("Full name and institutional email are required.");
+      return;
+    }
+
+    setFacultyStudentLoading(true);
+    setFacultyStudentError("");
+    try {
+      const { data } = await api.post(
+        "/users/students",
+        {
+          full_name: facultyStudentForm.fullName.trim(),
+          email: facultyStudentForm.email.trim(),
+          password: facultyStudentForm.password.trim(),
+          roll_number: facultyStudentForm.rollNumber.trim() || undefined,
+          section: facultyStudentForm.section.trim(),
+        },
+        auth(token)
+      );
+
+      const enrolledStudent = {
+        roll: data.student?.rollNumber || facultyStudentForm.rollNumber.trim() || "2026-CSE-NEW",
+        name: facultyStudentForm.fullName.trim(),
+        course: facultyStudentForm.course,
+        cohort: `CSE-${facultyStudentForm.section.slice(-1)}`,
+        attended: "0 / 0",
+        pct: "100.0%",
+        status: "Newly Enrolled",
+        statusType: "success",
+      };
+
+      setCohortCandidates((prev) => [enrolledStudent, ...prev]);
+      setFacultyStudentForm({
+        fullName: "",
+        email: "",
+        password: "student123",
+        rollNumber: "",
+        section: "Sec A",
+        course: "CS501",
+      });
+      setShowFacultyAddStudentModal(false);
+      alert(data.message || "Student enrolled into course roster successfully!");
+    } catch (err) {
+      setFacultyStudentError(err.response?.data?.message || "Failed to register student.");
+    } finally {
+      setFacultyStudentLoading(false);
+    }
+  };
 
   const filteredCandidates = cohortCandidates.filter((cand) => {
     const matchCourse = rosterCourseFilter === "ALL" || cand.course === rosterCourseFilter;
@@ -428,7 +492,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
             </span>
           </div>
 
-          <div className="p-4 border-b border-border-default">
+          <div className="p-4 border-b border-border-default space-y-2">
             <button
               onClick={() => {
                 if (nextLecture) {
@@ -443,6 +507,17 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
             >
               <span className="material-symbols-outlined text-[18px]">play_circle</span>
               <span>Start Attendance</span>
+            </button>
+            <button
+              onClick={() => {
+                setShowFacultyAddStudentModal(true);
+                setMobileMenuOpen(false);
+              }}
+              className="w-full bg-surface-container-lowest text-on-surface border border-border-default font-label-md text-label-md py-2 px-4 rounded-none hover:bg-surface-container transition-all flex items-center justify-center gap-2 font-medium tracking-wide cursor-pointer shadow-xs"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px] text-secondary">person_add</span>
+              <span>Enrol Student</span>
             </button>
           </div>
 
@@ -1059,6 +1134,14 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 </p>
               </div>
               <div className="flex items-center gap-3 self-start md:self-end">
+                <button
+                  onClick={() => setShowFacultyAddStudentModal(true)}
+                  className="px-4 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-2 shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer font-semibold"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[18px]">person_add</span>
+                  <span>Add Student</span>
+                </button>
                 <button
                   onClick={() => setShowRosterModal(true)}
                   className="px-4 py-2.5 bg-surface-container-lowest text-on-surface font-label-md text-label-md flex items-center gap-2 shadow-sm hover:bg-surface-container transition-all cursor-pointer border border-border-default"
@@ -1709,13 +1792,23 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                         {rosterModalSubtitle}
                       </p>
                     </div>
-                    <button
-                      onClick={() => setShowRosterModal(false)}
-                      className="p-2 hover:bg-surface-container text-text-stone hover:text-on-surface cursor-pointer"
-                      type="button"
-                    >
-                      <span className="material-symbols-outlined text-[24px]">close</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowFacultyAddStudentModal(true)}
+                        className="px-3.5 py-1.5 bg-secondary text-on-secondary hover:opacity-95 font-label-md text-label-md flex items-center gap-1.5 cursor-pointer font-semibold shadow-xs"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">person_add</span>
+                        <span>Add Student</span>
+                      </button>
+                      <button
+                        onClick={() => setShowRosterModal(false)}
+                        className="p-2 hover:bg-surface-container text-text-stone hover:text-on-surface cursor-pointer"
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-[24px]">close</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="p-4 bg-surface-container-low border-b border-border-default flex flex-col sm:flex-row items-center gap-3">
@@ -3449,6 +3542,156 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                 Close Room View
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: FACULTY ADD STUDENT ================= */}
+      {showFacultyAddStudentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-surface-container-lowest border border-border-default max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center pb-4 border-b border-border-default">
+              <div>
+                <span className="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">
+                  Course Enrollment
+                </span>
+                <h3 className="font-greeting-serif text-headline-md text-on-surface font-bold">
+                  Enrol Candidate Student
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFacultyAddStudentModal(false)}
+                className="text-text-stone hover:text-on-surface cursor-pointer p-1"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {facultyStudentError && (
+              <div className="mt-3 p-2.5 bg-error/10 text-error border border-error/30 text-xs">
+                {facultyStudentError}
+              </div>
+            )}
+
+            <form onSubmit={handleFacultyCreateStudent} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Student Full Name *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Maya Krishnan"
+                    value={facultyStudentForm.fullName}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, fullName: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Student Email Address *
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="e.g. maya.k@student.edu"
+                    value={facultyStudentForm.email}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, email: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Roll Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2026-CSE-45"
+                    value={facultyStudentForm.rollNumber}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, rollNumber: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low font-mono focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Cohort Section
+                  </label>
+                  <select
+                    value={facultyStudentForm.section}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, section: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low font-medium cursor-pointer"
+                  >
+                    <option value="Sec A">Section A (CSE-A)</option>
+                    <option value="Sec B">Section B (CSE-B)</option>
+                    <option value="Sec C">Section C (CSE-C)</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Assign to Course
+                  </label>
+                  <select
+                    value={facultyStudentForm.course}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, course: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low font-medium cursor-pointer"
+                  >
+                    <option value="CS501">CS501 — Relational Database Systems</option>
+                    <option value="CS503">CS503 — Operating Systems Architecture</option>
+                    <option value="CS508">CS508 — Distributed Algorithms</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                    Initial Password *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    minLength={6}
+                    value={facultyStudentForm.password}
+                    onChange={(e) =>
+                      setFacultyStudentForm({ ...facultyStudentForm, password: e.target.value })
+                    }
+                    className="w-full p-2 text-sm border border-border-default bg-surface-container-low font-mono focus:outline-none focus:border-secondary"
+                  />
+                  <span className="text-[10px] text-text-stone">Default: student123 (minimum 6 characters)</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border-default flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFacultyAddStudentModal(false)}
+                  className="px-4 py-2 text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={facultyStudentLoading}
+                  className="px-5 py-2 text-xs font-bold bg-secondary text-on-secondary hover:opacity-95 cursor-pointer disabled:opacity-50"
+                >
+                  {facultyStudentLoading ? "Registering..." : "Enrol Student"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
