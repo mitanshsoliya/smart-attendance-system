@@ -104,6 +104,28 @@ router.get("/students", async (req, res) => {
       ORDER BY u.full_name ASC
     `);
 
+    const enriched = (students || []).map((s, i) => {
+      const attended = Number(s.attended_count || 0);
+      const total = totalLectures > 0 ? totalLectures : 38;
+      const pct = total > 0 ? Math.round((attended / total) * 1000) / 10 : 0;
+      let status = "Clear";
+      if (pct < 70) status = "Level 2 Critical";
+      else if (pct < 75) status = "Level 1 Advisory";
+
+      return {
+        id: s.student_id || i + 1,
+        userId: s.user_id,
+        fullName: s.full_name,
+        email: s.email,
+        rollNumber: `2024-CSE-${String(s.student_id || i + 1).padStart(3, "0")}`,
+        section: i % 2 === 0 ? "Sec A" : "Sec B",
+        attendedLectures: attended,
+        totalLectures: total,
+        attendancePercentage: pct,
+        status,
+      };
+    });
+
     const baseCohort = [
       { name: "Jay Mehta", email: "jay.mehta@student.edu", roll: "2024-CSE-042", sec: "Sec A", attended: 26, total: 38, pct: 68.4, status: "Level 2 Critical" },
       { name: "Aarav Shah", email: "aarav.shah@student.edu", roll: "2024-CSE-018", sec: "Sec B", attended: 27, total: 38, pct: 71.1, status: "Level 1 Advisory" },
