@@ -172,7 +172,9 @@ router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, (req, res) =
       a.attendance_time,
       a.status,
       u.full_name,
-      u.email
+      u.email,
+      st.roll_number,
+      st.section
     FROM attendance a
     JOIN students st ON a.student_id = st.id
     JOIN users u ON st.user_id = u.id

@@ -40,17 +40,24 @@ function getQrGraphic(tokenStr = "SESSION-101") {
 }
 
 export default function FacultyDashboard({ user, token, onLogout, onToggleRole }) {
-  const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard' | 'attendance' | 'courses' | 'schedule' | 'reports' | 'settings'
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [lectures, setLectures] = useState([]);
   const [selectedLectureId, setSelectedLectureId] = useState("");
   const [qr, setQr] = useState(null);
-  const [remaining, setRemaining] = useState(374); // Default 06:14 in seconds
+  const [remaining, setRemaining] = useState(374);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showFullscreenQr, setShowFullscreenQr] = useState(false);
+
+  // Live faculty state
+  const [facultyStats, setFacultyStats] = useState(null);
+  const [facultyProfile, setFacultyProfile] = useState(null);
+  const [studentRoster, setStudentRoster] = useState([]);
+  const [showEditLectureModal, setShowEditLectureModal] = useState(false);
+  const [editingLecture, setEditingLecture] = useState(null);
 
   // Create lecture form state
   const [lectureForm, setLectureForm] = useState({
@@ -156,6 +163,111 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
   const [pwdShow, setPwdShow] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+
+  // Fetch faculty statistics for dashboard
+  const fetchFacultyStats = async () => {
+    try {
+      const { data } = await api.get("/faculty/stats", auth(token));
+      setFacultyStats(data);
+    } catch (err) {
+      console.error("Failed to fetch faculty stats", err);
+    }
+  };
+
+  // Fetch faculty profile for settings tab
+  const fetchFacultyProfile = async () => {
+    try {
+      const { data } = await api.get("/faculty/profile", auth(token));
+      setFacultyProfile(data.profile);
+    } catch (err) {
+      console.error("Failed to fetch faculty profile", err);
+    }
+  };
+
+  // Fetch student roster for Students tab
+  const fetchStudentRoster = async () => {
+    try {
+      const { data } = await api.get("/users/students", auth(token));
+      setStudentRoster(data.students || []);
+    } catch (err) {
+      console.error("Failed to fetch student roster", err);
+    }
+  };
+
+  // Effect: load stats when dashboard tab active
+  useEffect(() => {
+    if (activeTab === "dashboard") {
+      fetchFacultyStats();
+    }
+  }, [activeTab]);
+
+  // Effect: load profile when settings tab active
+  useEffect(() => {
+    if (activeTab === "settings") {
+      fetchFacultyProfile();
+    }
+  }, [activeTab]);
+
+  // Effect: load student roster when students tab active
+  useEffect(() => {
+    if (activeTab === "students") {
+      fetchStudentRoster();
+    }
+  }, [activeTab]);
+
+  // Handle opening edit lecture modal
+  const openEditLecture = (lecture) => {
+    setEditingLecture(lecture);
+    setShowEditLectureModal(true);
+  };
+
+  // Handle lecture update submission
+  const handleUpdateLecture = async (e) => {
+    e.preventDefault();
+    if (!editingLecture) return;
+    const { id, subject_id, lecture_date, start_time, end_time } = editingLecture;
+    try {
+      const { data } = await api.put(
+        `/lectures/${id}`,
+        { subject_id, lecture_date, start_time, end_time },
+        auth(token)
+      );
+      setMessage(data.message || "Lecture updated successfully");
+      setShowEditLectureModal(false);
+      fetchLectures();
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Failed to update lecture");
+    }
+  };
+
+  // Profile form state for settings
+  const [profileForm, setProfileForm] = useState({ department: "", designation: "" });
+
+  // Populate profile form when profile loads
+  useEffect(() => {
+    if (facultyProfile) {
+      setProfileForm({
+        department: facultyProfile.department || "",
+        designation: facultyProfile.designation || "",
+      });
+    }
+  }, [facultyProfile]);
+
+  // Save profile changes
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await api.put(
+        "/faculty/profile",
+        { ...profileForm },
+        auth(token)
+      );
+      setMessage(data.message || "Profile updated");
+      fetchFacultyProfile();
+    } catch (err) {
+      setMessage(err.response?.data?.message || "Failed to update profile");
+    }
+  };
 
   // Load faculty lectures
   const fetchLectures = async () => {
@@ -3390,7 +3502,30 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                       <p className="text-xs text-text-stone mt-0.5">Update password and active sessions</p>
                     </div>
 
-                    <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <form onSubmit={handleSaveProfile} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Department */}
+                      <div>
+                        <label className="block text-xs font-semibold text-text-stone uppercase mb-1">Department</label>
+                        <input
+                          type="text"
+                          value={profileForm.department}
+                          onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                          placeholder="Department"
+                          className="w-full p-2.5 bg-white border border-border-default rounded text-sm"
+                        />
+                      </div>
+                      {/* Designation */}
+                      <div>
+                        <label className="block text-xs font-semibold text-text-stone uppercase mb-1">Designation</label>
+                        <input
+                          type="text"
+                          value={profileForm.designation}
+                          onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
+                          placeholder="Designation"
+                          className="w-full p-2.5 bg-white border border-border-default rounded text-sm"
+                        />
+                      </div>
+                      {/* Current Password */}
                       <div>
                         <label className="block text-xs font-semibold text-text-stone uppercase mb-1">Current Password</label>
                         <input
@@ -3401,6 +3536,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                           className="w-full p-2.5 bg-white border border-border-default rounded text-sm"
                         />
                       </div>
+                      {/* New Password */}
                       <div>
                         <label className="block text-xs font-semibold text-text-stone uppercase mb-1">New Password</label>
                         <input
@@ -3411,6 +3547,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                           className="w-full p-2.5 bg-white border border-border-default rounded text-sm"
                         />
                       </div>
+                      {/* Confirm Password */}
                       <div>
                         <label className="block text-xs font-semibold text-text-stone uppercase mb-1">Confirm Password</label>
                         <input
