@@ -90,28 +90,20 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     const studentId = studentRows[0].id;
 
     // --- 6. Enrollment / eligibility check ---
-    // If student has enrolled courses in the institutional registry,
-    // verify that the student is enrolled in the specific subject of this lecture.
-    const allEnrollments = await db.query(
-      "SELECT id, subject_id FROM enrollments WHERE student_id = $1",
-      [studentId]
+    // Guarantee attendance can ONLY be recorded for eligible students enrolled in this subject.
+    const isEnrolled = await db.query(
+      `SELECT e.id
+       FROM enrollments e
+       JOIN lectures l ON l.subject_id = e.subject_id
+       WHERE l.id = $1 AND e.student_id = $2`,
+      [lectureId, studentId]
     );
 
-    if (allEnrollments && allEnrollments.length > 0) {
-      const isEnrolled = await db.query(
-        `SELECT e.id
-         FROM enrollments e
-         JOIN lectures l ON l.subject_id = e.subject_id
-         WHERE l.id = $1 AND e.student_id = $2`,
-        [lectureId, studentId]
-      );
-
-      if (!isEnrolled || isEnrolled.length === 0) {
-        return res.status(403).json({
-          message: "You are not enrolled in the subject associated with this lecture.",
-          forbidden: true,
-        });
-      }
+    if (!isEnrolled || isEnrolled.length === 0) {
+      return res.status(403).json({
+        message: "You are not enrolled in the subject associated with this lecture.",
+        forbidden: true,
+      });
     }
 
     // --- 7. Duplicate attendance check ---

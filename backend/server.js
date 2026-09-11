@@ -44,6 +44,10 @@ app.use("/attendance", attendanceRoute);
 const lectureRoute = require("./routes/lectures");
 app.use("/lectures", lectureRoute);
 
+// Subjects & Course Enrollment Route
+const subjectsRoute = require("./routes/subjects");
+app.use("/subjects", subjectsRoute);
+
 // HOD Administration Route
 const hodRoute = require("./routes/hod");
 app.use("/hod", hodRoute);

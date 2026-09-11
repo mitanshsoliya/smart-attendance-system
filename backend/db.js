@@ -107,6 +107,9 @@ function initSqliteSchemaAndSeed() {
       sqliteDb.run("ALTER TABLE students ADD COLUMN settings TEXT;", () => {});
       sqliteDb.run("ALTER TABLE faculty ADD COLUMN department TEXT;", () => {});
       sqliteDb.run("ALTER TABLE faculty ADD COLUMN designation TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE subjects ADD COLUMN department TEXT DEFAULT 'Department of Computer Science & Engineering';", () => {});
+      sqliteDb.run("ALTER TABLE subjects ADD COLUMN credit_hours INTEGER DEFAULT 3;", () => {});
+      sqliteDb.run("ALTER TABLE subjects ADD COLUMN faculty_id INTEGER REFERENCES faculty(id);", () => {});
 
       sqliteDb.run(`
         CREATE TABLE IF NOT EXISTS enrollments (
@@ -123,6 +126,9 @@ function initSqliteSchemaAndSeed() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           subject_code TEXT NOT NULL UNIQUE,
           subject_name TEXT NOT NULL,
+          department TEXT DEFAULT 'Department of Computer Science & Engineering',
+          credit_hours INTEGER DEFAULT 3,
+          faculty_id INTEGER REFERENCES faculty(id),
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `);
@@ -179,7 +185,11 @@ function initSqliteSchemaAndSeed() {
             `INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, ?)`,
             ["Demo Student", "student@example.com", studentPass, "STUDENT"],
             function () {
-              sqliteDb.run(`INSERT INTO students (user_id) VALUES (?)`, [this.lastID]);
+              const studentId = this.lastID;
+              sqliteDb.run(`INSERT INTO students (user_id) VALUES (?)`, [studentId], function () {
+                const stPk = this.lastID;
+                sqliteDb.run(`INSERT INTO enrollments (student_id, subject_id) VALUES (?, 1), (?, 2) ON CONFLICT DO NOTHING;`, [stPk, stPk]);
+              });
             }
           );
 

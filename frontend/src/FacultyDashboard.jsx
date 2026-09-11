@@ -237,6 +237,10 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
       setShowEditLectureModal(false);
       fetchLectures();
     } catch (err) {
+      setMessage(err.response?.data?.message || "Failed to update lecture");
+    }
+  };
+
   // Fetch available subjects
   const fetchSubjects = async () => {
     try {
