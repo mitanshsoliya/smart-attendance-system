@@ -25,6 +25,10 @@ app.use("/logout", (req, res, next) => {
 const studentRoute = require("./routes/student");
 app.use("/student", studentRoute);
 
+// Faculty Route
+const facultyRoute = require("./routes/faculty");
+app.use("/faculty", facultyRoute);
+
 // Register Route
 const registerRoute = require("./routes/register");
 app.use("/register", registerRoute);
