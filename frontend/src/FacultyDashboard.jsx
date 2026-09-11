@@ -56,6 +56,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
   const [facultyStats, setFacultyStats] = useState(null);
   const [facultyProfile, setFacultyProfile] = useState(null);
   const [studentRoster, setStudentRoster] = useState([]);
+  const [subjectsList, setSubjectsList] = useState([]);
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState(null);
 
@@ -236,7 +237,31 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
       setShowEditLectureModal(false);
       fetchLectures();
     } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to update lecture");
+  // Fetch available subjects
+  const fetchSubjects = async () => {
+    try {
+      const { data } = await api.get("/lectures/subjects", auth(token));
+      if (data?.subjects) {
+        setSubjectsList(data.subjects);
+      }
+    } catch (err) {
+      console.error("Failed to fetch subjects", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubjects();
+  }, [token]);
+
+  // Handle lecture deletion
+  const handleDeleteLecture = async (lectureId) => {
+    if (!window.confirm("Are you sure you want to delete this lecture schedule?")) return;
+    try {
+      const { data } = await api.delete(`/lectures/${lectureId}`, auth(token));
+      alert(data.message || "Lecture deleted successfully.");
+      await fetchLectures();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete lecture.");
     }
   };
 
@@ -634,95 +659,35 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
           </div>
 
           <div className="py-3 flex flex-col">
-            <button
-              onClick={() => {
-                setActiveTab("dashboard");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "dashboard"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">dashboard</span>
-              <span>Dashboard</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("attendance");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "attendance"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">fact_check</span>
-              <span>Attendance</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("courses");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "courses"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">menu_book</span>
-              <span>Courses</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("schedule");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "schedule"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">calendar_today</span>
-              <span>Schedule</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("reports");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "reports"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">analytics</span>
-              <span>Reports</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("settings");
-                setMobileMenuOpen(false);
-              }}
-              className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
-                activeTab === "settings"
-                  ? "border-secondary bg-surface-container text-on-surface font-semibold"
-                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">settings</span>
-              <span>Settings</span>
-            </button>
+            {[
+              { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+              { id: "lectures", label: "Lectures", icon: "co_present" },
+              { id: "attendance", label: "Attendance", icon: "fact_check" },
+              { id: "courses", label: "Courses", icon: "menu_book" },
+              { id: "schedule", label: "Schedule", icon: "calendar_today" },
+              { id: "reports", label: "Reports", icon: "analytics" },
+              { id: "students", label: "Students", icon: "group" },
+              { id: "settings", label: "Settings", icon: "settings" },
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center gap-3 ${
+                    isActive
+                      ? "border-secondary bg-surface-container text-on-surface font-semibold"
+                      : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -917,6 +882,221 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
               </div>
             </div>
           </>
+        )}
+
+        {/* ================= TAB: LECTURES ================= */}
+        {activeTab === "lectures" && (
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-border-default pb-6">
+              <div>
+                <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-bold">
+                  Lecture Management
+                </span>
+                <h1 className="font-serif-display text-[36px] text-primary leading-tight mt-1">
+                  Classroom Lectures Directory
+                </h1>
+                <p className="font-body-md text-body-md text-text-stone mt-1">
+                  Schedule new lecture sessions, verify active status, and modify class timings.
+                </p>
+              </div>
+            </div>
+
+            {/* Create Lecture Card / Form */}
+            <div className="bg-surface-warm border border-border-default p-6 rounded shadow-xs">
+              <h3 className="font-headline-md text-headline-md font-bold text-primary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">add_circle</span>
+                Schedule New Lecture Session
+              </h3>
+              {createMessage && (
+                <div className="mb-4 p-3 bg-surface-container border-l-4 border-secondary text-sm text-on-surface">
+                  {createMessage}
+                </div>
+              )}
+              <form onSubmit={handleCreateLecture} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    Select Subject / Course *
+                  </label>
+                  <select
+                    value={lectureForm.subject_id}
+                    onChange={(e) => setLectureForm({ ...lectureForm, subject_id: e.target.value })}
+                    className="w-full p-2.5 text-sm bg-surface border border-border-default text-primary focus:outline-none focus:border-secondary cursor-pointer rounded"
+                  >
+                    {subjectsList.length > 0 ? (
+                      subjectsList.map((sub) => (
+                        <option key={sub.id} value={sub.id}>
+                          {sub.subject_code} - {sub.subject_name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="1">CS501 - Database Systems</option>
+                        <option value="2">CS502 - Computer Networks</option>
+                        <option value="3">CS503 - Operating Systems</option>
+                        <option value="4">MA504 - Mathematics II</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    Lecture Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={lectureForm.lecture_date}
+                    onChange={(e) => setLectureForm({ ...lectureForm, lecture_date: e.target.value })}
+                    className="w-full p-2.5 text-sm bg-surface border border-border-default text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    Start Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="10:00:00"
+                    value={lectureForm.start_time}
+                    onChange={(e) => setLectureForm({ ...lectureForm, start_time: e.target.value })}
+                    className="w-full p-2.5 text-sm bg-surface border border-border-default text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    End Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="11:30:00"
+                    value={lectureForm.end_time}
+                    onChange={(e) => setLectureForm({ ...lectureForm, end_time: e.target.value })}
+                    className="w-full p-2.5 text-sm bg-surface border border-border-default text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 md:col-span-4 flex justify-end gap-3 pt-2">
+                  <button
+                    type="submit"
+                    disabled={createLoading}
+                    className="px-6 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:opacity-95 transition-opacity cursor-pointer disabled:opacity-50 rounded"
+                  >
+                    {createLoading ? "Creating Lecture..." : "Create & Schedule Lecture"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* List of Faculty Lectures */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-headline-md text-headline-md font-bold text-primary">
+                  All Scheduled Lectures ({lectures.length})
+                </h3>
+                <span className="text-xs text-text-stone">
+                  {lectures.filter((l) => l.is_active || l.status === "ACTIVE").length} Active Now
+                </span>
+              </div>
+
+              {lectures.length === 0 ? (
+                <div className="p-8 bg-surface-bright border border-border-default text-center text-text-stone rounded">
+                  No lectures scheduled yet. Use the form above to schedule your first lecture!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {lectures.map((lec) => {
+                    const isActive = lec.is_active || lec.status === "ACTIVE";
+                    const isUpcoming = lec.status === "UPCOMING";
+
+                    return (
+                      <div
+                        key={lec.id}
+                        className={`border p-5 bg-surface-bright rounded flex flex-col justify-between gap-4 relative overflow-hidden transition-all ${
+                          isActive
+                            ? "border-success/60 bg-success/5 shadow-xs"
+                            : selectedLectureId === String(lec.id)
+                            ? "border-secondary bg-surface-container-low"
+                            : "border-border-default hover:border-text-stone/40"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-xs font-bold text-secondary uppercase bg-secondary/10 px-2 py-0.5 rounded font-mono">
+                                {lec.subject_code || "CS501"}
+                              </span>
+                              <span
+                                className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1 ${
+                                  isActive
+                                    ? "bg-success/20 text-success"
+                                    : isUpcoming
+                                    ? "bg-secondary/15 text-secondary"
+                                    : "bg-surface-container text-text-stone"
+                                }`}
+                              >
+                                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-success animate-ping"></span>}
+                                {lec.status || (isActive ? "ACTIVE" : "UPCOMING")}
+                              </span>
+                            </div>
+                            <h4 className="font-headline-md text-lg font-bold text-primary">
+                              {lec.subject_name || "Database Systems"}
+                            </h4>
+                            <p className="text-xs text-text-stone mt-1 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                              {formatShortDate(lec.lecture_date)}
+                              <span className="mx-1">•</span>
+                              <span className="material-symbols-outlined text-[16px]">schedule</span>
+                              {lec.start_time} - {lec.end_time}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditLecture(lec)}
+                              className="px-2.5 py-1 text-xs border border-border-default hover:bg-surface-container text-on-surface rounded cursor-pointer flex items-center gap-1"
+                              title="Edit Lecture"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">edit</span>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLecture(lec.id)}
+                              className="px-2 py-1 text-xs text-error hover:bg-error-container/20 rounded cursor-pointer"
+                              title="Delete Lecture"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-border-default/60 flex items-center justify-between">
+                          <span className="text-xs font-mono text-text-stone">Lecture #{lec.id}</span>
+                          <button
+                            onClick={() => {
+                              handleGenerateQR(lec.id);
+                              setActiveTab("attendance");
+                            }}
+                            className={`px-4 py-2 text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer transition-colors ${
+                              isActive
+                                ? "bg-success text-white hover:opacity-95"
+                                : "bg-secondary text-on-secondary hover:opacity-95"
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
+                            {isActive ? "View Active QR" : "Generate Active QR"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* ================= TAB 2: ATTENDANCE & SESSIONS OVERVIEW ================= */}
@@ -3826,6 +4006,130 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   className="px-5 py-2 text-xs font-bold bg-secondary text-on-secondary hover:opacity-95 cursor-pointer disabled:opacity-50"
                 >
                   {facultyStudentLoading ? "Registering..." : "Enrol Student"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ================= MODAL: EDIT LECTURE ================= */}
+      {showEditLectureModal && editingLecture && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="bg-surface-container-lowest border border-border-default max-w-lg w-full p-6 shadow-2xl rounded">
+            <div className="flex justify-between items-center pb-4 border-b border-border-default">
+              <div>
+                <span className="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">
+                  Lecture Modification
+                </span>
+                <h3 className="font-greeting-serif text-headline-md text-on-surface font-bold">
+                  Edit Lecture #{editingLecture.id}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditLectureModal(false);
+                  setEditingLecture(null);
+                }}
+                className="text-text-stone hover:text-primary cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateLecture} className="space-y-4 pt-4">
+              <div>
+                <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                  Subject / Course *
+                </label>
+                <select
+                  value={editingLecture.subject_id || "1"}
+                  onChange={(e) =>
+                    setEditingLecture({ ...editingLecture, subject_id: e.target.value })
+                  }
+                  className="w-full p-2.5 text-sm border border-border-default bg-surface-container-low text-primary focus:outline-none focus:border-secondary cursor-pointer rounded"
+                >
+                  {subjectsList.length > 0 ? (
+                    subjectsList.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.subject_code} - {sub.subject_name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="1">CS501 - Database Systems</option>
+                      <option value="2">CS502 - Computer Networks</option>
+                      <option value="3">CS503 - Operating Systems</option>
+                      <option value="4">MA504 - Mathematics II</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                  Lecture Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={editingLecture.lecture_date || ""}
+                  onChange={(e) =>
+                    setEditingLecture({ ...editingLecture, lecture_date: e.target.value })
+                  }
+                  className="w-full p-2.5 text-sm border border-border-default bg-surface-container-low text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    Start Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="10:00:00"
+                    value={editingLecture.start_time || ""}
+                    onChange={(e) =>
+                      setEditingLecture({ ...editingLecture, start_time: e.target.value })
+                    }
+                    className="w-full p-2.5 text-sm border border-border-default bg-surface-container-low text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase font-semibold text-text-stone mb-1">
+                    End Time *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="11:30:00"
+                    value={editingLecture.end_time || ""}
+                    onChange={(e) =>
+                      setEditingLecture({ ...editingLecture, end_time: e.target.value })
+                    }
+                    className="w-full p-2.5 text-sm border border-border-default bg-surface-container-low text-primary focus:outline-none focus:border-secondary font-mono rounded"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border-default flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditLectureModal(false);
+                    setEditingLecture(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface cursor-pointer rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-secondary text-on-secondary hover:opacity-95 cursor-pointer rounded"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
