@@ -1,171 +1,262 @@
-# LectureLog Smart Attendance System
+# LectureLog — Smart Attendance System
 
-LectureLog is a React and Node.js attendance platform for managing lecture check-ins with time-limited QR sessions. It supports students, faculty members, and HOD accounts through role-aware authentication and dashboards.
+> **A full-stack academic attendance platform built with React + Node.js. Role-aware portals for Students, Faculty, and the Head of Department (HOD), with time-limited QR-based check-ins, live attendance polling, and rich analytics.**
+
+---
+
+## Screenshots
+
+### Login Screen
+![Login Screen](docs/screenshots/login.jpg)
+
+### Faculty Portal — Dashboard & Live QR Session
+![Faculty Dashboard](docs/screenshots/faculty-dashboard.jpg)
+
+### Student Portal — Attendance Overview
+![Student Dashboard](docs/screenshots/student-dashboard.jpg)
+
+### HOD Portal — Department Analytics
+![HOD Dashboard](docs/screenshots/hod-dashboard.jpg)
+
+---
 
 ## Features
 
-### Authentication
+### 🔐 Authentication
+- JWT-based login with email and password
+- Portal selector on the login screen — Student, Faculty, HOD
+- Persistent browser session via `localStorage`
+- Session revalidation via `/auth/me` on app startup
+- Auto-logout on expired or invalid tokens
+- Logout with server-side token invalidation
 
-- Login with email and password.
-- Student, Faculty, and HOD portal selection on the login screen.
-- JWT-based authentication for protected API routes.
-- Persistent login session in the browser.
-- Logout and expired-token handling.
+---
 
-### Student dashboard
+### 🎓 Student Portal — 7 Tabs
 
-- View total attended classes and attendance percentage.
-- Enter a lecture ID and QR session token to mark attendance.
-- Scan a faculty QR code using the device camera.
-- Upload and scan a QR image through the QR scanner.
-- View attendance history with subject, date/time, and status.
-- Duplicate attendance for the same lecture is rejected by the backend.
+| Tab | What it does |
+|---|---|
+| **Dashboard** | Live attendance percentage ring, class stats (total, present, absent, late), subject breakdown |
+| **Scan QR** | Camera scanner, image upload, and manual session token entry |
+| **Attendance** | Full history with search, subject filter, status filter (Present/Absent/Late), and pagination |
+| **Courses** | Enrolled subjects with faculty name, credit hours, and attendance progress bar |
+| **Schedule** | Interactive weekly timetable (Mon–Sun) with lecture slots |
+| **Reports** | Aggregated semester standing, per-subject safety margins vs 75% cutoff, CSV export, PDF print |
+| **Settings** | Phone update, password change (with current password verification), telemetry toggles |
 
-### Faculty and HOD dashboard
+**QR Attendance Guards:**
+- `404` — Invalid session token
+- `400` — Expired session (5-minute window)
+- `409` — Duplicate attendance prevented
 
-- Load the faculty member's assigned lectures.
-- Select a lecture from the lecture list.
-- Generate a secure QR attendance session.
-- Display the QR code and session token.
-- Show a five-minute session countdown.
-- Copy the session token for manual student check-in.
+---
 
-### Interface
+### 🏫 Faculty Portal — 8 Tabs
 
-- LectureLog editorial-style responsive UI.
-- Mobile navigation drawer.
-- Loading, success, empty, and error states.
-- Responsive login, QR, scanner, and attendance history views.
+| Tab | What it does |
+|---|---|
+| **Dashboard** | Live stats — total lectures, enrolled students, average attendance %, active sessions |
+| **Lectures** | Full lecture list, create lecture (with start/end time validation), edit lecture modal |
+| **Attendance** | Active QR display with 5-minute countdown, **Regenerate QR** button, live student check-in roster polling every 4 seconds |
+| **Courses** | Assigned subjects with credit hours, enrolled counts, and attendance progress |
+| **Schedule** | Weekly faculty timetable |
+| **Reports** | Class performance summaries, deficit warnings (<75%), CSV export |
+| **Students** | Enrol new students, view full roster, search & filter by course/section/name |
+| **Settings** | Update department, designation, password change (bcrypt-validated current password) |
 
-## Project structure
+**QR Session Features:**
+- Cryptographically random 64-character session tokens
+- Auto-expiry after 5 minutes
+- One-click regeneration issues a fresh session
+- Fullscreen classroom projection view
+
+---
+
+### 🏛 HOD Portal — 7 Tabs
+
+| Tab | What it does |
+|---|---|
+| **Overview** | Department-level attendance rate, subject-wise bar chart, faculty performance table |
+| **Faculty Governance** | Faculty profiles, subject assignments, performance reviews |
+| **Hall Tickets** | Issue/block exam hall tickets based on attendance standing |
+| **Curriculum** | Subject and syllabus management |
+| **Accreditation** | NAAC/accreditation compliance reports |
+| **Dean Dossier** | Exportable department reports for dean's office |
+| **Governance** | Policy configuration — attendance thresholds, consecutive absence rules, BLE/GPS verification toggles |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Axios |
+| Styling | Vanilla CSS (custom design system), Material Symbols |
+| Backend | Node.js, Express.js |
+| Database | **SQLite** (local dev) · **PostgreSQL / Supabase** (production) |
+| Auth | JWT (`jsonwebtoken`), bcrypt |
+| QR Codes | `qrcode` npm package |
+
+---
+
+## Project Structure
 
 ```text
 smart-attendance-system/
 ├── backend/
-│   ├── middleware/auth.js
+│   ├── database/
+│   │   ├── local.sqlite          # Local dev SQLite database
+│   │   ├── migrate.js            # DB migration script
+│   │   ├── seed.js               # Demo data seeder
+│   │   └── supabase.sql          # PostgreSQL schema for Supabase
+│   ├── middleware/
+│   │   ├── auth.js               # JWT verification & role guards
+│   │   └── validator.js          # Request body validators
 │   ├── routes/
-│   │   ├── attendance.js
-│   │   ├── lectures.js
-│   │   ├── login.js
-│   │   ├── qrSession.js
-│   │   ├── register.js
-│   │   └── student.js
+│   │   ├── attendance.js         # Mark & retrieve attendance records
+│   │   ├── auth.js               # Login, /me, logout
+│   │   ├── faculty.js            # Faculty stats, profile, settings
+│   │   ├── hod.js                # HOD admin endpoints
+│   │   ├── lectures.js           # Create & edit lecture schedule
+│   │   ├── qrSession.js          # Generate QR session tokens
+│   │   ├── register.js           # New user registration
+│   │   ├── student.js            # Student profile, courses, reports
+│   │   └── users.js              # User & student roster management
+│   ├── db.js                     # Database adapter (SQLite/PostgreSQL)
+│   ├── .env.example
 │   ├── package.json
-│   └── server.js
+│   └── server.js                 # Express app entry point
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   ├── QRScanner.jsx
-│   │   └── index.css
+│   │   ├── App.jsx               # Root app — auth, routing, role switching
+│   │   ├── App.css               # Login screen styles
+│   │   ├── FacultyDashboard.jsx  # Full faculty portal (8 tabs)
+│   │   ├── StudentDashboard.jsx  # Full student portal (7 tabs)
+│   │   ├── HodDashboard.jsx      # Full HOD portal (7 tabs)
+│   │   ├── QRScanner.jsx         # Camera / image / manual QR scanner
+│   │   └── index.css             # Global design system tokens
 │   ├── package.json
 │   └── vite.config.js
+├── docs/
+│   └── screenshots/              # UI screenshots for README
 ├── .gitignore
 └── README.md
 ```
 
+---
+
 ## Requirements
 
-- Node.js 18 or newer
-- npm
-- MySQL 8 or newer
-- A modern browser with camera permission support for QR scanning
+- **Node.js** 18 or newer
+- **npm**
+- A modern browser with camera permission support (for QR scanning)
+- **SQLite** (bundled — works out of the box for local dev)
+- **PostgreSQL / Supabase** (optional — for production deployments)
 
-## Supabase database setup
+---
 
-The backend now uses PostgreSQL through Supabase. To migrate the database:
+## Quick Start (Local Development)
 
-1. Create or open your Supabase project.
-2. Copy [backend/.env.example](backend/.env.example) to `backend/.env` and add your Supabase `DATABASE_URL` and `JWT_SECRET`.
-3. Run `node database/migrate.js` in `backend/` (or run [backend/database/supabase.sql](backend/database/supabase.sql) in Supabase SQL Editor).
-4. Users registered via `POST /register` automatically receive their linked student or faculty profile in PostgreSQL.
+### 1. Clone the repository
 
-If the backend prints `DATABASE_URL is not configured`, `backend/.env` is missing or does not contain a `DATABASE_URL` entry. Copy the example file, replace its placeholders with the connection string from **Supabase Dashboard > Project Settings > Database**, then restart Node. Never commit `backend/.env`.
-
-The migration creates the database tables, PostgreSQL enums, foreign keys, indexes, duplicate-attendance protection, and a demo subject. Supabase already provides the PostgreSQL database, so do not run the old MySQL schema against Supabase.
-
-The previous MySQL-only schema is retained at [backend/database/schema.sql](backend/database/schema.sql) for reference only.
-
-The backend expects these tables and relationships:
-
-- `users`: `id`, `full_name`, `email`, `password`, `role`
-- `students`: `id`, `user_id`
-- `faculty`: `id`, `user_id`
-- `subjects`: `id`, `subject_code`, `subject_name`
-- `lectures`: `id`, `subject_id`, `faculty_id`, `lecture_date`, `start_time`, `end_time`
-- `qr_sessions`: `id`, `lecture_id`, `session_token`, `expires_at`
-- `attendance`: `id`, `lecture_id`, `student_id`, `status`, `attendance_time`
-
-Recommended role values are:
-
-```text
-HOD
-FACULTY
-STUDENT
+```bash
+git clone https://github.com/mitanshsoliya/smart-attendance-system.git
+cd smart-attendance-system
 ```
 
-The schema inserts a `DEMO-101` subject if it does not already exist.
-
-### Demo Credentials
-
-Run `node database/seed.js` in `backend/` to seed or reset demo users and sample lectures.
-
-| Role | Portal Tab | Email | Password |
-| :--- | :--- | :--- | :--- |
-| **Student** | Student | `student@example.com` | `student123` |
-| **Faculty** | Faculty | `faculty@example.com` | `faculty123` |
-| **HOD** | HOD | `hod@example.com` | `hod123` |
-
-## Backend setup
-
-Open a terminal in the backend directory:
+### 2. Backend setup
 
 ```bash
 cd backend
 npm install
+```
+
+Copy the environment example and configure it:
+
+```bash
+cp .env.example .env
+```
+
+Edit `backend/.env`:
+
+```env
+# For local development — leave DATABASE_URL blank to use SQLite automatically
+DATABASE_URL=
+
+# For production — Supabase or any PostgreSQL connection string
+# DATABASE_URL=postgresql://postgres:<password>@<host>:5432/postgres
+
+JWT_SECRET=replace-with-a-long-random-secret
+
+PORT=5000
+```
+
+Run the database migration (creates all tables + demo data):
+
+```bash
+node database/migrate.js
+node database/seed.js
+```
+
+Start the backend:
+
+```bash
 node server.js
+# → Server running on http://localhost:5000
 ```
 
-The backend runs at:
+### 3. Frontend setup
 
-```text
-http://localhost:5000
-```
-
-The current server enables CORS and exposes JSON APIs. The frontend uses this URL by default.
-
-## Frontend setup
-
-Open a second terminal in the frontend directory:
+Open a second terminal:
 
 ```bash
 cd frontend
 npm install
 npm run dev
+# → Local: http://localhost:5173
 ```
 
-Vite will print the local development URL, normally:
+Open **http://localhost:5173** in your browser.
 
-```text
-http://localhost:5173
-```
+---
 
-For a production build:
+## Demo Credentials
 
-```bash
-npm run build
-npm run preview
-```
+The seeder creates these accounts automatically:
 
-To point the frontend at another backend, create `frontend/.env.local`:
+| Role | Email | Password | Portal |
+|---|---|---|---|
+| **Student** | `student@example.com` | `student123` | Student |
+| **Faculty** | `faculty@example.com` | `faculty123` | Faculty |
+| **HOD** | `hod@example.com` | `hod123` | HOD |
 
-```env
-VITE_API_BASE_URL=http://localhost:5000
-```
+The login screen has quick auto-fill buttons for each demo account.
 
-Environment files are ignored by Git. Do not commit passwords, JWT secrets, or database credentials.
+---
 
-## API reference
+## Database Setup (Production — Supabase / PostgreSQL)
+
+1. Create or open your [Supabase](https://supabase.com) project.
+2. Go to **SQL Editor** and run [`backend/database/supabase.sql`](backend/database/supabase.sql).
+3. Copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL` to your Supabase connection string (**Project Settings → Database → Connection string → URI**).
+4. Restart the backend — it will connect to PostgreSQL automatically.
+
+**Schema tables:**
+
+| Table | Key columns |
+|---|---|
+| `users` | `id`, `full_name`, `email`, `password` (bcrypt), `role` |
+| `students` | `id`, `user_id`, `roll_number`, `section` |
+| `faculty` | `id`, `user_id`, `department`, `designation` |
+| `subjects` | `id`, `subject_code`, `subject_name`, `credit_hours` |
+| `enrollments` | `id`, `student_id`, `subject_id` |
+| `lectures` | `id`, `subject_id`, `faculty_id`, `lecture_date`, `start_time`, `end_time` |
+| `qr_sessions` | `id`, `lecture_id`, `session_token`, `expires_at` |
+| `attendance` | `id`, `lecture_id`, `student_id`, `status`, `attendance_time` |
+
+---
+
+## API Reference
 
 All protected endpoints require:
 
@@ -176,109 +267,104 @@ Authorization: Bearer <jwt-token>
 ### Authentication
 
 | Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `POST` | `/login` | No | Authenticate a user and return a JWT plus user details. |
-| `POST` | `/register` | No | Register a user with `full_name`, `email`, `password`, and `role`. |
+|---|---|---|---|
+| `POST` | `/login` | No | Authenticate and return JWT |
+| `POST` | `/register` | No | Register a new user |
+| `GET` | `/auth/me` | Yes | Return current user from token |
+| `POST` | `/auth/logout` | Yes | Invalidate session |
 
-Login request:
-
-```json
-{
-  "email": "student@example.com",
-  "password": "your-password"
-}
-```
-
-### Student endpoints
+### Student Endpoints
 
 | Method | Endpoint | Role | Description |
-| --- | --- | --- | --- |
-| `GET` | `/student/dashboard` | Any authenticated user | Verify dashboard access and return the token user. |
-| `POST` | `/attendance/mark` | `STUDENT` | Mark attendance using `lecture_id` and `session_token`. |
-| `GET` | `/attendance/my` | `STUDENT` | Return the logged-in student's attendance records. |
+|---|---|---|---|
+| `GET` | `/student/profile` | STUDENT | View & update personal profile |
+| `PUT` | `/student/profile` | STUDENT | Update phone, telemetry settings |
+| `GET` | `/student/courses` | STUDENT | Enrolled courses with attendance stats |
+| `GET` | `/student/schedule` | STUDENT | Weekly lecture timetable |
+| `GET` | `/student/reports` | STUDENT | Semester standing, session ledger |
+| `POST` | `/attendance/mark` | STUDENT | Mark attendance with session token |
+| `GET` | `/attendance/my` | STUDENT | Personal attendance history |
 
-Mark attendance request:
-
-```json
-{
-  "lecture_id": 2,
-  "session_token": "token-from-the-active-qr-session"
-}
-```
-
-### Faculty and HOD endpoints
+### Faculty Endpoints
 
 | Method | Endpoint | Role | Description |
-| --- | --- | --- | --- |
-| `GET` | `/lectures/my` | `FACULTY` | Return lectures assigned to the logged-in faculty member. |
-| `POST` | `/lectures/create` | `FACULTY` | Create a lecture using subject and schedule details. |
-| `POST` | `/qr-session/create` | `FACULTY`, `HOD` | Create a QR session that expires after five minutes. |
+|---|---|---|---|
+| `GET` | `/faculty/stats` | FACULTY | Dashboard statistics |
+| `GET` | `/faculty/profile` | FACULTY | Profile details |
+| `PUT` | `/faculty/profile` | FACULTY | Update department, designation, password |
+| `GET` | `/lectures/my` | FACULTY | Assigned lectures |
+| `POST` | `/lectures/create` | FACULTY | Create a new lecture |
+| `PUT` | `/lectures/:id` | FACULTY | Edit lecture date/time |
+| `POST` | `/qr-session/create` | FACULTY | Generate QR session (5-min expiry) |
+| `GET` | `/attendance/lecture/:id` | FACULTY | Live attendance for a lecture |
+| `GET` | `/users/students` | FACULTY | Full student roster |
+| `POST` | `/users/students` | FACULTY | Enrol a new student |
 
-Create lecture request:
+### HOD Endpoints
 
-```json
-{
-  "subject_id": 1,
-  "lecture_date": "2026-09-07",
-  "start_time": "10:00:00",
-  "end_time": "11:00:00"
-}
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| `GET` | `/hod/overview` | HOD | Department-level stats |
+| `GET` | `/hod/faculty` | HOD | Faculty profiles & performance |
+| `GET` | `/hod/students` | HOD | All students with attendance |
+
+---
+
+## Typical Workflow
+
+```
+Faculty                             Student
+  │                                   │
+  ├─ Log in → Faculty Portal          ├─ Log in → Student Portal
+  │                                   │
+  ├─ Create Lecture                   │
+  │  (subject, date, time)            │
+  │                                   │
+  ├─ Generate QR Code  ←────────────  ├─ Open Scan QR tab
+  │  (5-min session)    display QR    │  (camera / upload / manual)
+  │                                   │
+  ├─ Live roster updates  ◄────────── ├─ Scan QR → Attendance Marked (201)
+  │  every 4 seconds                  │
+  │                                   ├─ View Attendance History
+  ├─ View Reports / CSV               ├─ View Courses & Schedule
+  └─ Manage Student Roster            └─ Download Semester Report
 ```
 
-QR session request:
+---
 
-```json
-{
-  "lecture_id": 2
-}
-```
+## Development Commands
 
-The QR response includes `qr_code`, `session_token`, `lecture_id`, and `expires_at`.
-
-## Typical workflow
-
-1. Start MySQL and create the `smart_attendance` database and required tables.
-2. Register or insert one `FACULTY` user and one `STUDENT` user.
-3. Create matching rows in `faculty` and `students`.
-4. Add a subject and lecture assigned to the faculty member.
-5. Start the backend with `node server.js`.
-6. Start the frontend with `npm run dev`.
-7. Faculty selects a lecture and generates a QR session.
-8. Student scans the QR code or enters the lecture ID and session token.
-9. Student opens **My Attendance** to verify the recorded check-in.
-
-## Development commands
-
-Run from `frontend/`:
+**Frontend** (`frontend/`):
 
 ```bash
-npm run dev       # Start Vite development server
-npm run build     # Create production bundle
-npm run preview   # Preview production bundle
-npm run lint      # Run ESLint
+npm run dev       # Start Vite dev server (http://localhost:5173)
+npm run build     # Production bundle
+npm run preview   # Preview production build
+npm run lint      # ESLint
 ```
 
-Run from `backend/`:
+**Backend** (`backend/`):
 
 ```bash
-node server.js    # Start API server
+node server.js            # Start API server (http://localhost:5000)
+node database/migrate.js  # Run DB migrations
+node database/seed.js     # Seed demo users & lectures
 ```
 
-## Security notes
+---
 
-The backend now uses PostgreSQL and can connect directly to Supabase. The current backend is suitable for local development, but production deployment should improve the following areas:
+## Security Notes
 
-- Use `backend/.env.example` to configure `DATABASE_URL`, `JWT_SECRET`, and `PORT`.
-- Hash passwords with `bcrypt` or Argon2 instead of comparing plain text passwords.
-- Use HTTPS in production.
-- Add request validation and rate limiting to authentication routes.
-- Restrict CORS to the deployed frontend origin.
-- Apply `backend/database/supabase.sql` in the Supabase SQL Editor.
-- Avoid exposing session tokens outside the intended lecture audience.
+- Passwords are hashed with **bcrypt** (10 salt rounds)
+- JWTs are signed with `JWT_SECRET` — use a strong random string in production
+- QR session tokens are cryptographically random (32 bytes, hex-encoded)
+- All protected routes require a valid JWT — middleware rejects expired or tampered tokens
+- Duplicate attendance is prevented at the database level
+- For production: enable HTTPS, restrict CORS to your frontend origin, and add rate limiting to `/login`
+- Never commit `backend/.env` — it is listed in `.gitignore`
 
-## Current limitations
+---
 
-- Lecture creation is available through the API but is not yet exposed as a dedicated frontend form.
-- The backend uses a direct MySQL connection in each route module.
-- The application does not currently include faculty attendance reports or HOD-wide analytics.
-- No automated backend test suite is configured yet.
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
