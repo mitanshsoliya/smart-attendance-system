@@ -26,18 +26,16 @@ function QRScanner({ onAttendanceMarked }) {
     setMessage("");
     setIsSuccess(false);
 
-    let lecture_id = null;
     let session_token = rawInput.trim();
 
-    // Try parsing as JSON if possible
+    // Try parsing as JSON if legacy QR object
     try {
       const parsed = JSON.parse(rawInput);
       if (parsed && typeof parsed === "object") {
-        lecture_id = parsed.lecture_id || null;
         session_token = (parsed.session_token || rawInput).trim();
       }
     } catch {
-      // Plain string token e.g. "LECTURE-892041"
+      // Plain string token
     }
 
     try {
@@ -45,7 +43,6 @@ function QRScanner({ onAttendanceMarked }) {
       const response = await axios.post(
         `${API_BASE}/attendance/mark`,
         {
-          lecture_id,
           session_token,
         },
         {

@@ -4,25 +4,15 @@ const fs = require("fs");
 const bcrypt = require("bcryptjs");
 
 const connectionString = process.env.DATABASE_URL?.trim();
+let sqliteInitPromise = null;
 let pool = null;
 let sqliteDb = null;
 let isSqlite = false;
 
-if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)) {
-  const { Pool } = require("pg");
-  try {
-    pool = new Pool({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
-    });
-    console.log("Database engine: PostgreSQL (Supabase)");
-  } catch (error) {
-    console.error("PostgreSQL pool creation error:", error.message);
-  }
-}
-
-if (!pool) {
+function switchToSqlite() {
+  if (isSqlite && sqliteDb) return;
   isSqlite = true;
+  pool = null;
   const sqlite3 = require("sqlite3").verbose();
   const dbPath = path.join(__dirname, "database", "local.sqlite");
   const dbDir = path.dirname(dbPath);
@@ -32,6 +22,26 @@ if (!pool) {
 
   sqliteDb = new sqlite3.Database(dbPath);
   console.log(`Database engine: Local SQLite (${dbPath})`);
+  sqliteInitPromise = initSqliteSchemaAndSeed();
+}
+
+if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)) {
+  const { Pool } = require("pg");
+  try {
+    pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 3000,
+    });
+    console.log("Database engine: PostgreSQL (Supabase)");
+  } catch (error) {
+    console.error("PostgreSQL pool creation error:", error.message);
+    switchToSqlite();
+  }
+}
+
+if (!pool) {
+  switchToSqlite();
 }
 
 // Convert PostgreSQL $1, $2 query syntax to SQLite ? syntax
@@ -207,7 +217,9 @@ function initSqliteSchemaAndSeed() {
   });
 }
 
-let sqliteInitPromise = isSqlite ? initSqliteSchemaAndSeed() : Promise.resolve();
+if (!sqliteInitPromise) {
+  sqliteInitPromise = isSqlite ? initSqliteSchemaAndSeed() : Promise.resolve();
+}
 
 const db = {
   pool,
@@ -289,8 +301,18 @@ const db = {
   },
 
   connect(callback) {
-    if (!isSqlite) {
-      pool.query("SELECT 1", (error) => callback(error));
+    if (!isSqlite && pool) {
+      pool.query("SELECT 1", (error) => {
+        if (error) {
+          console.warn("PostgreSQL connection failed, switching to local SQLite:", error.message);
+          switchToSqlite();
+          sqliteInitPromise
+            .then(() => callback(null))
+            .catch((err) => callback(err));
+          return;
+        }
+        callback(null);
+      });
       return;
     }
 
