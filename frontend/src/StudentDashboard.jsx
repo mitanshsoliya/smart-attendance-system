@@ -50,10 +50,110 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
   const [pwdShow, setPwdShow] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [studentPhone, setStudentPhone] = useState("+91 98450 12890");
+  const [settingsError, setSettingsError] = useState("");
+  const [showEditContactModal, setShowEditContactModal] = useState(false);
+  const [editPhoneInput, setEditPhoneInput] = useState("+91 98450 12890");
 
   useEffect(() => {
     fetchAttendance();
+    fetchStudentProfile();
   }, []);
+
+  const fetchStudentProfile = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/student/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data?.profile) {
+        setStudentProfile(response.data.profile);
+        if (response.data.profile.phone) {
+          setStudentPhone(response.data.profile.phone);
+          setEditPhoneInput(response.data.profile.phone);
+        }
+        const s = response.data.profile.settings || {};
+        if (s.ble_enabled !== undefined) setToggleBle(Boolean(s.ble_enabled));
+        if (s.gps_enabled !== undefined) setToggleGps(Boolean(s.gps_enabled));
+        if (s.threshold !== undefined) setToggleThreshold(Boolean(s.threshold));
+        if (s.reminder !== undefined) setSelectReminder(String(s.reminder));
+        if (s.digest !== undefined) setToggleDigest(Boolean(s.digest));
+      }
+    } catch {
+      // Keep initial defaults
+    }
+  };
+
+  const handleSaveStudentSettings = async (withPassword = false) => {
+    setSavingSettings(true);
+    setSettingsError("");
+    setSavedNotice(false);
+
+    try {
+      const payload = {
+        phone: studentPhone,
+        settings: {
+          ble_enabled: toggleBle,
+          gps_enabled: toggleGps,
+          threshold: toggleThreshold,
+          reminder: selectReminder,
+          digest: toggleDigest,
+        },
+      };
+
+      if (withPassword || newPwd.trim()) {
+        if (!currentPwd.trim()) {
+          const msg = "Current password is required to update credentials.";
+          setSettingsError(msg);
+          alert(msg);
+          setSavingSettings(false);
+          return;
+        }
+        if (newPwd !== confirmPwd) {
+          const msg = "New password and confirmation password do not match.";
+          setSettingsError(msg);
+          alert(msg);
+          setSavingSettings(false);
+          return;
+        }
+        if (newPwd.length < 6) {
+          const msg = "New password must be at least 6 characters in length.";
+          setSettingsError(msg);
+          alert(msg);
+          setSavingSettings(false);
+          return;
+        }
+        payload.current_password = currentPwd.trim();
+        payload.new_password = newPwd.trim();
+      }
+
+      const response = await axios.put(`${API_BASE}/student/profile`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data?.profile) {
+        setStudentProfile(response.data.profile);
+      }
+
+      if (payload.new_password) {
+        setCurrentPwd("");
+        setNewPwd("");
+        setConfirmPwd("");
+      }
+
+      setSavedNotice(true);
+      setTimeout(() => setSavedNotice(false), 3500);
+      if (withPassword) {
+        alert("Security credentials updated successfully.");
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to update profile settings.";
+      setSettingsError(msg);
+      alert(msg);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchAttendance = async () => {
     setLoading(true);
@@ -2051,27 +2151,30 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4 mt-2 font-body-md text-text-stone text-[14px]">
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-[18px] text-text-stone">fingerprint</span>
-                              <span>Roll No: <span className="font-medium text-on-surface font-mono">21CSE041</span></span>
+                              <span>Roll No: <span className="font-medium text-on-surface font-mono">{studentProfile?.rollNumber || user?.profile?.roll_number || user?.rollNumber || "2024-CSE-001"}</span></span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-[18px] text-text-stone">mail</span>
-                              <span className="font-mono text-on-surface">{user?.email || "rahul.mehta@university.edu"}</span>
+                              <span className="font-mono text-on-surface">{studentProfile?.email || user?.email || "student@example.com"}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-[18px] text-text-stone">call</span>
-                              <span>+91 98450 12890</span>
+                              <span>{studentPhone}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-[18px] text-text-stone">calendar_month</span>
-                              <span>Cohort: 2022 – 2026</span>
+                              <span>Cohort: {studentProfile?.section || "CSE-A"} (2022 – 2026)</span>
                             </div>
                           </div>
                         </div>
                         <div className="shrink-0 flex md:flex-col gap-2 w-full md:w-auto">
                           <button
                             type="button"
-                            onClick={() => alert("Contact detail editing window opened.")}
-                            className="flex-1 md:flex-initial px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors flex items-center justify-center gap-2"
+                            onClick={() => {
+                              setEditPhoneInput(studentPhone);
+                              setShowEditContactModal(true);
+                            }}
+                            className="flex-1 md:flex-initial px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                             Edit Contact
@@ -2099,14 +2202,14 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           <div className="flex flex-col gap-1.5">
                             <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Academic Department</label>
                             <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
-                              <span>Computer Science & Engineering</span>
+                              <span>{studentProfile?.department || "Department of Computer Science & Engineering"}</span>
                               <span className="material-symbols-outlined text-[18px] text-text-stone">lock</span>
                             </div>
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="font-label-sm text-label-sm text-text-stone uppercase tracking-wider font-semibold">Section & Current Semester</label>
                             <div className="px-3.5 py-2.5 bg-surface-container rounded border border-border-default font-body-md text-body-md text-on-surface flex items-center justify-between">
-                              <span>CSE-A • Semester 5 (Class of 2026)</span>
+                              <span>{studentProfile?.section || "CSE-A"} • Semester 5 (Class of 2026)</span>
                               <span className="material-symbols-outlined text-[18px] text-text-stone">lock</span>
                             </div>
                           </div>
@@ -2468,19 +2571,11 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           <span className="font-label-sm text-[12px] text-text-stone">Last modified: 42 days ago</span>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (!newPwd || newPwd !== confirmPwd) {
-                                alert("New passwords do not match!");
-                                return;
-                              }
-                              alert("Password credentials updated successfully.");
-                              setCurrentPwd("");
-                              setNewPwd("");
-                              setConfirmPwd("");
-                            }}
-                            className="px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors"
+                            disabled={savingSettings}
+                            onClick={() => handleSaveStudentSettings(true)}
+                            className="px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-border-default rounded font-label-md text-label-md text-on-surface font-semibold transition-colors cursor-pointer disabled:opacity-50"
                           >
-                            Update Credential
+                            {savingSettings ? "Updating..." : "Update Credential"}
                           </button>
                         </div>
                       </div>
@@ -2603,16 +2698,9 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSavingSettings(true);
-                      setTimeout(() => {
-                        setSavingSettings(false);
-                        setSavedNotice(true);
-                        setTimeout(() => setSavedNotice(false), 3000);
-                      }, 800);
-                    }}
+                    onClick={() => handleSaveStudentSettings(false)}
                     disabled={savingSettings}
-                    className={`px-6 py-2 rounded font-label-md text-label-md font-semibold transition-colors flex items-center gap-2 ${
+                    className={`px-6 py-2 rounded font-label-md text-label-md font-semibold transition-colors flex items-center gap-2 cursor-pointer ${
                       savedNotice
                         ? "bg-success text-white"
                         : "bg-primary hover:bg-primary-container text-on-primary"
@@ -2641,6 +2729,93 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
           )}
         </div>
       </main>
+
+      {/* EDIT CONTACT MODAL */}
+      {showEditContactModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-surface-bright border border-border-default max-w-md w-full p-6 shadow-2xl relative">
+            <button
+              onClick={() => setShowEditContactModal(false)}
+              className="absolute top-4 right-4 text-text-stone hover:text-on-surface p-1 cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <div className="mb-4">
+              <span className="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">
+                Personal Contact
+              </span>
+              <h3 className="font-headline-md text-headline-md font-bold text-on-surface">
+                Update Contact Information
+              </h3>
+              <p className="text-xs text-text-stone mt-1">
+                Keep your campus communication details up to date for emergency and alert dispatches.
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const clean = editPhoneInput.trim();
+                setStudentPhone(clean);
+                setShowEditContactModal(false);
+                try {
+                  await axios.put(
+                    `${API_BASE}/student/profile`,
+                    { phone: clean },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  alert("Contact phone number updated successfully.");
+                } catch {
+                  // Fallback
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                  Institutional Email (Immutable)
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={studentProfile?.email || user?.email || ""}
+                  className="w-full p-2.5 text-sm bg-surface-container border border-border-default text-text-stone font-mono cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block font-label-sm text-label-sm uppercase font-semibold text-text-stone mb-1">
+                  Contact Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={editPhoneInput}
+                  onChange={(e) => setEditPhoneInput(e.target.value)}
+                  placeholder="+91 98450 12890"
+                  className="w-full p-2.5 text-sm bg-surface-container-low border border-border-default text-on-surface focus:outline-none focus:border-secondary font-mono"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-border-default flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditContactModal(false)}
+                  className="px-4 py-2 text-xs font-semibold bg-surface-container hover:bg-surface-container-high rounded text-on-surface cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-secondary text-on-secondary hover:opacity-95 rounded cursor-pointer"
+                >
+                  Save Contact
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* QR SCANNER MODAL */}
       {showScanner && (
