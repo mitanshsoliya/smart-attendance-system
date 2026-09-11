@@ -93,8 +93,20 @@ function initSqliteSchemaAndSeed() {
       // Safe column additions for existing SQLite databases
       sqliteDb.run("ALTER TABLE students ADD COLUMN roll_number TEXT;", () => {});
       sqliteDb.run("ALTER TABLE students ADD COLUMN section TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE students ADD COLUMN phone TEXT;", () => {});
+      sqliteDb.run("ALTER TABLE students ADD COLUMN settings TEXT;", () => {});
       sqliteDb.run("ALTER TABLE faculty ADD COLUMN department TEXT;", () => {});
       sqliteDb.run("ALTER TABLE faculty ADD COLUMN designation TEXT;", () => {});
+
+      sqliteDb.run(`
+        CREATE TABLE IF NOT EXISTS enrollments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+          subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+          enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (student_id, subject_id)
+        );
+      `);
 
       sqliteDb.run(`
         CREATE TABLE IF NOT EXISTS subjects (

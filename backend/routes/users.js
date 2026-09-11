@@ -83,6 +83,33 @@ router.post("/students", requireFacultyOrHod, async (req, res) => {
 
     const studentId = studentResult && studentResult[0] ? studentResult[0].id : userId;
 
+    // 6. Handle enrollment / academic relationship if course or subject is specified
+    const targetCourse = req.body.course || req.body.subject_code;
+    let enrolledCourse = null;
+    if (targetCourse && String(targetCourse).trim()) {
+      const cleanCourse = String(targetCourse).trim().toUpperCase();
+      let subRows = await db.query(
+        "SELECT id, subject_code FROM subjects WHERE UPPER(subject_code) = UPPER($1)",
+        [cleanCourse]
+      );
+      let subjectId = subRows && subRows[0] ? subRows[0].id : null;
+      if (!subjectId) {
+        const subInsert = await db.query(
+          "INSERT INTO subjects (subject_code, subject_name) VALUES ($1, $2) RETURNING id",
+          [cleanCourse, `${cleanCourse} Lecture Module`]
+        );
+        subjectId = subInsert && subInsert[0] ? subInsert[0].id : null;
+      }
+
+      if (subjectId) {
+        await db.query(
+          "INSERT INTO enrollments (student_id, subject_id) VALUES ($1, $2) ON CONFLICT (student_id, subject_id) DO NOTHING",
+          [studentId, subjectId]
+        );
+        enrolledCourse = cleanCourse;
+      }
+    }
+
     return res.status(201).json({
       message: "Student account successfully created and enrolled.",
       student: {
@@ -92,6 +119,7 @@ router.post("/students", requireFacultyOrHod, async (req, res) => {
         email: cleanEmail,
         rollNumber: cleanRoll,
         section: cleanSection,
+        enrolledCourse: enrolledCourse,
         role: "STUDENT",
         createdBy: req.user.email,
       },
