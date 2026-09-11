@@ -55,11 +55,91 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
   const [settingsError, setSettingsError] = useState("");
   const [showEditContactModal, setShowEditContactModal] = useState(false);
   const [editPhoneInput, setEditPhoneInput] = useState("+91 98450 12890");
+  const [coursesList, setCoursesList] = useState([]);
+  const [scheduleList, setScheduleList] = useState([]);
+  const [reportsData, setReportsData] = useState(null);
 
   useEffect(() => {
     fetchAttendance();
     fetchStudentProfile();
+    fetchStudentCourses();
+    fetchStudentSchedule();
+    fetchStudentReports();
   }, []);
+
+  const fetchStudentCourses = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/student/courses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data?.courses) {
+        setCoursesList(res.data.courses);
+      }
+    } catch (err) {
+      console.error("Courses fetch error:", err);
+    }
+  };
+
+  const fetchStudentSchedule = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/student/schedule`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data?.schedule) {
+        setScheduleList(res.data.schedule);
+      }
+    } catch (err) {
+      console.error("Schedule fetch error:", err);
+    }
+  };
+
+  const fetchStudentReports = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/student/reports`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data) {
+        setReportsData(res.data);
+      }
+    } catch (err) {
+      console.error("Reports fetch error:", err);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!attendance || attendance.length === 0) {
+      alert("No attendance records available to export.");
+      return;
+    }
+
+    const headers = ["ID", "Subject Code", "Subject Name", "Date", "Time", "Status"];
+    const rows = attendance.map((item) => {
+      const dateObj = new Date(item.attendance_time);
+      const d = dateObj.toLocaleDateString("en-US");
+      const t = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return [
+        item.id,
+        `"${(item.subject_code || "").replace(/"/g, '""')}"`,
+        `"${(item.subject_name || "").replace(/"/g, '""')}"`,
+        `"${d}"`,
+        `"${t}"`,
+        `"${item.status}"`,
+      ].join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `lecturelog_attendance_${user?.email || "student"}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+  };
 
   const fetchStudentProfile = async () => {
     try {
@@ -196,20 +276,19 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
   ).length;
 
   const percentage =
-    totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : "84.6";
+    totalClasses > 0 ? ((presentClasses / totalClasses) * 100).toFixed(1) : "0.0";
 
   const ringDashOffset = 282.7 - (282.7 * Math.min(Number(percentage), 100)) / 100;
 
-  const firstName = user?.full_name ? user.full_name.split(" ")[0] : "Rahul";
-  const fullName = user?.full_name || "Rahul Mehta";
-  const userInitials = user?.full_name
-    ? user.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "RM";
+  const currentFullName = studentProfile?.fullName || user?.full_name || "Student";
+  const firstName = currentFullName.split(" ")[0];
+  const fullName = currentFullName;
+  const userInitials = currentFullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "ST";
 
   // Dynamic Date Greeting
   const todayFormatted = new Date().toLocaleDateString("en-US", {
@@ -249,10 +328,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
     new Set([
       "All Subjects",
       ...subjectList.map((s) => s.name),
-      "Database Systems",
-      "Operating Systems",
-      "Mathematics II",
-      "Computer Networks",
+      ...coursesList.map((c) => c.name),
     ])
   );
 
@@ -289,6 +365,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+    { id: "scan", label: "Scan QR", icon: "qr_code_scanner" },
     { id: "attendance", label: "Attendance", icon: "calendar_today" },
     { id: "courses", label: "Courses", icon: "school" },
     { id: "schedule", label: "Schedule", icon: "event_note" },
@@ -698,7 +775,49 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
             </>
           )}
 
-          {/* TAB 2: ATTENDANCE HISTORY (Editorial Design) */}
+          {/* TAB 2: SCAN QR */}
+          {activeTab === "scan" && (
+            <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+              <div className="border-b border-border-default pb-4">
+                <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-bold">
+                  Classroom Biometric Check-In
+                </span>
+                <h1 className="font-greeting-serif text-greeting-serif text-primary mt-1">
+                  Scan Lecture QR Code
+                </h1>
+                <p className="font-body-md text-body-md text-text-stone mt-1">
+                  Point your camera at the dynamic lecture QR code or enter session code below to record attendance.
+                </p>
+              </div>
+
+              <div className="bg-surface-bright border border-border-default p-6 shadow-sm">
+                <QRScanner
+                  onAttendanceMarked={() => {
+                    fetchAttendance();
+                    fetchStudentCourses();
+                    fetchStudentReports();
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-surface-container-low border border-border-default">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-success text-lg">verified</span>
+                  <span className="text-xs text-text-stone">
+                    Single-use cryptographic token with automatic duplicate check-in prevention.
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveTab("attendance")}
+                  className="text-xs font-bold text-secondary hover:underline cursor-pointer"
+                >
+                  View Attendance Log →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ATTENDANCE HISTORY (Editorial Design) */}
           {activeTab === "attendance" && (
             <div>
               {/* Header */}
@@ -751,7 +870,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           </span>
                         </div>
                         <span className="font-body-md text-body-md font-bold">
-                          {presentClasses > 0 ? presentClasses : 92}
+                          {presentClasses}
                         </span>
                       </div>
 
@@ -763,7 +882,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           </span>
                         </div>
                         <span className="font-body-md text-body-md font-bold">
-                          {absentClasses > 0 ? absentClasses : 12}
+                          {absentClasses}
                         </span>
                       </div>
 
@@ -775,7 +894,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           </span>
                         </div>
                         <span className="font-body-md text-body-md font-bold">
-                          {lateClasses > 0 ? lateClasses : 3}
+                          {lateClasses}
                         </span>
                       </div>
                     </div>
@@ -788,69 +907,57 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                     Subject Breakdown
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Database Systems Card */}
-                    <div className="border border-border-default bg-surface-warm p-4 flex justify-between items-center relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-error" />
-                      <div>
-                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
-                          Database Systems
-                        </div>
-                        <div className="font-body-md text-body-md font-bold text-primary">
-                          72% <span className="text-error ml-2 text-sm font-semibold">! At Risk</span>
-                        </div>
+                    {coursesList.length === 0 && subjectList.length === 0 ? (
+                      <div className="p-4 border border-border-default bg-surface-container-low text-text-stone text-sm col-span-2">
+                        No course records found yet. Scan QR during lecture to record attendance!
                       </div>
-                      <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
-                        warning
-                      </span>
-                    </div>
-
-                    {/* Operating Systems Card */}
-                    <div className="border border-border-default bg-surface p-4 flex justify-between items-center relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-border-default" />
-                      <div>
-                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
-                          Operating Systems
-                        </div>
-                        <div className="font-body-md text-body-md font-bold text-primary">
-                          88%
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-on-surface-variant">
-                        check_circle
-                      </span>
-                    </div>
-
-                    {/* Mathematics II Card */}
-                    <div className="border border-border-default bg-surface p-4 flex justify-between items-center relative">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-border-default" />
-                      <div>
-                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
-                          Mathematics II
-                        </div>
-                        <div className="font-body-md text-body-md font-bold text-primary">
-                          94%
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-on-surface-variant">
-                        check_circle
-                      </span>
-                    </div>
-
-                    {/* Computer Networks Card */}
-                    <div className="border border-border-default bg-surface-warm p-4 flex justify-between items-center relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-warning" />
-                      <div>
-                        <div className="font-label-md text-label-md text-on-surface-variant mb-1">
-                          Computer Networks
-                        </div>
-                        <div className="font-body-md text-body-md font-bold text-primary">
-                          78% <span className="text-warning ml-2 text-sm font-semibold">Review</span>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-warning" style={{ fontVariationSettings: "'FILL' 1" }}>
-                        info
-                      </span>
-                    </div>
+                    ) : (
+                      (coursesList.length > 0 ? coursesList : subjectList).map((sub) => {
+                        const subPct =
+                          sub.percentage !== undefined
+                            ? sub.percentage
+                            : sub.total > 0
+                            ? Number(((sub.present / sub.total) * 100).toFixed(1))
+                            : 100.0;
+                        const isAtRisk = Number(subPct) < 75;
+                        return (
+                          <div
+                            key={sub.code || sub.id}
+                            className="border border-border-default bg-surface-warm p-4 flex justify-between items-center relative overflow-hidden"
+                          >
+                            <div
+                              className={`absolute left-0 top-0 bottom-0 w-1 ${
+                                isAtRisk ? "bg-error" : "bg-success"
+                              }`}
+                            />
+                            <div>
+                              <div className="font-label-md text-label-md text-on-surface-variant mb-1">
+                                {sub.name}
+                              </div>
+                              <div className="font-body-md text-body-md font-bold text-primary">
+                                {subPct}%{" "}
+                                {isAtRisk ? (
+                                  <span className="text-error ml-2 text-sm font-semibold">
+                                    ! At Risk
+                                  </span>
+                                ) : (
+                                  <span className="text-success ml-2 text-sm font-semibold">
+                                    Good
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <span
+                              className={`material-symbols-outlined ${
+                                isAtRisk ? "text-error" : "text-success"
+                              }`}
+                            >
+                              {isAtRisk ? "warning" : "check_circle"}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -904,6 +1011,30 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                       <option value="Absent">Absent</option>
                       <option value="Late">Late</option>
                     </select>
+
+                    <div className="relative flex items-center">
+                      <span className="material-symbols-outlined absolute left-2.5 text-text-stone text-[18px]">
+                        search
+                      </span>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        placeholder="Search subject / code..."
+                        className="pl-8 pr-6 py-2 text-xs bg-surface border border-border-default focus:outline-none focus:border-secondary w-48 text-primary"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-2 text-text-stone hover:text-primary text-sm cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <button
@@ -1403,16 +1534,16 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                 <div className="flex items-center gap-3 self-start md:self-auto shrink-0">
                   <button
                     type="button"
-                    onClick={() => alert("Generating and downloading official semester transcript PDF...")}
-                    className="px-4 py-2.5 bg-surface-warm text-on-surface border border-border-default font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-2"
+                    onClick={handleDownloadPDF}
+                    className="px-4 py-2.5 bg-surface-warm text-on-surface border border-border-default font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
                     <span>Download Semester PDF</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => alert("Exporting course-wise tabular records as CSV...")}
-                    className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-95 transition-opacity flex items-center gap-2 font-semibold"
+                    onClick={handleExportCSV}
+                    className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-95 transition-opacity flex items-center gap-2 font-semibold cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[18px]">download</span>
                     <span>Export CSV</span>
@@ -1430,7 +1561,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
                       <span className="w-1.5 h-1.5 bg-success rounded-full" />
-                      Compliant • Good Standing
+                      {Number(percentage) >= 75 ? "Compliant • Good Standing" : "Attendance Warning"}
                     </span>
                   </div>
                   <div className="py-5">
@@ -1465,41 +1596,41 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                       Session Ledger
                     </span>
                     <span className="font-label-sm text-label-sm text-text-stone">
-                      Term: Autumn 2024
+                      Semester 5
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 py-4">
                     <div className="bg-surface-container-low p-3 border border-border-default/50">
                       <div className="font-label-sm text-label-sm text-text-stone">Total Conducted</div>
                       <div className="font-headline-md text-headline-md font-semibold text-on-surface mt-1">
-                        {totalClasses > 0 ? totalClasses : 107}
+                        {totalClasses}
                       </div>
                       <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Contact hours</div>
                     </div>
                     <div className="bg-surface-container-low p-3 border border-border-default/50">
                       <div className="font-label-sm text-label-sm text-success font-semibold">Verified Present</div>
                       <div className="font-headline-md text-headline-md font-semibold text-success mt-1">
-                        {presentClasses > 0 ? presentClasses : 92}
+                        {presentClasses}
                       </div>
-                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">85.9% presence</div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">{percentage}% presence</div>
                     </div>
                     <div className="bg-surface-container-low p-3 border border-border-default/50">
                       <div className="font-label-sm text-label-sm text-error font-semibold">Unexcused Absence</div>
                       <div className="font-headline-md text-headline-md font-semibold text-error mt-1">
-                        {absentClasses > 0 ? absentClasses : 12}
+                        {absentClasses}
                       </div>
-                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Requires audit</div>
+                      <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Recorded absences</div>
                     </div>
                     <div className="bg-surface-container-low p-3 border border-border-default/50">
                       <div className="font-label-sm text-label-sm text-warning font-semibold">Late Markings</div>
                       <div className="font-headline-md text-headline-md font-semibold text-warning mt-1">
-                        {lateClasses > 0 ? lateClasses : 3}
+                        {lateClasses}
                       </div>
                       <div className="font-label-sm text-label-sm text-text-stone mt-0.5">Grace period applied</div>
                     </div>
                   </div>
                   <div className="text-label-sm font-label-sm text-text-stone pt-2 border-t border-border-default/60 flex items-center justify-between">
-                    <span>Recorded since: 01 Jul 2024</span>
+                    <span>Active Semester Term</span>
                     <button onClick={() => setActiveTab("attendance")} className="text-on-surface underline cursor-pointer hover:text-secondary">
                       View full log
                     </button>
@@ -1518,21 +1649,22 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                   </div>
                   <div className="py-4 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-success shrink-0" />
+                      <span className={`w-2.5 h-2.5 shrink-0 ${Number(percentage) >= 75 ? "bg-success" : "bg-warning"}`} />
                       <span className="font-headline-md text-headline-md font-semibold text-on-surface">
-                        Safe for Final Exams
+                        {Number(percentage) >= 75 ? "Safe for Final Exams" : "Attendance Shortfall"}
                       </span>
                     </div>
                     <p className="font-body-md text-body-md text-text-stone">
-                      Candidate has fulfilled statutory criteria across collective course modules. All admit card prerequisites satisfied.
+                      {Number(percentage) >= 75
+                        ? "Candidate has fulfilled statutory criteria across collective course modules. All admit card prerequisites satisfied."
+                        : "Candidate attendance is below the 75% threshold. Ensure attendance in upcoming lectures to secure board clearance."}
                     </p>
-                    <div className="mt-2 p-3 bg-surface-container border-l-2 border-secondary text-label-md font-label-md text-on-surface-variant">
-                      Requires <strong class="text-on-surface">8 consecutive sessions</strong> to achieve the 85.0% Dean's Honor Roll cutoff.
-                    </div>
                   </div>
                   <div className="pt-3 border-t border-border-default/60 flex items-center justify-between font-label-sm text-label-sm">
                     <span className="text-text-stone">Examination Board Index:</span>
-                    <span className="font-semibold text-on-surface">EB-2024-C5-098</span>
+                    <span className="font-semibold text-on-surface font-mono">
+                      EB-2024-C5-{String(user?.id || 1).padStart(3, "0")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1551,7 +1683,7 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                       </p>
                     </div>
                     <span className="font-label-sm text-label-sm uppercase text-text-stone tracking-wider font-semibold">
-                      4 Modules Enrolled
+                      {coursesList.length || subjectList.length || 0} Modules Tracked
                     </span>
                   </div>
 
@@ -1567,115 +1699,69 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-default/60 font-body-md text-body-md">
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="py-4 px-5">
-                            <div className="font-semibold text-on-surface">Database Systems</div>
-                            <div className="font-label-sm text-label-sm text-text-stone">CS501 • Dr. Patel (Mon, Wed, Fri)</div>
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span className="font-semibold text-on-surface">30</span>
-                            <span className="text-text-stone font-label-sm">/32</span>
-                          </td>
-                          <td className="py-4 px-4 w-44">
-                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
-                              <span className="font-semibold text-on-surface">93.8%</span>
-                            </div>
-                            <div className="w-full bg-surface-container h-1.5">
-                              <div className="bg-success h-full" style={{ width: "93.8%" }} />
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
-                              Exemplary
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-text-stone font-semibold">
-                            +18.8% safety
-                          </td>
-                        </tr>
+                        {(reportsData?.subjectLedger?.length > 0
+                          ? reportsData.subjectLedger
+                          : (coursesList.length > 0 ? coursesList : subjectList)
+                        ).length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="py-6 text-center text-text-stone">
+                              No course attendance records compiled yet for this semester.
+                            </td>
+                          </tr>
+                        ) : (
+                          (reportsData?.subjectLedger?.length > 0
+                            ? reportsData.subjectLedger
+                            : (coursesList.length > 0 ? coursesList : subjectList)
+                          ).map((sub, sIdx) => {
+                            const pct =
+                              sub.percentage !== undefined
+                                ? sub.percentage
+                                : sub.total > 0
+                                ? Number(((sub.present / sub.total) * 100).toFixed(1))
+                                : 100.0;
+                            const isAtRisk = Number(pct) < 75;
+                            const marginVal = Number((pct - 75.0).toFixed(1));
+                            const marginStr = marginVal >= 0 ? `+${marginVal}% safety` : `${marginVal}% below limit`;
 
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="py-4 px-5">
-                            <div className="font-semibold text-on-surface">Mathematics II</div>
-                            <div className="font-label-sm text-label-sm text-text-stone">MA504 • Dr. Mehta (Tue, Thu)</div>
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span className="font-semibold text-on-surface">26</span>
-                            <span className="text-text-stone font-label-sm">/28</span>
-                          </td>
-                          <td className="py-4 px-4 w-44">
-                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
-                              <span className="font-semibold text-on-surface">92.9%</span>
-                            </div>
-                            <div className="w-full bg-surface-container h-1.5">
-                              <div className="bg-success h-full" style={{ width: "92.9%" }} />
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm bg-success/10 text-success font-semibold">
-                              Exemplary
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-text-stone font-semibold">
-                            +17.9% safety
-                          </td>
-                        </tr>
-
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="py-4 px-5">
-                            <div className="font-semibold text-on-surface">Computer Networks</div>
-                            <div className="font-label-sm text-label-sm text-text-stone">CS502 • Dr. Rao (Mon, Wed)</div>
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span className="font-semibold text-on-surface">21</span>
-                            <span className="text-text-stone font-label-sm">/27</span>
-                          </td>
-                          <td className="py-4 px-4 w-44">
-                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
-                              <span className="font-semibold text-warning">77.8%</span>
-                            </div>
-                            <div className="w-full bg-surface-container h-1.5">
-                              <div className="bg-warning h-full" style={{ width: "77.8%" }} />
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-label-sm font-label-sm bg-warning/10 text-warning font-semibold">
-                              <span className="material-symbols-outlined text-[13px]">warning</span>
-                              Review Needed
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-warning font-semibold">
-                            +2.8% above limit
-                          </td>
-                        </tr>
-
-                        <tr className="hover:bg-surface-container-low transition-colors">
-                          <td className="py-4 px-5">
-                            <div className="font-semibold text-on-surface">Operating Systems</div>
-                            <div className="font-label-sm text-label-sm text-text-stone">CS503 • Dr. Shah (Tue, Thu, Fri)</div>
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span className="font-semibold text-on-surface">15</span>
-                            <span className="text-text-stone font-label-sm">/20</span>
-                          </td>
-                          <td className="py-4 px-4 w-44">
-                            <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
-                              <span className="font-semibold text-error">75.0%</span>
-                            </div>
-                            <div className="w-full bg-surface-container h-1.5">
-                              <div className="bg-error h-full" style={{ width: "75.0%" }} />
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-label-sm font-label-sm bg-error/10 text-error font-semibold">
-                              <span className="material-symbols-outlined text-[13px]">error</span>
-                              At Risk
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right font-label-sm text-label-sm text-error font-semibold">
-                            0.0% buffer (critical)
-                          </td>
-                        </tr>
+                            return (
+                              <tr key={sub.code || sub.id || sIdx} className="hover:bg-surface-container-low transition-colors">
+                                <td className="py-4 px-5">
+                                  <div className="font-semibold text-on-surface">{sub.name}</div>
+                                  <div className="font-label-sm text-label-sm text-text-stone">
+                                    {sub.code} • {sub.faculty || "Department Faculty"}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4 text-center">
+                                  <span className="font-semibold text-on-surface">{sub.present !== undefined ? sub.present : (sub.attendedLectures || 0)}</span>
+                                  <span className="text-text-stone font-label-sm">/{sub.total !== undefined ? sub.total : (sub.totalLectures || 0)}</span>
+                                </td>
+                                <td className="py-4 px-4 w-44">
+                                  <div className="flex items-center justify-between text-label-sm font-label-sm mb-1.5">
+                                    <span className={`font-semibold ${isAtRisk ? "text-error" : "text-on-surface"}`}>{pct}%</span>
+                                  </div>
+                                  <div className="w-full bg-surface-container h-1.5">
+                                    <div
+                                      className={`h-full ${isAtRisk ? "bg-error" : "bg-success"}`}
+                                      style={{ width: `${Math.min(Number(pct), 100)}%` }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <span
+                                    className={`inline-flex items-center px-2 py-0.5 text-label-sm font-label-sm font-semibold ${
+                                      isAtRisk ? "bg-error/10 text-error" : "bg-success/10 text-success"
+                                    }`}
+                                  >
+                                    {isAtRisk ? "Review Needed" : "Compliant"}
+                                  </span>
+                                </td>
+                                <td className={`py-4 px-4 text-right font-label-sm text-label-sm font-semibold ${isAtRisk ? "text-error" : "text-text-stone"}`}>
+                                  {sub.margin || marginStr}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
                       </tbody>
                     </table>
                   </div>
