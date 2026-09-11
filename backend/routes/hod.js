@@ -35,10 +35,10 @@ router.get("/stats", async (req, res) => {
     const totalAttendanceRow = await db.query("SELECT COUNT(*) as count FROM attendance WHERE status = 'PRESENT'");
     const totalAttendances = Number(totalAttendanceRow[0]?.count || 0);
 
-    const theoreticalAttendances = totalLectures * (totalStudents || 1);
+    const theoreticalAttendances = totalLectures * totalStudents;
     const aggregateAttendance = theoreticalAttendances > 0 
       ? Math.min(100, Math.round((totalAttendances / theoreticalAttendances) * 100 * 10) / 10)
-      : 89.2;
+      : 0;
 
     // At-risk students (< 75% attendance)
     const studentStats = await db.query(`

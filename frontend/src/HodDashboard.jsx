@@ -1289,7 +1289,7 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
                   <strong>Subject:</strong> Certified Departmental Mid-Term Statutory Attendance Ledger & Hall-Ticket Disqualification List
                 </p>
                 <p className="text-xs text-[#555E68] pt-2">
-                  In compliance with University Ordinance §42.1, the undersigned certifies that the following candidate attendance ratios have been audited against biometrically verified and BLE-authenticated lecture records.
+                  In compliance with University Ordinance §42.1, the undersigned certifies that the following candidate attendance ratios have been audited against verified cryptographic QR session records and registered student identity logs.
                 </p>
               </div>
 
@@ -1639,8 +1639,8 @@ export default function HodDashboard({ user, token, onLogout, onToggleRole }) {
                 <span className="font-mono font-bold text-[#12181F]">{selectedAuditLecture.strength}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-[#D8D2C4]/60">
-                <span className="text-[#6B7280]">BLE Beacon Telemetry:</span>
-                <span className="font-mono text-[#2E6B34] font-bold">Signal Strong (-62 dBm)</span>
+                <span className="text-[#6B7280]">Session Verification:</span>
+                <span className="font-mono text-[#2E6B34] font-bold">Cryptographic QR Token Active</span>
               </div>
             </div>
 

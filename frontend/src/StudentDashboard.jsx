@@ -2353,14 +2353,14 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 font-label-sm text-label-sm text-success font-semibold">
                               <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                              <span>Paired for Classroom Geofence & BLE Verification</span>
+                              <span>Registered for Secure Cryptographic QR Attendance</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                           <button
                             type="button"
-                            onClick={() => alert("Hardware diagnostics clean: BLE 5.3 Ok, GPS accuracy ± 3 meters.")}
+                            onClick={() => alert("Device diagnostics clean: Camera permission OK, JWT authentication active.")}
                             className="px-3.5 py-2 border border-border-default rounded font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors font-semibold"
                           >
                             Device Diagnostics
@@ -2383,14 +2383,14 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                             <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">podcasts</span>
                             <div className="flex flex-col">
                               <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleBle(!toggleBle)}>
-                                Bluetooth Beacon Proximity Handshake
+                                [Planned Feature] Bluetooth Beacon Proximity Handshake
                               </label>
                               <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
-                                Enable instant BLE classroom check-in detection when entering designated lecture halls (L-101 through L-408).
+                                [Planned Feature - Not Implemented] Enable instant BLE classroom check-in detection when entering designated lecture halls.
                               </p>
                               <span className="font-label-sm text-[12px] text-text-stone mt-1.5 flex items-center gap-1 font-mono">
                                 <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                                Active Protocol: iBeacon / Eddystone 2.4GHz
+                                Verified Protocol: Time-Limited Cryptographic QR Session (5-Min Expiry)
                               </span>
                             </div>
                           </div>
@@ -2406,14 +2406,14 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                             <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">my_location</span>
                             <div className="flex flex-col">
                               <label className="font-label-md text-label-md font-semibold text-on-surface cursor-pointer" onClick={() => setToggleGps(!toggleGps)}>
-                                High-Precision Location Services
+                                [Planned Feature] High-Precision Location Services
                               </label>
                               <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
-                                Allow 10-meter classroom radius validation during live lecture roll calls to prevent off-campus spoofing.
+                                [Planned Feature - Not Implemented] Geofence classroom radius validation during live lecture roll calls.
                               </p>
                               <span className="font-label-sm text-[12px] text-text-stone mt-1.5 flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[15px] text-success">lock</span>
-                                Coordinates are discarded immediately post-validation; zero location trace kept.
+                                Cryptographic JWT authentication active; zero location tracking needed.
                               </span>
                             </div>
                           </div>
@@ -2428,25 +2428,14 @@ function StudentDashboard({ user: userProp, token: tokenProp, onLogout, onToggle
                           <div className="flex items-start gap-4">
                             <span className="material-symbols-outlined text-[24px] text-secondary shrink-0 mt-0.5">face</span>
                             <div className="flex flex-col">
-                              <span className="font-label-md text-label-md font-semibold text-on-surface">Face Biometric Hash & Vector</span>
-                              <p className="font-body-md text-[14px] text-text-stone mt-1 max-w-xl">
-                                Stored securely on local device enclave. Mathematical vectors are compared against classroom terminal camera feeds without cloud transfer.
+                              <span className="font-label-md text-label-md font-semibold text-on-surface">
+                                [Planned Feature] Biometric Facial Recognition Profile
+                              </span>
+                              <p className="font-body-md text-[13px] text-text-stone mt-0.5">
+                                [Planned Feature - Not Implemented] Roadmap option for facial biometric verification.
                               </p>
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="font-label-sm text-[11px] font-mono text-text-stone uppercase">Enrolled: 12 Aug 2024</span>
-                                <span className="text-text-stone">•</span>
-                                <span className="font-label-sm text-[11px] font-mono text-success uppercase font-semibold">Hash Validated</span>
-                              </div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => alert("Face ID re-enrollment camera launched.")}
-                            className="shrink-0 px-4 py-2 border border-secondary text-secondary hover:bg-secondary hover:text-on-secondary rounded font-label-md text-label-md font-semibold transition-colors flex items-center gap-2 self-start md:self-auto"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">cached</span>
-                            Re-scan Face ID
-                          </button>
                         </div>
                       </div>
                     </section>

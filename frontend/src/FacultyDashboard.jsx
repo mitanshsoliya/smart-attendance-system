@@ -90,34 +90,31 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
       id: "appeal-1",
       name: "Jay Mehta",
       roll: "Roll #2024-CSE-042 • CS501",
-      tag: "BLE Timeout",
+      tag: "QR Expired",
       tagType: "error",
       quote:
-        "Device scanned room QR successfully at 10:04 AM, but local Bluetooth L2CAP handshake timed out on Android 14 client.",
-      detail: "Location: Lat 28.545, Long 77.192 (Inside)",
-      rssi: "RSSI: -58 dBm",
+        "Student attempted QR scan at 10:04 AM after the 5-minute session token expired.",
+      detail: "Verification: Time-Limited QR Token",
       status: "pending",
     },
     {
       id: "appeal-2",
       name: "Aarav Shah",
       roll: "Roll #2024-CSE-018 • CS503 Lab",
-      tag: "Medical Leave",
+      tag: "Session Review",
       tagType: "secondary",
-      quote: "Hospital Slip #MED-8912.pdf — Authorized by Campus Health Center Dr. K. Rao for 28 Aug lab hours.",
-      detail: "Requested State: Excused Absence",
-      link: "Inspect Document",
+      quote: "Requesting manual attendance verification for CS503 lab session due to connection timeout.",
+      detail: "Requested State: Present",
       status: "pending",
     },
     {
       id: "appeal-3",
       name: "Pooja Nambiar",
       roll: "Roll #2024-CSE-061 • CS501",
-      tag: "Low Match (84%)",
+      tag: "Roster Review",
       tagType: "warning",
-      quote: "Terminal camera marked confidence at 84% (Threshold: 88%). Low lighting near door station in Room 204.",
-      detail: "Timestamp: 10:02:14 AM",
-      rssi: "GPS Locked (0m deviation)",
+      quote: "Student submitted attendance inquiry for Room 204 lecture session.",
+      detail: "Verification: Registered Student Identity",
       status: "pending",
     },
   ]);
@@ -1350,7 +1347,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                       Dynamic Token Active
                     </span>
                     <span>•</span>
-                    <span>Protocol: BLE 5.2 + Hardware Anti-Proxy Guard</span>
+                    <span>Protocol: Cryptographic Time-Limited QR Session (5-Min Expiry)</span>
                   </div>
                   <button
                     onClick={() => setActiveTab("reports")}
@@ -3156,7 +3153,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                     Real-time Lecture Attendance Register
                   </h3>
                   <p className="text-text-stone text-sm">
-                    Inspect verified biometric & BLE check-ins from active backend lecture sessions.
+                    Inspect verified QR check-ins from active backend lecture sessions.
                   </p>
                 </div>
 
@@ -3646,13 +3643,13 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
                   <section className="bg-surface-warm border border-border-default rounded p-6 space-y-6">
                     <div className="border-b border-border-default pb-4">
                       <h3 className="font-serif-display text-2xl text-primary">Classroom Telemetry</h3>
-                      <p className="text-xs text-text-stone mt-0.5">BLE Beacon & Geofence Verification Controls</p>
+                      <p className="text-xs text-text-stone mt-0.5">[Planned Features] Beacon & Geofence Verification Controls</p>
                     </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between p-4 border border-border-default rounded">
                         <div>
-                          <label className="font-semibold text-primary text-sm block">BLE Beacon Proximity</label>
+                          <label className="font-semibold text-primary text-sm block">[Planned Feature] BLE Beacon Proximity</label>
                           <p className="text-xs text-text-stone mt-0.5">Broadcast BLE check-in beacon from classroom terminal</p>
                         </div>
                         <input
@@ -3665,7 +3662,7 @@ export default function FacultyDashboard({ user, token, onLogout, onToggleRole }
 
                       <div className="flex items-center justify-between p-4 border border-border-default rounded">
                         <div>
-                          <label className="font-semibold text-primary text-sm block">Geofence Radius Validation</label>
+                          <label className="font-semibold text-primary text-sm block">[Planned Feature] Geofence Radius Validation</label>
                           <p className="text-xs text-text-stone mt-0.5">Restrict student check-ins to 10m classroom radius</p>
                         </div>
                         <input
