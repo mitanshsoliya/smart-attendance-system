@@ -55,11 +55,39 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     section: "Sec A",
   });
 
-  useEffect(() => {
-    if (subjects.length > 0 && (!lectureForm.subject_id || !subjects.some(s => String(s.id) === String(lectureForm.subject_id)))) {
-      setLectureForm((prev) => ({ ...prev, subject_id: String(subjects[0].id) }));
+  // Department-level strict subject filtering
+  const facultyDept = (user?.department || user?.profile?.department || "").toLowerCase();
+  const facultyEmail = (user?.email || "").toLowerCase();
+
+  const departmentFilteredSubjects = subjects.filter((sub) => {
+    const subDept = (sub.department || "").toLowerCase();
+    const subCode = (sub.subject_code || "").toUpperCase();
+
+    if (facultyEmail.includes(".ece@") || facultyDept.includes("electronics")) {
+      return subCode.startsWith("ECE") || subDept.includes("electronics");
     }
-  }, [subjects]);
+    if (facultyEmail.includes(".it@") || facultyDept.includes("information")) {
+      return subCode.startsWith("IT") || subDept.includes("information");
+    }
+    if (facultyEmail.includes(".cse@") || facultyDept.includes("computer")) {
+      return subCode.startsWith("CSE") || subDept.includes("computer");
+    }
+    // Fallback match by exact department if custom faculty
+    return facultyDept ? subDept.includes(facultyDept) || facultyDept.includes(subDept) : true;
+  });
+
+  useEffect(() => {
+    if (
+      departmentFilteredSubjects.length > 0 &&
+      (!lectureForm.subject_id ||
+        !departmentFilteredSubjects.some((s) => String(s.id) === String(lectureForm.subject_id)))
+    ) {
+      setLectureForm((prev) => ({
+        ...prev,
+        subject_id: String(departmentFilteredSubjects[0].id),
+      }));
+    }
+  }, [departmentFilteredSubjects]);
 
   useEffect(() => {
     if (lectures.length > 0 && !selectedLectureId) {
@@ -175,7 +203,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
         {activeTab === "lectures" && (
           <FacultyLecturesTab
             lectures={lectures}
-            subjectsList={subjects}
+            subjectsList={departmentFilteredSubjects}
             lectureForm={lectureForm}
             setLectureForm={setLectureForm}
             createLoading={createLoading}
