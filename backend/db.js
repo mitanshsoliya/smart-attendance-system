@@ -31,7 +31,7 @@ if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)
     pool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 3000,
+      connectionTimeoutMillis: 15000,
     });
     console.log("Database engine: PostgreSQL (Supabase)");
     
@@ -48,6 +48,11 @@ if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)
       ALTER TABLE public.students ADD COLUMN IF NOT EXISTS parent_phone TEXT;
       ALTER TABLE public.students ADD COLUMN IF NOT EXISTS department TEXT DEFAULT 'Department of Computer Science & Engineering';
       ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS phone TEXT;
+      ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS department VARCHAR(150) DEFAULT 'Department of Computer Science & Engineering';
+      ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS designation VARCHAR(100) DEFAULT 'Assistant Professor';
+      ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS department TEXT;
+      ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS faculty_id BIGINT;
+      ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS credit_hours INT DEFAULT 3;
     `).catch((e) => console.error("PostgreSQL table init check:", e.message));
 
   } catch (error) {

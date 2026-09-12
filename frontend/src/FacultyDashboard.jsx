@@ -56,6 +56,12 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   });
 
   useEffect(() => {
+    if (subjects.length > 0 && (!lectureForm.subject_id || !subjects.some(s => String(s.id) === String(lectureForm.subject_id)))) {
+      setLectureForm((prev) => ({ ...prev, subject_id: String(subjects[0].id) }));
+    }
+  }, [subjects]);
+
+  useEffect(() => {
     if (lectures.length > 0 && !selectedLectureId) {
       setSelectedLectureId(String(lectures[0].id));
     }

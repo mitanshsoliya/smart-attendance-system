@@ -38,13 +38,37 @@ function computeLectureStatus(lecture, activeSessionLectureIds = new Set()) {
 
 /**
  * GET /lectures/subjects
- * Returns all available academic subjects for course selection.
+ * Returns available academic subjects for course selection based on faculty department.
  */
 router.get("/subjects", verifyToken, requireFacultyOrHod, async (req, res) => {
   try {
-    const subjects = await db.query(
-      "SELECT id, subject_code, subject_name FROM subjects ORDER BY subject_code ASC"
-    );
+    let subjects = [];
+    if (req.user.role === "HOD") {
+      subjects = await db.query(
+        "SELECT id, subject_code, subject_name, department FROM subjects ORDER BY subject_code ASC"
+      );
+    } else {
+      // Find faculty department
+      const facRows = await db.query(
+        "SELECT id, department FROM faculty WHERE user_id = $1",
+        [req.user.id]
+      );
+      if (facRows && facRows.length > 0) {
+        const facultyDept = facRows[0].department;
+        subjects = await db.query(
+          `SELECT id, subject_code, subject_name, department 
+           FROM subjects 
+           WHERE department = $1 OR faculty_id = $2 
+           ORDER BY subject_code ASC`,
+          [facultyDept, facRows[0].id]
+        );
+      } else {
+        subjects = await db.query(
+          "SELECT id, subject_code, subject_name FROM subjects ORDER BY subject_code ASC"
+        );
+      }
+    }
+
     res.json({
       message: "Subjects fetched successfully",
       subjects: subjects || [],
