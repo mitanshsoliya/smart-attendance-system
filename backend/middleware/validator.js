@@ -117,22 +117,29 @@ const validateQrSession = (req, res, next) => {
 };
 
 /**
- * Validates Attendance Marking payload (session_token or lecture_id)
+ * Validates Attendance Marking payload.
+ *
+ * Security policy:
+ *   - Only a session_token is accepted from the student.
+ *   - Supplying a bare lecture_id is NOT permitted — it would allow
+ *     bypassing the QR session entirely.
+ *   - The backend derives the lecture from the validated session server-side.
  */
 const validateAttendanceMark = (req, res, next) => {
-  const { session_token, lecture_id } = req.body || {};
+  const { session_token } = req.body || {};
 
   const cleanToken = session_token ? String(session_token).trim() : "";
-  const numLectureId = lecture_id ? Number(lecture_id) : null;
 
-  if (!cleanToken && (!numLectureId || isNaN(numLectureId))) {
+  if (!cleanToken) {
     return res.status(400).json({
-      message: "Either a valid session_token or lecture_id is required to mark attendance.",
+      message: "A valid session_token is required to mark attendance.",
+      field: "session_token",
     });
   }
 
   req.body.session_token = cleanToken;
-  if (numLectureId) req.body.lecture_id = numLectureId;
+  // Explicitly delete any lecture_id the student may have submitted.
+  delete req.body.lecture_id;
   next();
 };
 

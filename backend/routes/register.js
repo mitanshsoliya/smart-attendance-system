@@ -5,15 +5,16 @@ const db = require("../db");
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const { full_name, email, password, role } = req.body;
+  const { full_name, fullName, email, password, role } = req.body;
+  const nameToUse = (full_name || fullName || "").trim();
 
-  if (!full_name || !email || !password || !role) {
+  if (!nameToUse || !email || !password || !role) {
     return res.status(400).json({
       message: "Full name, email, password and role are required",
     });
   }
 
-  const cleanRole = String(role).toUpperCase();
+  const cleanRole = String(role).trim().toUpperCase();
 
   if (cleanRole === "FACULTY" || cleanRole === "HOD" || cleanRole === "ADMIN") {
     return res.status(403).json({
@@ -38,10 +39,10 @@ router.post("/", async (req, res) => {
       "INSERT INTO users (full_name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id";
 
     const userResult = await client.query(userSql, [
-      full_name.trim(),
-      email.trim().toLowerCase(),
+      nameToUse,
+      String(email).trim().toLowerCase(),
       hashedPassword,
-      role,
+      cleanRole,
     ]);
 
     const userId = userResult.rows[0].id;

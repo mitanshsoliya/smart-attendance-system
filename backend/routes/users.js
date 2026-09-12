@@ -9,6 +9,22 @@ const router = express.Router();
 router.use(verifyToken);
 
 /**
+ * GET /users
+ * Permitted roles: FACULTY, HOD, ADMIN
+ */
+router.get("/", requireFacultyOrHod, async (req, res) => {
+  try {
+    const rows = await db.query(
+      "SELECT id, full_name, email, role, created_at FROM users ORDER BY full_name ASC"
+    );
+    res.json({ users: rows || [] });
+  } catch (err) {
+    console.error("Fetch users error:", err);
+    res.status(500).json({ message: "Failed to retrieve users." });
+  }
+});
+
+/**
  * POST /users/students
  * Permitted roles: FACULTY, HOD
  * Forbidden roles: STUDENT, Anonymous
