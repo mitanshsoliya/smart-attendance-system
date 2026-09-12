@@ -111,10 +111,10 @@ function Login({ onLogin, sessionNotice, onClearNotice }) {
     setRole(demoRole);
     if (onClearNotice) onClearNotice();
     if (demoRole === "STUDENT") {
-      setEmail("student@example.com");
+      setEmail("student.cse@univ.edu");
       setPassword("student123");
     } else if (demoRole === "FACULTY") {
-      setEmail("faculty@example.com");
+      setEmail("faculty.ece@univ.edu");
       setPassword("faculty123");
     } else {
       setEmail("hod@example.com");
@@ -135,17 +135,19 @@ function Login({ onLogin, sessionNotice, onClearNotice }) {
       const accountRole = (data.user?.role || "").toUpperCase();
       const selectedRole = role.toUpperCase();
 
-      const isFacultyOrHod = (r) => r === "FACULTY" || r === "HOD";
-      const roleMatches =
-        selectedRole === accountRole ||
-        (isFacultyOrHod(selectedRole) && isFacultyOrHod(accountRole));
-
-      if (!roleMatches) {
-        console.warn(`Portal selected: ${selectedRole}, Actual account role: ${accountRole}. Logging in with user's registered role.`);
+      if (selectedRole !== accountRole) {
+        if (selectedRole === "STUDENT") {
+          setMessage(`Access Denied: This account has the '${accountRole}' role. You cannot log in through the Student portal.`);
+        } else if (selectedRole === "FACULTY") {
+          setMessage(`Access Denied: This account has the '${accountRole}' role. Please switch to the correct portal to sign in.`);
+        } else {
+          setMessage(`Access Denied: This account has the '${accountRole}' role. HOD portal is restricted to Department Heads.`);
+        }
+        return;
       }
       onLogin(data);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Unable to connect to the server.");
+      setMessage(error.response?.data?.message || "Invalid credentials or unable to connect to the server.");
     } finally {
       setLoading(false);
     }

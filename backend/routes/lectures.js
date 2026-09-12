@@ -48,24 +48,27 @@ router.get("/subjects", verifyToken, requireFacultyOrHod, async (req, res) => {
         "SELECT id, subject_code, subject_name, department FROM subjects ORDER BY subject_code ASC"
       );
     } else {
-      // Find faculty department
+      // Find faculty profile for authenticated user
       const facRows = await db.query(
         "SELECT id, department FROM faculty WHERE user_id = $1",
         [req.user.id]
       );
+
+      const allSubjects = await db.query(
+        "SELECT id, subject_code, subject_name, department, faculty_id FROM subjects ORDER BY subject_code ASC"
+      );
+
       if (facRows && facRows.length > 0) {
-        const facultyDept = facRows[0].department;
-        subjects = await db.query(
-          `SELECT id, subject_code, subject_name, department 
-           FROM subjects 
-           WHERE department = $1 OR faculty_id = $2 
-           ORDER BY subject_code ASC`,
-          [facultyDept, facRows[0].id]
-        );
+        const facId = String(facRows[0].id);
+        const facDept = String(facRows[0].department || "").trim().toLowerCase();
+
+        subjects = (allSubjects || []).filter((s) => {
+          const sDept = String(s.department || "").trim().toLowerCase();
+          const sFacId = String(s.faculty_id || "");
+          return sFacId === facId || (facDept && sDept === facDept);
+        });
       } else {
-        subjects = await db.query(
-          "SELECT id, subject_code, subject_name FROM subjects ORDER BY subject_code ASC"
-        );
+        subjects = allSubjects || [];
       }
     }
 
