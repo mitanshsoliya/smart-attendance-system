@@ -9,10 +9,22 @@ router.use(verifyToken);
 
 /**
  * GET /subjects
- * Fetch all academic courses/subjects with faculty name and enrolled count.
+ * Fetch academic courses/subjects with faculty name and enrolled count.
+ * Filtered by faculty department if requested by FACULTY role.
  */
 router.get("/", async (req, res) => {
   try {
+    let filterClause = "";
+    let params = [];
+
+    if (req.user.role === "FACULTY") {
+      const facRows = await db.query("SELECT id, department FROM faculty WHERE user_id = $1", [req.user.id]);
+      if (facRows && facRows.length > 0) {
+        filterClause = "WHERE s.department = $1 OR s.faculty_id = $2";
+        params = [facRows[0].department, facRows[0].id];
+      }
+    }
+
     const sql = `
       SELECT
         s.id,
@@ -26,10 +38,11 @@ router.get("/", async (req, res) => {
       FROM subjects s
       LEFT JOIN faculty f ON s.faculty_id = f.id
       LEFT JOIN users u ON f.user_id = u.id
+      ${filterClause}
       ORDER BY s.subject_code ASC
     `;
 
-    const subjects = await db.query(sql);
+    const subjects = await db.query(sql, params);
     res.json({
       message: "Subjects fetched successfully.",
       subjects: subjects || [],

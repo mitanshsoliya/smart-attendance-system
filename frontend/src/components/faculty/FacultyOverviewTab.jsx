@@ -23,7 +23,7 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
             Good day, {user?.full_name || "Dr. Faculty"}!
           </h1>
           <p className="text-sm text-[#555E68] mt-1">
-            Department of Computer Science & Engineering • Academic Year 2026-27
+            {user?.department || "Academic Department"} • Academic Year 2026-27
           </p>
         </div>
       </div>
