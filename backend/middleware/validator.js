@@ -62,19 +62,50 @@ const validateLecture = (req, res, next) => {
     });
   }
 
-  const cleanStart = String(start_time || "").trim();
-  const cleanEnd = String(end_time || "").trim();
+  // Lenient time parser supporting HH:MM, HH:MM:SS, H:MM, H:MM:SS, and 12-hour AM/PM
+  const normalizeTime = (raw) => {
+    if (!raw) return null;
+    const str = String(raw).trim();
+    // Check 12-hour AM/PM like "10:00 AM", "2:30 pm", "09:15am"
+    const ampmMatch = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([aApP][mM])$/);
+    if (ampmMatch) {
+      let hours = parseInt(ampmMatch[1], 10);
+      const minutes = ampmMatch[2];
+      const seconds = ampmMatch[3] || "00";
+      const modifier = ampmMatch[4].toUpperCase();
 
-  if (!cleanStart || !TIME_REGEX.test(cleanStart)) {
+      if (hours < 1 || hours > 12) return null;
+      if (modifier === "PM" && hours < 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, "0")}:${minutes}:${seconds}`;
+    }
+
+    // Check standard 24-hour formats like "10:00", "10:00:00", "9:30", "09:30:00"
+    const match24 = str.match(/^(\d{1,2}):([0-5]\d)(?::([0-5]\d))?$/);
+    if (match24) {
+      const hours = parseInt(match24[1], 10);
+      if (hours < 0 || hours > 23) return null;
+      const minutes = match24[2];
+      const seconds = match24[3] || "00";
+      return `${String(hours).padStart(2, "0")}:${minutes}:${seconds}`;
+    }
+
+    return null;
+  };
+
+  const cleanStart = normalizeTime(start_time);
+  const cleanEnd = normalizeTime(end_time);
+
+  if (!cleanStart) {
     return res.status(400).json({
-      message: "Invalid start_time format. Must be formatted as HH:MM or HH:MM:SS.",
+      message: "Invalid start_time format. Must be formatted as HH:MM or HH:MM:SS (e.g., 10:00 or 10:00:00).",
       field: "start_time",
     });
   }
 
-  if (!cleanEnd || !TIME_REGEX.test(cleanEnd)) {
+  if (!cleanEnd) {
     return res.status(400).json({
-      message: "Invalid end_time format. Must be formatted as HH:MM or HH:MM:SS.",
+      message: "Invalid end_time format. Must be formatted as HH:MM or HH:MM:SS (e.g., 11:30 or 11:30:00).",
       field: "end_time",
     });
   }

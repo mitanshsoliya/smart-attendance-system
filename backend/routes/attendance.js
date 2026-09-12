@@ -77,7 +77,7 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
 
     // --- 5. Resolve authenticated student record from JWT identity ---
     const studentRows = await db.query(
-      "SELECT id FROM students WHERE user_id = $1",
+      "SELECT id, department FROM students WHERE user_id = $1",
       [req.user.id]
     );
 
@@ -87,7 +87,32 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
       });
     }
 
-    const studentId = studentRows[0].id;
+    const student = studentRows[0];
+    const studentId = student.id;
+
+    // --- 5b. Department Check: Student must belong to the same department as the Faculty's Lecture ---
+    const lectureFacultyRows = await db.query(
+      `SELECT f.department as faculty_dept, s.subject_name
+       FROM lectures l
+       JOIN faculty f ON l.faculty_id = f.id
+       JOIN subjects s ON l.subject_id = s.id
+       WHERE l.id = $1`,
+      [lectureId]
+    );
+
+    if (lectureFacultyRows && lectureFacultyRows.length > 0) {
+      const lectureInfo = lectureFacultyRows[0];
+      const normalizeDept = (d) => String(d || "").trim().toLowerCase();
+
+      if (normalizeDept(student.department) !== normalizeDept(lectureInfo.faculty_dept)) {
+        return res.status(403).json({
+          message: `Access Denied: This lecture is exclusively for '${lectureInfo.faculty_dept}' students. Your registered department is '${student.department || "Unknown"}'.`,
+          forbidden: true,
+          studentDepartment: student.department,
+          requiredDepartment: lectureInfo.faculty_dept,
+        });
+      }
+    }
 
     // --- 6. Enrollment / eligibility check ---
     // Guarantee attendance can ONLY be recorded for eligible students enrolled in this subject.

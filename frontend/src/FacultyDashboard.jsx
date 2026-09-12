@@ -250,7 +250,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
                 <div>
                   <label className="block uppercase font-bold text-text-stone mb-1">Start Time</label>
                   <input
-                    type="text"
+                    type="time"
+                    step="1"
                     value={editingLecture.start_time || ""}
                     onChange={(e) => setEditingLecture({ ...editingLecture, start_time: e.target.value })}
                     className="w-full p-2.5 bg-surface border border-border-default rounded text-primary font-mono"
@@ -259,7 +260,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
                 <div>
                   <label className="block uppercase font-bold text-text-stone mb-1">End Time</label>
                   <input
-                    type="text"
+                    type="time"
+                    step="1"
                     value={editingLecture.end_time || ""}
                     onChange={(e) => setEditingLecture({ ...editingLecture, end_time: e.target.value })}
                     className="w-full p-2.5 bg-surface border border-border-default rounded text-primary font-mono"

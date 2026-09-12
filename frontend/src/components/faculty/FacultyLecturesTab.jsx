@@ -61,9 +61,9 @@ export function FacultyLecturesTab({
           <div>
             <label className="block text-xs uppercase font-semibold text-text-stone mb-1">Start Time *</label>
             <input
-              type="text"
+              type="time"
+              step="1"
               required
-              placeholder="10:00:00"
               value={lectureForm.start_time}
               onChange={(e) => setLectureForm({ ...lectureForm, start_time: e.target.value })}
               className="w-full p-2.5 text-xs bg-surface border border-border-default text-primary font-mono rounded"
@@ -73,9 +73,9 @@ export function FacultyLecturesTab({
           <div>
             <label className="block text-xs uppercase font-semibold text-text-stone mb-1">End Time *</label>
             <input
-              type="text"
+              type="time"
+              step="1"
               required
-              placeholder="11:30:00"
               value={lectureForm.end_time}
               onChange={(e) => setLectureForm({ ...lectureForm, end_time: e.target.value })}
               className="w-full p-2.5 text-xs bg-surface border border-border-default text-primary font-mono rounded"

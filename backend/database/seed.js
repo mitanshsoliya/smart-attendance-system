@@ -77,15 +77,22 @@ async function seed() {
 
       if (u.role === "STUDENT") {
         await client.query(
-          `INSERT INTO students (user_id) VALUES ($1)
-           ON CONFLICT (user_id) DO NOTHING;`,
+          `INSERT INTO students (user_id, roll_number, section)
+           VALUES ($1, '2024-CSE-001', 'Sec A')
+           ON CONFLICT (user_id) DO UPDATE 
+           SET roll_number = COALESCE(students.roll_number, EXCLUDED.roll_number),
+               section = COALESCE(students.section, EXCLUDED.section);`,
           [userId]
         );
       } else if (u.role === "FACULTY" || u.role === "HOD") {
+        const designation = u.role === "HOD" ? "Professor & HOD" : "Assistant Professor";
         await client.query(
-          `INSERT INTO faculty (user_id) VALUES ($1)
-           ON CONFLICT (user_id) DO NOTHING;`,
-          [userId]
+          `INSERT INTO faculty (user_id, department, designation)
+           VALUES ($1, 'Department of Computer Science & Engineering', $2)
+           ON CONFLICT (user_id) DO UPDATE 
+           SET department = COALESCE(faculty.department, EXCLUDED.department),
+               designation = COALESCE(faculty.designation, EXCLUDED.designation);`,
+          [userId, designation]
         );
       }
     }
