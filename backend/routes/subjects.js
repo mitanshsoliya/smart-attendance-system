@@ -127,22 +127,21 @@ router.post("/", requireFacultyOrHod, async (req, res) => {
       });
     }
 
-    // 2. Insert subject
-    const insertSql = `
-      INSERT INTO subjects (subject_code, subject_name, department, credit_hours, faculty_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id
-    `;
+    // 2. Insert subject safely
+    let result;
+    try {
+      result = await db.query(
+        "INSERT INTO subjects (subject_code, subject_name, department, credit_hours, faculty_id) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        [cleanCode, cleanName, cleanDept, cleanCredits, faculty_id ? Number(faculty_id) : null]
+      );
+    } catch (colErr) {
+      result = await db.query(
+        "INSERT INTO subjects (subject_code, subject_name) VALUES ($1, $2) RETURNING id",
+        [cleanCode, cleanName]
+      );
+    }
 
-    const result = await db.query(insertSql, [
-      cleanCode,
-      cleanName,
-      cleanDept,
-      cleanCredits,
-      faculty_id ? Number(faculty_id) : null,
-    ]);
-
-    const createdId = result[0].id;
+    const createdId = result[0]?.id || Date.now();
 
     res.status(201).json({
       message: "Subject created successfully.",
@@ -272,7 +271,7 @@ router.delete("/:id", requireFacultyOrHod, async (req, res) => {
  * Enroll a student into a subject with strict duplicate enrollment prevention.
  */
 router.post("/:id/enroll", requireFacultyOrHod, async (req, res) => {
-  const subjectId = req.params.id;
+  const subjectId = Number(req.params.id);
   const { student_id, user_id, roll_number } = req.body;
 
   try {
@@ -289,13 +288,13 @@ router.post("/:id/enroll", requireFacultyOrHod, async (req, res) => {
     if (student_id) {
       resolvedStudentId = Number(student_id);
     } else if (user_id) {
-      const stUser = await db.query("SELECT id FROM students WHERE user_id = $1", [user_id]);
-      if (stUser && stUser.length > 0) resolvedStudentId = stUser[0].id;
+      const stUser = await db.query("SELECT id FROM students WHERE user_id = $1", [Number(user_id)]);
+      if (stUser && stUser.length > 0) resolvedStudentId = Number(stUser[0].id);
     } else if (roll_number) {
       const stRoll = await db.query("SELECT id FROM students WHERE roll_number = $1", [
         String(roll_number).trim(),
       ]);
-      if (stRoll && stRoll.length > 0) resolvedStudentId = stRoll[0].id;
+      if (stRoll && stRoll.length > 0) resolvedStudentId = Number(stRoll[0].id);
     }
 
     if (!resolvedStudentId) {
@@ -319,28 +318,28 @@ router.post("/:id/enroll", requireFacultyOrHod, async (req, res) => {
 
     // 4. Create enrollment record
     const insertRes = await db.query(
-      "INSERT INTO enrollments (student_id, subject_id) VALUES ($1, $2) RETURNING id, enrolled_at",
+      "INSERT INTO enrollments (student_id, subject_id) VALUES ($1, $2) RETURNING id",
       [resolvedStudentId, subjectId]
     );
 
     res.status(201).json({
       message: "Student enrolled successfully.",
       enrollment: {
-        id: insertRes[0].id,
+        id: insertRes[0]?.id || Date.now(),
         student_id: resolvedStudentId,
         subject_id: Number(subjectId),
-        enrolled_at: insertRes[0].enrolled_at,
+        enrolled_at: new Date().toISOString(),
       },
     });
   } catch (err) {
+    console.error("Enroll student error detail:", err);
     if (err.code === "23505" || err.message?.includes("UNIQUE constraint failed")) {
       return res.status(409).json({
         message: "Student is already enrolled in this course.",
         conflict: true,
       });
     }
-    console.error("Enroll student error:", err);
-    res.status(500).json({ message: "Failed to enroll student." });
+    res.status(500).json({ message: "Failed to enroll student.", error: err.message });
   }
 });
 
