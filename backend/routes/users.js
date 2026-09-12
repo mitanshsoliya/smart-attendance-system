@@ -31,9 +31,13 @@ router.get("/", requireFacultyOrHod, async (req, res) => {
  */
 router.post("/students", requireFacultyOrHod, async (req, res) => {
 
-  const { full_name, email, password, roll_number, section } = req.body;
+  const { full_name, fullName, email, password, roll_number, rollNumber, section, student_phone, studentPhone, parent_phone, parentPhone, department } = req.body;
+  const nameToUse = full_name || fullName;
+  const rollToUse = roll_number || rollNumber;
+  const stdPhoneToUse = student_phone || studentPhone;
+  const parPhoneToUse = parent_phone || parentPhone;
 
-  if (!full_name || !String(full_name).trim()) {
+  if (!nameToUse || !String(nameToUse).trim()) {
     return res.status(400).json({ message: "Student full name is required." });
   }
   if (!email || !String(email).trim()) {
@@ -49,9 +53,12 @@ router.post("/students", requireFacultyOrHod, async (req, res) => {
     return res.status(400).json({ message: "Invalid email address format." });
   }
 
-  const cleanName = String(full_name).trim();
+  const cleanName = String(nameToUse).trim();
   const cleanPassword = String(password).trim();
   const cleanSection = section ? String(section).trim() : "Sec A";
+  const cleanStdPhone = stdPhoneToUse ? String(stdPhoneToUse).trim() : null;
+  const cleanParPhone = parPhoneToUse ? String(parPhoneToUse).trim() : null;
+  const cleanDept = department ? String(department).trim() : "Department of Computer Science & Engineering";
 
   try {
     // 1. Prevent duplicate email accounts
@@ -61,7 +68,7 @@ router.post("/students", requireFacultyOrHod, async (req, res) => {
     }
 
     // 2. Prevent duplicate roll numbers if provided
-    let cleanRoll = roll_number ? String(roll_number).trim() : null;
+    let cleanRoll = rollToUse ? String(rollToUse).trim() : null;
     if (cleanRoll) {
       const existingRolls = await db.query(
         "SELECT id FROM students WHERE LOWER(roll_number) = LOWER($1)",
@@ -93,8 +100,8 @@ router.post("/students", requireFacultyOrHod, async (req, res) => {
 
     // 5. Create linked student profile record
     const studentResult = await db.query(
-      "INSERT INTO students (user_id, roll_number, section) VALUES ($1, $2, $3) RETURNING id",
-      [userId, cleanRoll, cleanSection]
+      "INSERT INTO students (user_id, roll_number, section, student_phone, parent_phone, department) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+      [userId, cleanRoll, cleanSection, cleanStdPhone, cleanParPhone, cleanDept]
     );
 
     const studentId = studentResult && studentResult[0] ? studentResult[0].id : userId;
@@ -249,6 +256,9 @@ router.get("/students", requireFacultyOrHod, async (req, res) => {
         st.id as student_id,
         st.roll_number,
         st.section,
+        st.student_phone,
+        st.parent_phone,
+        st.department,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -265,6 +275,9 @@ router.get("/students", requireFacultyOrHod, async (req, res) => {
       email: r.email,
       rollNumber: r.roll_number || `2024-CSE-${String(r.student_id || i + 1).padStart(3, "0")}`,
       section: r.section || (i % 2 === 0 ? "Sec A" : "Sec B"),
+      studentPhone: r.student_phone || "",
+      parentPhone: r.parent_phone || "",
+      department: r.department || "Department of Computer Science & Engineering",
       createdAt: r.created_at,
     }));
 

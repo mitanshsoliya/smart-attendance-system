@@ -44,7 +44,16 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const [showEditLectureModal, setShowEditLectureModal] = useState(false);
   const [editingLecture, setEditingLecture] = useState(null);
   const [showEnrolModal, setShowEnrolModal] = useState(false);
-  const [enrolForm, setEnrolForm] = useState({ fullName: "", email: "", rollNumber: "", section: "Sec A" });
+  const [enrolForm, setEnrolForm] = useState({
+    fullName: "",
+    email: "",
+    password: "student123",
+    rollNumber: "",
+    studentPhone: "",
+    parentPhone: "",
+    department: "Department of Computer Science & Engineering",
+    section: "Sec A",
+  });
 
   useEffect(() => {
     if (lectures.length > 0 && !selectedLectureId) {
@@ -68,7 +77,6 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
     { id: "lectures", label: "Lectures", icon: "co_present" },
     { id: "attendance", label: "Attendance", icon: "fact_check" },
-    { id: "courses", label: "Courses", icon: "menu_book" },
     { id: "schedule", label: "Schedule", icon: "calendar_today" },
     { id: "reports", label: "Reports", icon: "analytics" },
     { id: "students", label: "Students", icon: "group" },
@@ -195,7 +203,6 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
           />
         )}
 
-        {activeTab === "courses" && <FacultyCoursesTab courses={courses} />}
         {activeTab === "schedule" && <FacultyScheduleTab />}
         {activeTab === "reports" && <FacultyReportsTab lectures={lectures} />}
         {activeTab === "students" && (
@@ -280,41 +287,119 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
         <Modal
           isOpen={showEnrolModal}
           onClose={() => setShowEnrolModal(false)}
-          title="Enrol Candidate Student"
+          title="Onboard Candidate Student"
         >
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setShowEnrolModal(false);
-              alert("Student enrolled successfully!");
+              try {
+                await api.post("/users/students", enrolForm, authHeader(token));
+                setShowEnrolModal(false);
+                // Refresh roster
+                const { data } = await api.get("/users/students", authHeader(token));
+                setStudentRoster(data.students || []);
+                alert("Student onboarded successfully!");
+              } catch (err) {
+                alert(err.response?.data?.message || "Failed to onboard student.");
+              }
             }}
             className="space-y-4 text-xs"
           >
             <div>
-              <label className="block uppercase font-bold text-text-stone mb-1">Full Name *</label>
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Candidate Full Name *</label>
               <input
                 type="text"
                 required
+                placeholder="e.g. Rahul Sharma"
                 value={enrolForm.fullName}
                 onChange={(e) => setEnrolForm({ ...enrolForm, fullName: e.target.value })}
-                className="w-full p-2.5 bg-surface border border-border-default rounded"
+                className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
               />
             </div>
             <div>
-              <label className="block uppercase font-bold text-text-stone mb-1">Email *</label>
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Institutional Email *</label>
               <input
                 type="email"
                 required
+                placeholder="e.g. rahul.sharma@univ.edu"
                 value={enrolForm.email}
                 onChange={(e) => setEnrolForm({ ...enrolForm, email: e.target.value })}
-                className="w-full p-2.5 bg-surface border border-border-default rounded"
+                className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block uppercase font-bold text-[#6B7280] mb-1">Enrollment No. / Roll No. *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 2026-CSE-101"
+                  value={enrolForm.rollNumber}
+                  onChange={(e) => setEnrolForm({ ...enrolForm, rollNumber: e.target.value })}
+                  className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
+                />
+              </div>
+              <div>
+                <label className="block uppercase font-bold text-[#6B7280] mb-1">Cohort Section *</label>
+                <select
+                  value={enrolForm.section}
+                  onChange={(e) => setEnrolForm({ ...enrolForm, section: e.target.value })}
+                  className="w-full p-2.5 bg-surface border border-border-default rounded font-semibold text-[#12181F] text-sm"
+                >
+                  <option value="Sec A">Sec A</option>
+                  <option value="Sec B">Sec B</option>
+                  <option value="Sec C">Sec C</option>
+                  <option value="Sec D">Sec D</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block uppercase font-bold text-[#6B7280] mb-1">Student Contact No.</label>
+                <input
+                  type="text"
+                  placeholder="e.g. +91 98765 43210"
+                  value={enrolForm.studentPhone}
+                  onChange={(e) => setEnrolForm({ ...enrolForm, studentPhone: e.target.value })}
+                  className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
+                />
+              </div>
+              <div>
+                <label className="block uppercase font-bold text-[#6B7280] mb-1">Parents Contact No.</label>
+                <input
+                  type="text"
+                  placeholder="e.g. +91 98123 45678"
+                  value={enrolForm.parentPhone}
+                  onChange={(e) => setEnrolForm({ ...enrolForm, parentPhone: e.target.value })}
+                  className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department</label>
+              <input
+                type="text"
+                value={enrolForm.department}
+                onChange={(e) => setEnrolForm({ ...enrolForm, department: e.target.value })}
+                className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
+              />
+            </div>
+            <div>
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Password *</label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={enrolForm.password}
+                onChange={(e) => setEnrolForm({ ...enrolForm, password: e.target.value })}
+                className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowEnrolModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded">
+              <button type="button" onClick={() => setShowEnrolModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" className="px-5 py-2 bg-secondary text-on-secondary font-bold rounded">
+              <button type="submit" className="px-5 py-2 bg-secondary text-on-secondary font-bold rounded cursor-pointer shadow-xs">
                 Enrol Student
               </button>
             </div>

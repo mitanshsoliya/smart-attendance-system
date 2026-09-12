@@ -35,7 +35,9 @@ router.get("/profile", async (req, res) => {
         st.id as student_id,
         st.roll_number,
         st.section,
-        st.phone,
+        st.student_phone,
+        st.parent_phone,
+        st.department,
         st.settings
       FROM users u
       LEFT JOIN students st ON u.id = st.user_id
@@ -66,8 +68,9 @@ router.get("/profile", async (req, res) => {
         role: row.role,
         rollNumber: row.roll_number || `2024-CSE-${String(row.student_id || row.user_id).padStart(3, "0")}`,
         section: row.section || "Sec A",
-        phone: row.phone || "+91 98450 12890",
-        department: "Department of Computer Science & Engineering",
+        studentPhone: row.student_phone || "",
+        parentPhone: row.parent_phone || "",
+        department: row.department || "Department of Computer Science & Engineering",
         institution: "St. Xavier’s College of Engineering & Technology",
         settings: parsedSettings,
         createdAt: row.created_at,
@@ -81,12 +84,16 @@ router.get("/profile", async (req, res) => {
 
 /**
  * PUT /student/profile
- * Allows student to update permitted profile fields (full_name, phone, settings, password).
+ * Allows student to update permitted profile fields (student_phone, parent_phone, full_name, password, settings).
  * Strictly forbids updating immutable institutional fields (role, email, roll_number, section).
  */
 router.put("/profile", async (req, res) => {
   const {
     full_name,
+    student_phone,
+    studentPhone,
+    parent_phone,
+    parentPhone,
     phone,
     settings,
     current_password,
@@ -97,6 +104,9 @@ router.put("/profile", async (req, res) => {
     section,
   } = req.body;
 
+  const cleanStudentPhone = student_phone || studentPhone || phone || null;
+  const cleanParentPhone = parent_phone || parentPhone || null;
+
   // 1. Enforce immutability of institutional governance fields
   if (role && String(role).toUpperCase() !== "STUDENT") {
     return res.status(403).json({ message: "Forbidden: You cannot alter your account role." });
@@ -105,7 +115,6 @@ router.put("/profile", async (req, res) => {
     return res.status(403).json({ message: "Forbidden: Student institutional email cannot be self-modified." });
   }
   if (roll_number || section) {
-    // Academic cohort assignment is strictly governed by Faculty / HOD
     return res.status(403).json({
       message: "Forbidden: Roll number and cohort section are immutable institutional identifiers.",
     });
@@ -135,7 +144,7 @@ router.put("/profile", async (req, res) => {
       await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedNew, req.user.id]);
     }
 
-    // 3. Update permitted profile fields in users table
+    // 3. Update full_name if provided
     if (full_name && String(full_name).trim()) {
       await db.query("UPDATE users SET full_name = $1 WHERE id = $2", [
         String(full_name).trim(),
@@ -143,37 +152,18 @@ router.put("/profile", async (req, res) => {
       ]);
     }
 
-    // 4. Update permitted phone & settings in students table
-    const cleanPhone = phone ? String(phone).trim() : null;
-    const cleanSettingsStr = settings ? (typeof settings === "string" ? settings : JSON.stringify(settings)) : null;
-
-    if (cleanPhone !== null || cleanSettingsStr !== null) {
-      // Check if student profile row exists
-      const stExists = await db.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
-      if (stExists && stExists.length > 0) {
-        if (cleanPhone !== null && cleanSettingsStr !== null) {
-          await db.query("UPDATE students SET phone = $1, settings = $2 WHERE user_id = $3", [
-            cleanPhone,
-            cleanSettingsStr,
-            req.user.id,
-          ]);
-        } else if (cleanPhone !== null) {
-          await db.query("UPDATE students SET phone = $1 WHERE user_id = $2", [
-            cleanPhone,
-            req.user.id,
-          ]);
-        } else {
-          await db.query("UPDATE students SET settings = $1 WHERE user_id = $2", [
-            cleanSettingsStr,
-            req.user.id,
-          ]);
-        }
-      } else {
-        await db.query(
-          "INSERT INTO students (user_id, phone, settings) VALUES ($1, $2, $3)",
-          [req.user.id, cleanPhone, cleanSettingsStr]
-        );
-      }
+    // 4. Update student_phone and parent_phone in students table
+    const stExists = await db.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
+    if (stExists && stExists.length > 0) {
+      await db.query(
+        "UPDATE students SET student_phone = COALESCE($1, student_phone), parent_phone = COALESCE($2, parent_phone) WHERE user_id = $3",
+        [cleanStudentPhone ? String(cleanStudentPhone).trim() : null, cleanParentPhone ? String(cleanParentPhone).trim() : null, req.user.id]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO students (user_id, student_phone, parent_phone) VALUES ($1, $2, $3)",
+        [req.user.id, cleanStudentPhone ? String(cleanStudentPhone).trim() : null, cleanParentPhone ? String(cleanParentPhone).trim() : null]
+      );
     }
 
     // Fetch refreshed profile to return
@@ -186,23 +176,16 @@ router.put("/profile", async (req, res) => {
         st.id as student_id,
         st.roll_number,
         st.section,
-        st.phone,
-        st.settings
+        st.student_phone,
+        st.parent_phone,
+        st.department
       FROM users u
       LEFT JOIN students st ON u.id = st.user_id
       WHERE u.id = $1`,
       [req.user.id]
     );
 
-    const updatedRow = refreshed[0];
-    let parsedUpdatedSettings = {};
-    try {
-      if (updatedRow.settings) {
-        parsedUpdatedSettings = typeof updatedRow.settings === "string" ? JSON.parse(updatedRow.settings) : updatedRow.settings;
-      }
-    } catch {
-      parsedUpdatedSettings = {};
-    }
+    const updatedRow = refreshed[0] || {};
 
     res.json({
       message: "Student profile & settings updated successfully.",
@@ -212,15 +195,16 @@ router.put("/profile", async (req, res) => {
         fullName: updatedRow.full_name,
         email: updatedRow.email,
         role: updatedRow.role,
-        rollNumber: updatedRow.roll_number,
-        section: updatedRow.section,
-        phone: updatedRow.phone,
-        settings: parsedUpdatedSettings,
+        rollNumber: updatedRow.roll_number || `2024-CSE-${String(updatedRow.student_id || updatedRow.user_id).padStart(3, "0")}`,
+        section: updatedRow.section || "Sec A",
+        studentPhone: updatedRow.student_phone || "",
+        parentPhone: updatedRow.parent_phone || "",
+        department: updatedRow.department || "Department of Computer Science & Engineering",
       },
     });
   } catch (err) {
     console.error("Update student profile error:", err);
-    res.status(500).json({ message: "Failed to update profile settings." });
+    res.status(500).json({ message: "Failed to update profile settings.", error: err.message });
   }
 });
 

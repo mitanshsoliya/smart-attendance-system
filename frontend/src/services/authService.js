@@ -25,4 +25,14 @@ export const authService = {
     const { data } = await api.get("/faculty/profile", authHeader(token));
     return data;
   },
+
+  async updateStudentProfile(profileData, token) {
+    const { data } = await api.put("/student/profile", profileData, authHeader(token));
+    return data;
+  },
+
+  async getStudentProfile(token) {
+    const { data } = await api.get("/student/profile", authHeader(token));
+    return data;
+  },
 };

@@ -32,18 +32,21 @@ export function HodReportsTab({ students, onExportLedger }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#D8D2C4]">
-              {students.map((s) => (
-                <tr key={s.id}>
-                  <td className="py-2 px-3 font-mono">{s.rollNumber}</td>
-                  <td className="py-2 px-3 font-bold text-[#12181F]">{s.fullName}</td>
-                  <td className="py-2 px-3 text-right font-bold">{s.attendancePercentage}%</td>
-                  <td className="py-2 px-3 text-center font-bold">
-                    <span className={s.attendancePercentage >= 75 ? "text-[#2E6B34]" : "text-[#BA1A1A]"}>
-                      {s.attendancePercentage >= 75 ? "CLEARED" : "DISQUALIFIED"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {(students || []).map((s, idx) => {
+                const pct = s.attendancePercentage ?? s.attendance_percentage ?? 0;
+                return (
+                  <tr key={s.id || idx}>
+                    <td className="py-2 px-3 font-mono">{s.rollNumber || s.roll_number || `2024-CSE-00${s.id || idx + 1}`}</td>
+                    <td className="py-2 px-3 font-bold text-[#12181F]">{s.fullName || s.full_name || "Student"}</td>
+                    <td className="py-2 px-3 text-right font-bold">{pct}%</td>
+                    <td className="py-2 px-3 text-center font-bold">
+                      <span className={pct >= 75 ? "text-[#2E6B34]" : "text-[#BA1A1A]"}>
+                        {pct >= 75 ? "CLEARED" : "DISQUALIFIED"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

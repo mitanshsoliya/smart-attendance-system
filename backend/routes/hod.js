@@ -100,6 +100,9 @@ router.get("/students", async (req, res) => {
         st.id as student_id,
         st.roll_number,
         st.section,
+        st.student_phone,
+        st.parent_phone,
+        st.department,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -108,7 +111,7 @@ router.get("/students", async (req, res) => {
       FROM students st
       JOIN users u ON st.user_id = u.id
       LEFT JOIN attendance a ON st.id = a.student_id AND a.status = 'PRESENT'
-      GROUP BY st.id, st.roll_number, st.section, u.id, u.full_name, u.email, u.created_at
+      GROUP BY st.id, st.roll_number, st.section, st.student_phone, st.parent_phone, st.department, u.id, u.full_name, u.email, u.created_at
       ORDER BY u.full_name ASC
     `);
 
@@ -127,6 +130,9 @@ router.get("/students", async (req, res) => {
         email: s.email,
         rollNumber: s.roll_number || `2024-CSE-${String(s.student_id || i + 1).padStart(3, "0")}`,
         section: s.section || (i % 2 === 0 ? "Sec A" : "Sec B"),
+        studentPhone: s.student_phone || "",
+        parentPhone: s.parent_phone || "",
+        department: s.department || "Department of Computer Science & Engineering",
         attendedLectures: attended,
         totalLectures: total,
         attendancePercentage: pct,
@@ -143,16 +149,20 @@ router.get("/students", async (req, res) => {
 
 // POST /hod/students — Add Student
 router.post("/students", async (req, res) => {
-  const { fullName, email, password, rollNumber, section } = req.body;
+  const { fullName, full_name, email, password, rollNumber, roll_number, section, studentPhone, student_phone, parentPhone, parent_phone, department } = req.body;
 
-  if (!fullName || !email || !password) {
+  const nameToUse = fullName || full_name;
+  if (!nameToUse || !email || !password) {
     return res.status(400).json({ message: "Full name, email, and password are required." });
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
-  const cleanName = String(fullName).trim();
-  const cleanRoll = rollNumber ? String(rollNumber).trim() : `2026-CSE-${Math.floor(100 + Math.random() * 900)}`;
+  const cleanName = String(nameToUse).trim();
+  const cleanRoll = (rollNumber || roll_number) ? String(rollNumber || roll_number).trim() : `2026-CSE-${Math.floor(100 + Math.random() * 900)}`;
   const cleanSec = section ? String(section).trim() : "Sec A";
+  const cleanStdPhone = (studentPhone || student_phone) ? String(studentPhone || student_phone).trim() : null;
+  const cleanParPhone = (parentPhone || parent_phone) ? String(parentPhone || parent_phone).trim() : null;
+  const cleanDept = department ? String(department).trim() : "Department of Computer Science & Engineering";
 
   try {
     const existing = await db.query("SELECT id FROM users WHERE LOWER(email) = $1", [cleanEmail]);
@@ -168,8 +178,8 @@ router.post("/students", async (req, res) => {
     const userId = userRes[0].id;
 
     const studentRes = await db.query(
-      "INSERT INTO students (user_id, roll_number, section) VALUES ($1, $2, $3) RETURNING id",
-      [userId, cleanRoll, cleanSec]
+      "INSERT INTO students (user_id, roll_number, section, student_phone, parent_phone, department) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+      [userId, cleanRoll, cleanSec, cleanStdPhone, cleanParPhone, cleanDept]
     );
 
     res.status(201).json({
@@ -181,6 +191,9 @@ router.post("/students", async (req, res) => {
         email: cleanEmail,
         rollNumber: cleanRoll,
         section: cleanSec,
+        studentPhone: cleanStdPhone || "",
+        parentPhone: cleanParPhone || "",
+        department: cleanDept,
       },
     });
   } catch (err) {
@@ -192,7 +205,12 @@ router.post("/students", async (req, res) => {
 // PUT /hod/students/:id — Edit Student
 router.put("/students/:id", async (req, res) => {
   const studentId = req.params.id;
-  const { fullName, email, rollNumber, section } = req.body;
+  const { fullName, full_name, email, rollNumber, roll_number, section, studentPhone, student_phone, parentPhone, parent_phone, department } = req.body;
+
+  const nameToUse = fullName || full_name;
+  const rollToUse = rollNumber || roll_number;
+  const stdPhoneToUse = studentPhone || student_phone;
+  const parPhoneToUse = parentPhone || parent_phone;
 
   try {
     const studentRows = await db.query("SELECT id, user_id FROM students WHERE id = $1", [studentId]);
@@ -202,19 +220,24 @@ router.put("/students/:id", async (req, res) => {
 
     const userId = studentRows[0].user_id;
 
-    if (fullName || email) {
+    if (nameToUse || email) {
       await db.query(
         "UPDATE users SET full_name = COALESCE($1, full_name), email = COALESCE($2, email) WHERE id = $3",
-        [fullName ? String(fullName).trim() : null, email ? String(email).trim().toLowerCase() : null, userId]
+        [nameToUse ? String(nameToUse).trim() : null, email ? String(email).trim().toLowerCase() : null, userId]
       );
     }
 
-    if (rollNumber || section) {
-      await db.query(
-        "UPDATE students SET roll_number = COALESCE($1, roll_number), section = COALESCE($2, section) WHERE id = $3",
-        [rollNumber ? String(rollNumber).trim() : null, section ? String(section).trim() : null, studentId]
-      );
-    }
+    await db.query(
+      "UPDATE students SET roll_number = COALESCE($1, roll_number), section = COALESCE($2, section), student_phone = COALESCE($3, student_phone), parent_phone = COALESCE($4, parent_phone), department = COALESCE($5, department) WHERE id = $6",
+      [
+        rollToUse ? String(rollToUse).trim() : null,
+        section ? String(section).trim() : null,
+        stdPhoneToUse ? String(stdPhoneToUse).trim() : null,
+        parPhoneToUse ? String(parPhoneToUse).trim() : null,
+        department ? String(department).trim() : null,
+        studentId,
+      ]
+    );
 
     res.json({ message: "Student profile updated successfully." });
   } catch (err) {
@@ -257,6 +280,7 @@ router.get("/faculty", async (req, res) => {
         f.id as faculty_id,
         f.department,
         f.designation,
+        f.phone,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -265,7 +289,7 @@ router.get("/faculty", async (req, res) => {
       FROM faculty f
       JOIN users u ON f.user_id = u.id
       LEFT JOIN lectures l ON f.id = l.faculty_id
-      GROUP BY f.id, f.department, f.designation, u.id, u.full_name, u.email, u.role
+      GROUP BY f.id, f.department, f.designation, f.phone, u.id, u.full_name, u.email, u.role
       ORDER BY u.full_name ASC
     `);
 
@@ -275,6 +299,8 @@ router.get("/faculty", async (req, res) => {
       fullName: fac.full_name,
       email: fac.email,
       role: fac.role,
+      phone: fac.phone || "",
+      contactNo: fac.phone || "",
       department: fac.department || "Department of Computer Science & Engineering",
       designation: fac.designation || (fac.role === "HOD" ? "Professor & HOD" : "Assistant Professor"),
       lecturesConducted: Number(fac.lectures_conducted || 0),
@@ -290,16 +316,20 @@ router.get("/faculty", async (req, res) => {
 
 // POST /hod/faculty — Add Faculty
 router.post("/faculty", async (req, res) => {
-  const { fullName, email, password, department, designation } = req.body;
+  const { fullName, full_name, email, password, phone, contactNo, contact_no, department, designation } = req.body;
 
-  if (!fullName || !email || !password) {
+  const nameToUse = fullName || full_name;
+  const phoneToUse = phone || contactNo || contact_no;
+
+  if (!nameToUse || !email || !password) {
     return res.status(400).json({ message: "Full name, email, and password are required." });
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
-  const cleanName = String(fullName).trim();
+  const cleanName = String(nameToUse).trim();
   const cleanDept = department ? String(department).trim() : "Department of Computer Science & Engineering";
   const cleanDesig = designation ? String(designation).trim() : "Assistant Professor";
+  const cleanPhone = phoneToUse ? String(phoneToUse).trim() : null;
 
   try {
     const existing = await db.query("SELECT id FROM users WHERE LOWER(email) = $1", [cleanEmail]);
@@ -315,8 +345,8 @@ router.post("/faculty", async (req, res) => {
     const userId = userRes[0].id;
 
     const facRes = await db.query(
-      "INSERT INTO faculty (user_id, department, designation) VALUES ($1, $2, $3) RETURNING id",
-      [userId, cleanDept, cleanDesig]
+      "INSERT INTO faculty (user_id, department, designation, phone) VALUES ($1, $2, $3, $4) RETURNING id",
+      [userId, cleanDept, cleanDesig, cleanPhone]
     );
 
     res.status(201).json({
@@ -326,6 +356,8 @@ router.post("/faculty", async (req, res) => {
         userId,
         fullName: cleanName,
         email: cleanEmail,
+        phone: cleanPhone || "",
+        contactNo: cleanPhone || "",
         department: cleanDept,
         designation: cleanDesig,
       },
@@ -339,7 +371,10 @@ router.post("/faculty", async (req, res) => {
 // PUT /hod/faculty/:id — Edit Faculty
 router.put("/faculty/:id", async (req, res) => {
   const facultyId = req.params.id;
-  const { fullName, email, department, designation } = req.body;
+  const { fullName, full_name, email, department, designation, phone, contactNo, contact_no } = req.body;
+
+  const nameToUse = fullName || full_name;
+  const phoneToUse = phone || contactNo || contact_no;
 
   try {
     const facRows = await db.query("SELECT id, user_id FROM faculty WHERE id = $1", [facultyId]);
@@ -349,12 +384,22 @@ router.put("/faculty/:id", async (req, res) => {
 
     const userId = facRows[0].user_id;
 
-    if (fullName || email) {
+    if (nameToUse || email) {
       await db.query(
         "UPDATE users SET full_name = COALESCE($1, full_name), email = COALESCE($2, email) WHERE id = $3",
-        [fullName ? String(fullName).trim() : null, email ? String(email).trim().toLowerCase() : null, userId]
+        [nameToUse ? String(nameToUse).trim() : null, email ? String(email).trim().toLowerCase() : null, userId]
       );
     }
+
+    await db.query(
+      "UPDATE faculty SET department = COALESCE($1, department), designation = COALESCE($2, designation), phone = COALESCE($3, phone) WHERE id = $4",
+      [
+        department ? String(department).trim() : null,
+        designation ? String(designation).trim() : null,
+        phoneToUse ? String(phoneToUse).trim() : null,
+        facultyId,
+      ]
+    );
 
     if (department || designation) {
       await db.query(

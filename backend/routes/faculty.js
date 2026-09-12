@@ -100,7 +100,8 @@ router.get("/profile", async (req, res) => {
         u.created_at,
         f.id as faculty_id,
         f.department,
-        f.designation
+        f.designation,
+        f.phone
        FROM users u
        LEFT JOIN faculty f ON u.id = f.user_id
        WHERE u.id = $1`,
@@ -122,6 +123,8 @@ router.get("/profile", async (req, res) => {
         role: row.role,
         department: row.department || "Department of Computer Science & Engineering",
         designation: row.designation || "Assistant Professor",
+        phone: row.phone || "",
+        contactNo: row.phone || "",
         createdAt: row.created_at,
       },
     });
@@ -140,12 +143,17 @@ router.put("/profile", async (req, res) => {
   const {
     department,
     designation,
+    phone,
+    contactNo,
+    contact_no,
     full_name,
     current_password,
     new_password,
     role,
     email,
   } = req.body;
+
+  const phoneToUse = phone || contactNo || contact_no;
 
   if (role && String(role).toUpperCase() !== req.user.role) {
     return res.status(403).json({ message: "Forbidden: You cannot alter your account role." });
@@ -186,36 +194,22 @@ router.put("/profile", async (req, res) => {
       ]);
     }
 
-    // 3. Department and designation update in faculty table
+    // 3. Department, designation, phone update in faculty table
     const cleanDept = department ? String(department).trim() : null;
     const cleanDesig = designation ? String(designation).trim() : null;
+    const cleanPhone = phoneToUse ? String(phoneToUse).trim() : null;
 
-    if (cleanDept || cleanDesig) {
-      const facExists = await db.query("SELECT id FROM faculty WHERE user_id = $1", [req.user.id]);
-      if (facExists && facExists.length > 0) {
-        if (cleanDept && cleanDesig) {
-          await db.query("UPDATE faculty SET department = $1, designation = $2 WHERE user_id = $3", [
-            cleanDept,
-            cleanDesig,
-            req.user.id,
-          ]);
-        } else if (cleanDept) {
-          await db.query("UPDATE faculty SET department = $1 WHERE user_id = $2", [
-            cleanDept,
-            req.user.id,
-          ]);
-        } else {
-          await db.query("UPDATE faculty SET designation = $1 WHERE user_id = $2", [
-            cleanDesig,
-            req.user.id,
-          ]);
-        }
-      } else {
-        await db.query(
-          "INSERT INTO faculty (user_id, department, designation) VALUES ($1, $2, $3)",
-          [req.user.id, cleanDept || "Department of Computer Science & Engineering", cleanDesig || "Assistant Professor"]
-        );
-      }
+    const facExists = await db.query("SELECT id FROM faculty WHERE user_id = $1", [req.user.id]);
+    if (facExists && facExists.length > 0) {
+      await db.query(
+        "UPDATE faculty SET department = COALESCE($1, department), designation = COALESCE($2, designation), phone = COALESCE($3, phone) WHERE user_id = $4",
+        [cleanDept, cleanDesig, cleanPhone, req.user.id]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO faculty (user_id, department, designation, phone) VALUES ($1, $2, $3, $4)",
+        [req.user.id, cleanDept || "Department of Computer Science & Engineering", cleanDesig || "Assistant Professor", cleanPhone]
+      );
     }
 
     const refreshed = await db.query(
@@ -226,14 +220,15 @@ router.put("/profile", async (req, res) => {
         u.role,
         f.id as faculty_id,
         f.department,
-        f.designation
+        f.designation,
+        f.phone
        FROM users u
        LEFT JOIN faculty f ON u.id = f.user_id
        WHERE u.id = $1`,
       [req.user.id]
     );
 
-    const updatedRow = refreshed[0];
+    const updatedRow = refreshed[0] || {};
 
     res.json({
       message: "Faculty profile updated successfully.",
@@ -245,6 +240,8 @@ router.put("/profile", async (req, res) => {
         role: updatedRow.role,
         department: updatedRow.department,
         designation: updatedRow.designation,
+        phone: updatedRow.phone || "",
+        contactNo: updatedRow.phone || "",
       },
     });
   } catch (err) {

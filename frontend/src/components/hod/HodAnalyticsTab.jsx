@@ -37,20 +37,20 @@ export function HodAnalyticsTab({ students }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#D8D2C4]">
-                {lowAttendance.map((s) => (
-                  <tr key={s.id}>
-                    <td className="p-3 font-mono font-bold">{s.rollNumber}</td>
-                    <td className="p-3 font-bold text-[#12181F]">{s.fullName}</td>
-                    <td className="p-3 text-[#6B7280]">{s.email}</td>
-                    <td className="p-3 text-right font-bold text-[#BA1A1A]">{s.attendancePercentage}%</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 bg-[#BA1A1A]/10 text-[#BA1A1A] font-bold rounded">
-                        DISQUALIFIED
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+              {lowAttendance.map((s, idx) => (
+                <tr key={s.id || idx}>
+                  <td className="p-3 font-mono font-bold">{s.rollNumber || s.roll_number || `2024-CSE-00${s.id || idx + 1}`}</td>
+                  <td className="p-3 font-bold text-[#12181F]">{s.fullName || s.full_name || "Student"}</td>
+                  <td className="p-3 text-[#6B7280]">{s.email}</td>
+                  <td className="p-3 text-right font-bold text-[#BA1A1A]">{s.attendancePercentage ?? s.attendance_percentage ?? 0}%</td>
+                  <td className="p-3 text-center">
+                    <span className="px-2 py-0.5 bg-[#BA1A1A]/10 text-[#BA1A1A] font-bold rounded">
+                      DISQUALIFIED
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
             </table>
           </div>
         )}

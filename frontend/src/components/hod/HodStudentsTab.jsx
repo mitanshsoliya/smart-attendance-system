@@ -3,12 +3,13 @@ import React, { useState } from "react";
 export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onExportLedger }) {
   const [search, setSearch] = useState("");
 
-  const filtered = students.filter(
-    (s) =>
-      s.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      s.email?.toLowerCase().includes(search.toLowerCase()) ||
-      s.rollNumber?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (students || []).filter((s) => {
+    const name = (s.fullName || s.full_name || "").toLowerCase();
+    const email = (s.email || "").toLowerCase();
+    const roll = (s.rollNumber || s.roll_number || "").toLowerCase();
+    const q = (search || "").toLowerCase();
+    return name.includes(q) || email.includes(q) || roll.includes(q);
+  });
 
   return (
     <div className="space-y-6">
@@ -18,7 +19,7 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onEx
             STUDENT COHORT & EXAMINATION CLEARANCE
           </span>
           <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
-            Student Roster & Statutory Clearance
+            Student Roster & Statutory Clearance ({filtered.length})
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
             Audit student attendance percentages, issue examination hall-ticket clearances, and manage student accounts.
@@ -54,41 +55,62 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onEx
       />
 
       <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded shadow-xs overflow-x-auto">
-        <table className="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono text-xs uppercase text-[#6B7280]">
-              <th className="py-3 px-4">Candidate Student</th>
-              <th className="py-3 px-4">Section</th>
-              <th className="py-3 px-4 text-center">Attended / Total</th>
-              <th className="py-3 px-4 text-right">Attendance %</th>
-              <th className="py-3 px-4 text-center">Status</th>
-              <th className="py-3 px-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#D8D2C4]/60">
-            {filtered.map((s) => (
-              <tr key={s.id} className="hover:bg-[#FBF9F5]">
-                <td className="py-3.5 px-4 font-bold text-[#12181F]">
-                  <div>{s.fullName}</div>
-                  <div className="text-xs font-mono font-normal text-[#6B7280]">{s.rollNumber}</div>
-                </td>
-                <td className="py-3.5 px-4 text-xs font-semibold text-[#555E68]">{s.section}</td>
-                <td className="py-3.5 px-4 text-center font-mono text-xs">{s.attendedLectures} / {s.totalLectures}</td>
-                <td className="py-3.5 px-4 text-right font-mono font-bold text-[#12181F]">{s.attendancePercentage}%</td>
-                <td className="py-3.5 px-4 text-center">
-                  <span className={`px-2 py-0.5 text-xs font-bold rounded ${s.attendancePercentage >= 75 ? "bg-[#2E6B34]/15 text-[#2E6B34]" : "bg-[#BA1A1A]/15 text-[#BA1A1A]"}`}>
-                    {s.attendancePercentage >= 75 ? "CLEARED" : "DISQUALIFIED"}
-                  </span>
-                </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button onClick={() => onDeleteStudent(s.id)} className="text-xs text-[#BA1A1A] hover:underline">
-                    Delete
-                  </button>
-                </td>
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-sm text-[#6B7280]">
+            No student records found in the directory.
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono text-xs uppercase text-[#6B7280]">
+                <th className="py-3 px-4">Candidate Student</th>
+                <th className="py-3 px-4">Section & Dept</th>
+                <th className="py-3 px-4">Student Contact No.</th>
+                <th className="py-3 px-4">Parents Contact No.</th>
+                <th className="py-3 px-4 text-center">Attended / Total</th>
+                <th className="py-3 px-4 text-right">Attendance %</th>
+                <th className="py-3 px-4 text-center">Status</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[#D8D2C4]/60">
+              {filtered.map((s, idx) => {
+                const name = s.fullName || s.full_name || "Student";
+                const roll = s.rollNumber || s.roll_number || `2024-CSE-${String(s.id || idx + 1).padStart(3, "0")}`;
+                const pct = s.attendancePercentage ?? s.attendance_percentage ?? 0;
+                const stdPhone = s.studentPhone || s.student_phone || "N/A";
+                const parPhone = s.parentPhone || s.parent_phone || "N/A";
+                const dept = s.department || "CSE Department";
+                return (
+                  <tr key={s.id || idx} className="hover:bg-[#FBF9F5]">
+                    <td className="py-3.5 px-4 font-bold text-[#12181F]">
+                      <div>{name}</div>
+                      <div className="text-xs font-mono font-normal text-[#6B7280]">{roll} • {s.email}</div>
+                    </td>
+                    <td className="py-3.5 px-4 text-xs font-semibold text-[#555E68]">
+                      <div>{s.section || "Sec A"}</div>
+                      <div className="text-[11px] font-normal text-[#6B7280]">{dept}</div>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-xs font-semibold text-[#12181F]">{stdPhone}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs text-[#6B7280]">{parPhone}</td>
+                    <td className="py-3.5 px-4 text-center font-mono text-xs">{s.attendedLectures ?? s.attended_count ?? 0} / {s.totalLectures ?? s.total_lectures ?? 14}</td>
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-[#12181F]">{pct}%</td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className={`px-2 py-0.5 text-xs font-bold rounded ${pct >= 75 ? "bg-[#2E6B34]/15 text-[#2E6B34]" : "bg-[#BA1A1A]/15 text-[#BA1A1A]"}`}>
+                        {pct >= 75 ? "CLEARED" : "DISQUALIFIED"}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button onClick={() => onDeleteStudent(s.id)} className="text-xs text-[#BA1A1A] hover:underline cursor-pointer">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

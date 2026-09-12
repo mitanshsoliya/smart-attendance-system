@@ -130,7 +130,7 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
 
     if (user.role === "STUDENT") {
       const studentRows = await db.query(
-        "SELECT id, roll_number, section FROM students WHERE user_id = $1",
+        "SELECT id, roll_number, section, student_phone, parent_phone, department FROM students WHERE user_id = $1",
         [user.id]
       );
       if (studentRows && studentRows.length > 0) {
@@ -138,6 +138,9 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
           student_id: studentRows[0].id,
           roll_number: studentRows[0].roll_number || `2024-CSE-${String(studentRows[0].id).padStart(3, "0")}`,
           section: studentRows[0].section || "Sec A",
+          student_phone: studentRows[0].student_phone || "",
+          parent_phone: studentRows[0].parent_phone || "",
+          department: studentRows[0].department || "Department of Computer Science & Engineering",
         };
       }
     } else if (user.role === "FACULTY" || user.role === "HOD") {

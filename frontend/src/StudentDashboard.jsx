@@ -29,7 +29,6 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
   const navItems = [
     { id: "overview", label: "Dashboard", icon: "dashboard" },
     { id: "attendance", label: "Attendance Logs", icon: "fact_check" },
-    { id: "courses", label: "Enrolled Courses", icon: "menu_book" },
     { id: "timetable", label: "Timetable", icon: "calendar_today" },
     { id: "reports", label: "Reports", icon: "analytics" },
     { id: "settings", label: "Settings", icon: "settings" },
@@ -86,10 +85,9 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
             onScanQR={() => setShowQRScanner(true)}
           />
         )}
-        {activeTab === "courses" && <StudentCoursesTab courses={courses} />}
         {activeTab === "timetable" && <StudentTimetableTab />}
         {activeTab === "reports" && <StudentReportsTab attendanceRecords={attendanceRecords} />}
-        {activeTab === "settings" && <StudentSettingsTab user={user} />}
+        {activeTab === "settings" && <StudentSettingsTab user={user} token={token} />}
 
         {/* QR Scanner Modal */}
         <Modal
