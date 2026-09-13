@@ -176,6 +176,44 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
 });
 
 /**
+ * PUT /auth/change-password (also /change-password)
+ * Allows authenticated user to update their account password securely using bcrypt.
+ */
+router.put(["/change-password", "/auth/change-password"], verifyToken, async (req, res) => {
+  const currentPassword = req.body.currentPassword || req.body.current_password;
+  const newPassword = req.body.newPassword || req.body.new_password;
+
+  if (!currentPassword) {
+    return res.status(400).json({ message: "Current password is required." });
+  }
+
+  if (!newPassword || String(newPassword).trim().length < 6) {
+    return res.status(400).json({ message: "New password must be at least 6 characters in length." });
+  }
+
+  try {
+    const userRows = await db.query("SELECT id, password FROM users WHERE id = $1", [req.user.id]);
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({ message: "User account not found." });
+    }
+
+    const user = userRows[0];
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) {
+      return res.status(400).json({ message: "Current password does not match system records." });
+    }
+
+    const hashedNew = await bcrypt.hash(String(newPassword).trim(), 10);
+    await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedNew, req.user.id]);
+
+    res.json({ message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ message: "Failed to update password. Please try again." });
+  }
+});
+
+/**
  * POST /auth/logout (also /logout and /login/logout)
  * Protected route acknowledging session termination.
  */

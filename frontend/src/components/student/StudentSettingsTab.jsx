@@ -13,6 +13,7 @@ export function StudentSettingsTab({ user, token }) {
   const [contactMsg, setContactMsg] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
   const [savingContact, setSavingContact] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -55,14 +56,22 @@ export function StudentSettingsTab({ user, token }) {
       setPasswordMsg("New passwords do not match.");
       return;
     }
+    if (newPassword.length < 6) {
+      setPasswordMsg("New password must be at least 6 characters in length.");
+      return;
+    }
+
+    setUpdatingPassword(true);
     try {
-      await authService.changePassword(currentPassword, newPassword, token);
-      setPasswordMsg("Password updated successfully!");
+      const res = await authService.changePassword(currentPassword, newPassword, token);
+      setPasswordMsg(res?.message || "Password updated successfully!");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
       setPasswordMsg(err.response?.data?.message || "Failed to update password.");
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -213,9 +222,10 @@ export function StudentSettingsTab({ user, token }) {
         </div>
         <button
           type="submit"
-          className="px-5 py-2.5 bg-[#1C242E] text-white text-xs font-bold rounded hover:bg-[#12181F] transition-all cursor-pointer shadow-xs"
+          disabled={updatingPassword}
+          className="px-5 py-2.5 bg-[#1C242E] text-white text-xs font-bold rounded hover:bg-[#12181F] transition-all cursor-pointer shadow-xs disabled:opacity-50"
         >
-          Update Password
+          {updatingPassword ? "Updating Password..." : "Update Password"}
         </button>
       </form>
     </div>
