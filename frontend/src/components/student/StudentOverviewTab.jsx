@@ -87,7 +87,9 @@ export function StudentOverviewTab({ user, attendanceRecords, courses, onScanQR,
                 <div key={rec.id} className="p-3 bg-[#FBF9F5] border border-[#D8D2C4] rounded flex justify-between items-center">
                   <div>
                     <h4 className="font-bold text-xs text-[#12181F]">{rec.subject_name || "Lecture Session"}</h4>
-                    <span className="font-mono text-[10px] text-[#6B7280]">{rec.subject_code || "CS501"} • {formatShortDate(rec.lecture_date)}</span>
+                    <span className="font-mono text-[10px] text-[#6B7280]">
+                      {rec.subject_code || "CS501"} • {formatShortDate(rec.lecture_date)} • {rec.attendance_time ? new Date(rec.attendance_time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : ""}
+                    </span>
                   </div>
                   <span className="px-2 py-0.5 text-[10px] font-bold bg-[#2E6B34]/15 text-[#2E6B34] rounded uppercase">
                     {rec.status}

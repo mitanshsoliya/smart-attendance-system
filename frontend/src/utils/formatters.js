@@ -21,6 +21,32 @@ export function formatShortDate(dateStr) {
   });
 }
 
+export function formatTimeWithAmPm(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+}
+
+export function formatDateTimeDisplay(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export function formatTimeOnly(seconds) {
   if (typeof seconds !== "number" || seconds < 0) return "00:00";
   const mins = Math.floor(seconds / 60);

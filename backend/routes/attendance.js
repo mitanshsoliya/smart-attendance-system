@@ -185,6 +185,9 @@ router.get("/my", verifyToken, requireStudent, (req, res) => {
       a.lecture_id,
       a.attendance_time,
       a.status,
+      l.lecture_date,
+      l.start_time,
+      l.end_time,
       s.subject_code,
       s.subject_name
     FROM attendance a

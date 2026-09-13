@@ -1,5 +1,5 @@
 import React from "react";
-import { formatShortDate } from "../../utils/formatters";
+import { formatShortDate, formatTimeWithAmPm } from "../../utils/formatters";
 
 export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
   return (
@@ -11,7 +11,7 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
         </div>
         <button
           onClick={onScanQR}
-          className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-xs font-semibold rounded hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer"
+          className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-xs font-semibold rounded hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
           <span>Mark Attendance</span>
@@ -31,6 +31,7 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
                 <th className="p-3.5">Subject Name</th>
                 <th className="p-3.5">Lecture Date</th>
                 <th className="p-3.5">Timings</th>
+                <th className="p-3.5">Marked At (Check-in)</th>
                 <th className="p-3.5 text-center">Status</th>
               </tr>
             </thead>
@@ -39,8 +40,17 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
                 <tr key={rec.id} className="hover:bg-surface-container-low">
                   <td className="p-3.5 font-mono font-bold text-secondary">{rec.subject_code || "CS501"}</td>
                   <td className="p-3.5 font-semibold text-primary">{rec.subject_name || "Database Systems"}</td>
-                  <td className="p-3.5 font-mono text-xs">{formatShortDate(rec.lecture_date)}</td>
-                  <td className="p-3.5 font-mono text-xs">{rec.start_time} - {rec.end_time}</td>
+                  <td className="p-3.5 font-mono text-xs text-primary font-medium">
+                    {formatShortDate(rec.lecture_date) || "-"}
+                  </td>
+                  <td className="p-3.5 font-mono text-xs text-text-stone">
+                    {rec.start_time && rec.end_time ? `${rec.start_time} - ${rec.end_time}` : "-"}
+                  </td>
+                  <td className="p-3.5 font-mono text-xs">
+                    <span className="text-primary font-semibold">
+                      {formatTimeWithAmPm(rec.attendance_time)}
+                    </span>
+                  </td>
                   <td className="p-3.5 text-center">
                     <span className="px-2.5 py-1 text-xs font-bold bg-success/20 text-success rounded uppercase">
                       {rec.status}
