@@ -82,6 +82,19 @@ export function FacultyLecturesTab({
             />
           </div>
 
+          <div>
+            <label className="block text-xs uppercase font-semibold text-text-stone mb-1">Classroom Geo-Fence Mode</label>
+            <select
+              value={lectureForm.radius_meters !== undefined ? lectureForm.radius_meters : 0}
+              onChange={(e) => setLectureForm({ ...lectureForm, radius_meters: Number(e.target.value) })}
+              className="w-full p-2.5 text-xs bg-surface border border-border-default text-primary rounded font-medium"
+            >
+              <option value={0}>Without Geo-Fence (Open Attendance - Anywhere)</option>
+              <option value={50}>📍 50m Classroom Radius (Near Faculty Device)</option>
+              <option value={100}>📍 100m Classroom Radius (Near Faculty Device)</option>
+            </select>
+          </div>
+
           <div className="sm:col-span-2 md:col-span-4 flex justify-end">
             <button
               type="submit"
@@ -102,9 +115,20 @@ export function FacultyLecturesTab({
             <div key={lec.id} className="border p-5 bg-surface-bright rounded flex flex-col justify-between gap-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-xs font-bold text-secondary uppercase bg-secondary/10 px-2 py-0.5 rounded font-mono">
-                    {lec.subject_code || "CS501"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-secondary uppercase bg-secondary/10 px-2 py-0.5 rounded font-mono">
+                      {lec.subject_code || "CS501"}
+                    </span>
+                    {lec.radius_meters > 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 px-2 py-0.5 rounded font-mono">
+                        📍 {lec.radius_meters}m Geo-Fence
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-text-stone bg-surface-container px-1.5 py-0.5 rounded">
+                        Open Session
+                      </span>
+                    )}
+                  </div>
                   <h4 className="font-bold text-lg text-primary mt-2">{lec.subject_name || "Database Systems"}</h4>
                   <p className="text-xs text-text-stone mt-1 font-mono">
                     {formatShortDate(lec.lecture_date)} • {lec.start_time} - {lec.end_time}
@@ -119,7 +143,7 @@ export function FacultyLecturesTab({
               <div className="pt-3 border-t border-border-default flex justify-between items-center">
                 <span className="text-xs font-mono text-text-stone">Lecture #{lec.id}</span>
                 <button
-                  onClick={() => onGenerateQR(lec.id)}
+                  onClick={() => onGenerateQR(lec.id, lec.radius_meters)}
                   className="px-4 py-2 text-xs font-bold bg-secondary text-on-secondary rounded hover:opacity-90"
                 >
                   Generate QR

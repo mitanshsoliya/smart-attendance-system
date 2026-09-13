@@ -96,6 +96,7 @@ router.get("/my", verifyToken, requireFacultyOrHod, async (req, res) => {
         l.lecture_date,
         l.start_time,
         l.end_time,
+        l.radius_meters,
         s.subject_code,
         s.subject_name,
         u.full_name as faculty_name
@@ -148,6 +149,7 @@ router.get("/:id", verifyToken, requireFacultyOrHod, async (req, res) => {
         l.lecture_date,
         l.start_time,
         l.end_time,
+        l.radius_meters,
         s.subject_code,
         s.subject_name,
         u.full_name as faculty_name
@@ -193,7 +195,7 @@ router.get("/:id", verifyToken, requireFacultyOrHod, async (req, res) => {
  * Create a new lecture with validation, faculty ownership assignment, and conflict checks.
  */
 router.post("/create", verifyToken, requireFacultyOrHod, validateLecture, async (req, res) => {
-  const { subject_id, lecture_date, start_time, end_time, faculty_id: requestedFacultyId } = req.body;
+  const { subject_id, lecture_date, start_time, end_time, radius_meters, faculty_id: requestedFacultyId } = req.body;
 
   try {
     // 1. Verify subject exists
@@ -220,12 +222,16 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateLecture, async 
       faculty_id = facultyResult[0].id;
     }
 
+    const finalRadius = (radius_meters !== undefined && radius_meters !== null && !isNaN(Number(radius_meters)))
+      ? Number(radius_meters)
+      : 0;
+
     // 3. Insert lecture
     const lectureSql = `
       INSERT INTO lectures
-      (subject_id, faculty_id, lecture_date, start_time, end_time)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id
+      (subject_id, faculty_id, lecture_date, start_time, end_time, radius_meters)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, radius_meters
     `;
 
     const result = await db.query(lectureSql, [
@@ -234,6 +240,7 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateLecture, async 
       lecture_date,
       start_time,
       end_time,
+      finalRadius,
     ]);
 
     const createdLectureId = result[0].id;
@@ -246,6 +253,7 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateLecture, async 
       lecture_date,
       start_time,
       end_time,
+      radius_meters: finalRadius,
       status: "UPCOMING",
       is_active: false,
     });

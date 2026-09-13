@@ -47,15 +47,16 @@ export function FacultyAttendanceTab({
             ))}
           </select>
 
-          {/* Geo-Fence Radius Selector (50m - 100m) */}
+          {/* Geo-Fence Radius Selector (Optional: 0, 50, 100) */}
           <select
             value={selectedRadius}
             onChange={(e) => setSelectedRadius && setSelectedRadius(Number(e.target.value))}
             className="p-2.5 bg-white border border-border-default rounded text-sm text-secondary font-bold focus:outline-none focus:border-secondary"
             title="Classroom Geo-Fence Perimeter"
           >
-            <option value={50}>📍 50m (Strict Classroom)</option>
-            <option value={100}>📍 100m (Standard Perimeter)</option>
+            <option value={0}>🌐 Without Geo-Fence (Open Attendance)</option>
+            <option value={50}>📍 50m Classroom Radius (Near This Device)</option>
+            <option value={100}>📍 100m Classroom Radius (Near This Device)</option>
           </select>
 
           {/* Start Attendance Button */}
@@ -92,17 +93,31 @@ export function FacultyAttendanceTab({
           )}
 
           {/* Geo-Fence Security Badge */}
-          <div className="w-full py-2 px-3 bg-secondary/10 border border-secondary/20 rounded flex items-center justify-between text-xs text-primary">
-            <div className="flex items-center gap-1.5 font-semibold">
-              <span className="material-symbols-outlined text-secondary text-base">pin_drop</span>
-              <span>
-                Geo-Fence Active: <strong>{qr.geo_fence?.radius_meters || selectedRadius || 100}m</strong> Classroom Perimeter
+          {qr.geo_fence?.enabled && qr.geo_fence?.radius_meters > 0 ? (
+            <div className="w-full py-2 px-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 rounded flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-base">pin_drop</span>
+                <span>
+                  Geo-Fence Active: <strong>{qr.geo_fence.radius_meters}m</strong> from This Device
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-mono font-bold uppercase">
+                Device Anchor Locked
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded bg-secondary text-white text-[10px] font-mono font-bold uppercase">
-              Anti-Proxy Active
-            </span>
-          </div>
+          ) : (
+            <div className="w-full py-2 px-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-base">public</span>
+                <span>
+                  Open Attendance: <strong>Geo-Fencing Disabled</strong> (Students can scan anywhere)
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] font-mono font-bold uppercase">
+                No Radius Limit
+              </span>
+            </div>
+          )}
 
           <div className="relative">
             <img

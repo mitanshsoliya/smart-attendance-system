@@ -131,7 +131,7 @@ function QRScanner({ onAttendanceMarked }) {
       const data = error.response?.data;
       if (data?.outOfBounds) {
         setMessage(
-          `Classroom Geo-Fence Violation: You are ${data.distance}m away! Attendance must be marked within ${data.allowedRadius}m of the classroom.`
+          `Classroom Geo-Fence Violation: You are ${data.distance}m away from the faculty device! Attendance requires physical presence within ${data.allowedRadius}m.`
         );
         setGeoDetails({
           distance_meters: data.distance,
@@ -140,7 +140,7 @@ function QRScanner({ onAttendanceMarked }) {
         });
       } else if (data?.locationRequired) {
         setMessage(
-          "GPS Location Required: Please enable device location / GPS permissions to verify you are physically in the classroom."
+          `GPS Location Required: Geo-fencing is active for this session. Please enable GPS in your browser to verify presence within ${data.allowedRadius || 100}m of the faculty device.`
         );
       } else {
         const errMsg =

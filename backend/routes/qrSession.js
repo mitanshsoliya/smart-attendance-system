@@ -58,18 +58,34 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     // --- Set expiration (5 minutes from now) ---
     const expires_at = new Date(Date.now() + 5 * 60 * 1000);
 
-    // --- Geo-Fencing Coordinates & Classroom Radius ---
-    const finalLat = (latitude !== undefined && latitude !== null && !isNaN(Number(latitude)))
-      ? Number(latitude)
-      : (process.env.CAMPUS_LAT ? Number(process.env.CAMPUS_LAT) : 21.1702);
+    // --- Geo-Fencing Configuration ---
+    // If radius_meters is 0, '0', false, or null -> Geo-Fencing is DISABLED (Open attendance)
+    // If radius_meters > 0 -> Faculty device location is the classroom anchor!
+    const isGeoEnabled = (
+      radius_meters !== undefined &&
+      radius_meters !== null &&
+      radius_meters !== 0 &&
+      radius_meters !== "0" &&
+      radius_meters !== false &&
+      radius_meters !== "none"
+    );
 
-    const finalLon = (longitude !== undefined && longitude !== null && !isNaN(Number(longitude)))
-      ? Number(longitude)
-      : (process.env.CAMPUS_LON ? Number(process.env.CAMPUS_LON) : 72.8311);
+    let finalLat = null;
+    let finalLon = null;
+    let finalRadius = 0;
 
-    const finalRadius = (radius_meters !== undefined && radius_meters !== null && !isNaN(Number(radius_meters)))
-      ? Math.max(20, Math.min(500, Number(radius_meters)))
-      : 100;
+    if (isGeoEnabled) {
+      // Pinpoint classroom anchor to faculty device's exact location
+      finalLat = (latitude !== undefined && latitude !== null && !isNaN(Number(latitude)))
+        ? Number(latitude)
+        : (process.env.CAMPUS_LAT ? Number(process.env.CAMPUS_LAT) : 21.1702);
+
+      finalLon = (longitude !== undefined && longitude !== null && !isNaN(Number(longitude)))
+        ? Number(longitude)
+        : (process.env.CAMPUS_LON ? Number(process.env.CAMPUS_LON) : 72.8311);
+
+      finalRadius = Math.max(20, Math.min(500, Number(radius_meters)));
+    }
 
     // --- Persist session with Geo-Fence ---
     const insertSql = `
@@ -93,13 +109,16 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     const qr_code = await QRCode.toDataURL(qrPayload);
 
     return res.status(201).json({
-      message: "QR session created successfully with Geo-Fencing active.",
+      message: isGeoEnabled
+        ? `QR session created with ${finalRadius}m Classroom Geo-Fence active from your device.`
+        : "QR session created with Geo-Fencing disabled (Open attendance).",
       session_id: result[0].id,
       session_token,
       expires_at,
       expires_in: 300,
       qr_code,
       geo_fence: {
+        enabled: isGeoEnabled,
         latitude: finalLat,
         longitude: finalLon,
         radius_meters: finalRadius,

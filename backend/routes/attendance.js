@@ -73,39 +73,57 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     }
 
     // --- 3b. Geo-Fencing GPS Verification (Anti-Proxy Defense) ---
-    let verifiedDistance = null;
-    if (
+    // Geo-fencing is enforced ONLY if faculty enabled radius (>0) from their device.
+    const isSessionGeoFenced = Boolean(
+      session.radius_meters !== null &&
+      Number(session.radius_meters) > 0 &&
       session.latitude !== null &&
-      session.latitude !== undefined &&
-      session.longitude !== null &&
-      session.longitude !== undefined
-    ) {
+      session.longitude !== null
+    );
+
+    let verifiedDistance = null;
+
+    if (isSessionGeoFenced) {
       if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
         return res.status(400).json({
-          message: "GPS Location Access Required: Geo-fencing is active for this lecture. You must allow location access in your browser to verify physical presence in the classroom.",
+          message: `GPS Location Required: Geo-fencing is active for this lecture (${session.radius_meters}m from faculty device). Please enable device location in your browser to verify physical classroom presence.`,
           locationRequired: true,
+          allowedRadius: session.radius_meters,
         });
       }
 
-      const radiusAllowed = session.radius_meters || 100;
+      const radiusAllowed = Number(session.radius_meters);
       const distance = calculateDistanceInMeters(session.latitude, session.longitude, latitude, longitude);
 
       if (distance === null) {
         return res.status(400).json({
-          message: "Invalid GPS coordinates detected. Please verify your browser location services and retry.",
+          message: "Invalid GPS coordinates detected. Please verify your device location services and retry.",
         });
       }
 
       if (distance > radiusAllowed) {
         return res.status(403).json({
-          message: `Geo-Fence Verification Failed: You are ${distance}m away from the classroom. Attendance requires physical presence within ${radiusAllowed}m.`,
+          message: `Geo-Fence Verification Failed: You are ${distance}m away from the faculty's classroom device. Attendance requires physical presence within ${radiusAllowed}m.`,
           distance,
-          radiusAllowed,
+          allowedRadius: radiusAllowed,
           outOfBounds: true,
         });
       }
 
       verifiedDistance = distance;
+    } else {
+      // Open Attendance Session (No Geo-Fence)
+      // If student provided GPS coordinates and faculty coordinates exist, calculate distance for logging
+      if (
+        session.latitude !== null &&
+        session.longitude !== null &&
+        latitude !== undefined &&
+        latitude !== null &&
+        longitude !== undefined &&
+        longitude !== null
+      ) {
+        verifiedDistance = calculateDistanceInMeters(session.latitude, session.longitude, latitude, longitude);
+      }
     }
 
     // --- 4. Derive lecture_id strictly from the validated session record ---

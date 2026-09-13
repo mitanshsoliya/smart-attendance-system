@@ -165,6 +165,7 @@ function initSqliteSchemaAndSeed() {
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN department TEXT DEFAULT 'Department of Computer Science & Engineering';", () => {});
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN credit_hours INTEGER DEFAULT 3;", () => {});
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN faculty_id INTEGER REFERENCES faculty(id);", () => {});
+      sqliteDb.run("ALTER TABLE lectures ADD COLUMN radius_meters INTEGER DEFAULT 0;", () => {});
       sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN latitude REAL;", () => {});
       sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN longitude REAL;", () => {});
       sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN radius_meters INTEGER DEFAULT 100;", () => {});

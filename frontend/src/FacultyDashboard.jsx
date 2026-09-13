@@ -170,28 +170,43 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     return () => clearInterval(timer);
   }, [qr, remaining]);
 
-  const handleGenerateQR = async (lectureId, radius = 100) => {
+  const handleGenerateQR = async (lectureId, radius) => {
     const targetId = lectureId || selectedLectureId || (lectures[0] && lectures[0].id);
     if (!targetId) return;
     const targetLecture = lectures.find((l) => String(l.id) === String(targetId));
 
-    const radiusToUse = radius || selectedRadius || 100;
+    const radiusToUse = radius !== undefined ? Number(radius) : Number(selectedRadius || 0);
     const geoOptions = { radius_meters: radiusToUse };
 
-    // Request faculty's current device GPS if available for pinpoint classroom anchor
-    if (navigator.geolocation) {
+    // If Geo-Fencing is enabled (50m or 100m), pinpoint the classroom anchor to the faculty's CURRENT device location
+    if (radiusToUse > 0) {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser. Please select 'Without Geo-Fence' or use a compatible browser.");
+        return;
+      }
+
       try {
         const pos = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 15000,
+            timeout: 10000,
+            maximumAge: 0,
           });
         });
         geoOptions.latitude = pos.coords.latitude;
         geoOptions.longitude = pos.coords.longitude;
       } catch (geoErr) {
-        console.warn("Using campus default GPS anchor coordinates:", geoErr);
+        console.warn("Faculty device GPS acquisition error:", geoErr);
+        const proceedWithout = window.confirm(
+          "⚠️ Location Permission Needed for Classroom Geo-Fence:\n\n" +
+          "To set this device's current location as the classroom anchor for " + radiusToUse + "m attendance, browser GPS permission is required.\n\n" +
+          "Click OK to proceed WITHOUT Geo-Fence (Open attendance), or Cancel to enable location in your browser."
+        );
+        if (proceedWithout) {
+          geoOptions.radius_meters = 0;
+        } else {
+          return;
+        }
       }
     }
 
