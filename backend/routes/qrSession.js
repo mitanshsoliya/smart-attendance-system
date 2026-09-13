@@ -37,6 +37,21 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
       });
     }
 
+    // --- Invalidate any previously active QR session for this faculty ---
+    // Rule: Only 1 active QR session allowed per faculty at a time.
+    const nowTime = new Date();
+    const pastTime = new Date(Date.now() - 5000);
+    await db.query(
+      `UPDATE qr_sessions
+       SET expires_at = $1
+       WHERE lecture_id IN (
+         SELECT l.id FROM lectures l
+         JOIN faculty f ON l.faculty_id = f.id
+         WHERE f.user_id = $2
+       ) AND expires_at > $3`,
+      [pastTime, req.user.id, nowTime]
+    );
+
     // --- Generate cryptographically secure session token ---
     const session_token = crypto.randomBytes(32).toString("hex");
 
@@ -62,6 +77,7 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
       session_id: result[0].id,
       session_token,
       expires_at,
+      expires_in: 300,
       qr_code,
       // Note: lecture_id is intentionally NOT returned in the body exposed to clients.
       // The student's scan endpoint only accepts session_token.
@@ -69,6 +85,60 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
   } catch (error) {
     console.error("QR session creation error:", error);
     return res.status(500).json({ message: "QR session generation failed." });
+  }
+});
+
+/**
+ * POST /qr-session/stop
+ * Allows the faculty to terminate / expire the active QR session immediately.
+ */
+router.post("/stop", verifyToken, requireFacultyOrHod, async (req, res) => {
+  try {
+    const { session_token, lecture_id } = req.body;
+
+    if (!session_token && !lecture_id) {
+      return res.status(400).json({ message: "session_token or lecture_id is required." });
+    }
+
+    // Faculty ownership check
+    let targetSession = null;
+    if (session_token) {
+      const rows = await db.query(
+        `SELECT qs.id, qs.lecture_id, l.faculty_id
+         FROM qr_sessions qs
+         JOIN lectures l ON qs.lecture_id = l.id
+         JOIN faculty f ON l.faculty_id = f.id
+         WHERE qs.session_token = $1 AND f.user_id = $2`,
+        [session_token, req.user.id]
+      );
+      if (!rows || rows.length === 0) {
+        return res.status(403).json({ message: "Session not found or not owned by you." });
+      }
+      targetSession = rows[0];
+    } else if (lecture_id) {
+      const rows = await db.query(
+        `SELECT qs.id, qs.lecture_id, l.faculty_id
+         FROM qr_sessions qs
+         JOIN lectures l ON qs.lecture_id = l.id
+         JOIN faculty f ON l.faculty_id = f.id
+         WHERE qs.lecture_id = $1 AND f.user_id = $2
+         ORDER BY qs.id DESC LIMIT 1`,
+        [lecture_id, req.user.id]
+      );
+      if (!rows || rows.length === 0) {
+        return res.status(403).json({ message: "Session not found or not owned by you." });
+      }
+      targetSession = rows[0];
+    }
+
+    // Set expires_at to past timestamp (now) so that any scan attempts fail immediately
+    const pastTime = new Date(Date.now() - 10000);
+    await db.query("UPDATE qr_sessions SET expires_at = $1 WHERE id = $2", [pastTime, targetSession.id]);
+
+    return res.json({ message: "QR session stopped and expired successfully." });
+  } catch (error) {
+    console.error("Error stopping QR session:", error);
+    return res.status(500).json({ message: "Failed to stop QR session." });
   }
 });
 

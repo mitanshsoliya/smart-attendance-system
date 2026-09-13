@@ -117,16 +117,56 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     { id: "settings", label: "Settings", icon: "settings" },
   ];
 
+  const [stoppingQr, setStoppingQr] = useState(false);
+
+  // Active QR countdown timer and auto-expire handler
+  useEffect(() => {
+    if (!qr || remaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qr, remaining]);
+
   const handleGenerateQR = async (lectureId) => {
     const targetId = lectureId || selectedLectureId || (lectures[0] && lectures[0].id);
     if (!targetId) return;
+    const targetLecture = lectures.find((l) => String(l.id) === String(targetId));
     try {
       const data = await lectureService.createQrSession(targetId, token);
-      setQr(data);
+      setQr({
+        ...data,
+        lecture_id: targetId,
+        lecture: targetLecture,
+      });
       setRemaining(data.expires_in || 300);
       setActiveTab("attendance");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to generate QR session.");
+    }
+  };
+
+  const handleStopQR = async () => {
+    if (!qr) return;
+    setStoppingQr(true);
+    try {
+      await lectureService.stopQrSession(qr.session_token, qr.lecture_id, token);
+      // Immediately set remaining to 0 so UI reflects expired state
+      setRemaining(0);
+    } catch (err) {
+      console.error("Failed to stop QR session:", err);
+      // Even if network fails, expire locally to stop displaying valid QR
+      setRemaining(0);
+    } finally {
+      setStoppingQr(false);
     }
   };
 
@@ -180,15 +220,6 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
         onTabChange={setActiveTab}
         title="LectureLog"
         subtitle="Faculty Portal"
-        actionButton={
-          <button
-            onClick={() => handleGenerateQR()}
-            className="w-full bg-secondary text-on-secondary py-2.5 px-4 rounded hover:opacity-90 transition-all flex items-center justify-center gap-2 font-medium text-xs cursor-pointer shadow-xs"
-          >
-            <span className="material-symbols-outlined text-[18px]">play_circle</span>
-            <span>Start Attendance</span>
-          </button>
-        }
       >
         {activeTab === "dashboard" && (
           <FacultyOverviewTab
@@ -225,6 +256,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             setSelectedLectureId={setSelectedLectureId}
             qr={qr}
             onGenerateQR={handleGenerateQR}
+            onStopQR={handleStopQR}
+            stoppingQr={stoppingQr}
             remaining={remaining}
             copyToken={() => {
               if (qr?.session_token) {

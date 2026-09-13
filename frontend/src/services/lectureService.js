@@ -26,6 +26,11 @@ export const lectureService = {
     return data;
   },
 
+  async stopQrSession(sessionToken, lectureId, token) {
+    const { data } = await api.post("/qr-session/stop", { session_token: sessionToken, lecture_id: lectureId }, authHeader(token));
+    return data;
+  },
+
   async getSubjects(token) {
     const { data } = await api.get("/lectures/subjects", authHeader(token));
     return data;

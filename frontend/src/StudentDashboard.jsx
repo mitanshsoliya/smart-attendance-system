@@ -60,15 +60,6 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
         onTabChange={setActiveTab}
         title="LectureLog"
         subtitle="Student Portal"
-        actionButton={
-          <button
-            onClick={() => setShowQRScanner(true)}
-            className="w-full bg-secondary text-on-secondary py-2.5 px-4 rounded hover:opacity-90 transition-all flex items-center justify-center gap-2 font-medium text-xs cursor-pointer shadow-xs"
-          >
-            <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-            <span>Scan Classroom QR</span>
-          </button>
-        }
       >
         {activeTab === "overview" && (
           <StudentOverviewTab
