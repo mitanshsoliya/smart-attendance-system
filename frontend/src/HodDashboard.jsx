@@ -22,6 +22,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
   const [students, setStudents] = useState([]);
   const [faculty, setFaculty] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
   // Modals
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
@@ -45,7 +46,12 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     designation: "Assistant Professor",
   });
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
-  const [newCourseForm, setNewCourseForm] = useState({ subject_code: "", subject_name: "", credit_hours: "4" });
+  const [newCourseForm, setNewCourseForm] = useState({
+    subject_code: "",
+    subject_name: "",
+    credit_hours: "4",
+    department: "Department of Computer Science & Engineering",
+  });
 
   const fetchAllData = useCallback(async () => {
     if (!token) return;
@@ -88,6 +94,17 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
       if (cData) {
         const courseList = cData.subjects || cData.data?.subjects || (Array.isArray(cData) ? cData : []);
         setCourses(courseList);
+      }
+    } catch (e) {}
+
+    try {
+      const dData = await hodService.getHodDepartments(token).catch((err) => {
+        console.error("Fetch HOD departments failed:", err);
+        return null;
+      });
+      if (dData) {
+        const deptList = dData.departments || dData.data?.departments || (Array.isArray(dData) ? dData : []);
+        setDepartments(deptList);
       }
     } catch (e) {}
   }, [token]);
@@ -224,10 +241,11 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         )}
         {activeTab === "departments" && (
           <HodDepartmentsTab
+            departments={departments}
+            students={students}
+            faculty={faculty}
+            courses={courses}
             stats={stats}
-            studentsCount={students.length}
-            facultyCount={faculty.length}
-            coursesCount={courses.length}
           />
         )}
         {(activeTab === "analytics" || activeTab === "accreditation") && (
@@ -316,13 +334,16 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
               </div>
             </div>
             <div>
-              <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department</label>
-              <input
-                type="text"
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
+              <select
                 value={newStudentForm.department}
                 onChange={(e) => setNewStudentForm({ ...newStudentForm, department: e.target.value })}
-                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded"
-              />
+                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F]"
+              >
+                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
+                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
+                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
+              </select>
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Password *</label>
@@ -402,13 +423,15 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
-              <input
-                type="text"
-                required
+              <select
                 value={newFacultyForm.department}
                 onChange={(e) => setNewFacultyForm({ ...newFacultyForm, department: e.target.value })}
-                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded text-sm text-[#12181F]"
-              />
+                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F] text-sm"
+              >
+                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
+                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
+                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
+              </select>
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Password *</label>
@@ -460,6 +483,18 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
                 onChange={(e) => setNewCourseForm({ ...newCourseForm, subject_name: e.target.value })}
                 className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded"
               />
+            </div>
+            <div>
+              <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
+              <select
+                value={newCourseForm.department || "Department of Computer Science & Engineering"}
+                onChange={(e) => setNewCourseForm({ ...newCourseForm, department: e.target.value })}
+                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F]"
+              >
+                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
+                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
+                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
+              </select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowAddCourseModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded">

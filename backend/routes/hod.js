@@ -440,43 +440,158 @@ router.delete("/faculty/:id", async (req, res) => {
  * 4. Department Management
  */
 
-// GET /hod/departments — Department metrics & summary
+// GET /hod/departments — Department metrics & summary (Live from Database)
 router.get("/departments", async (req, res) => {
   try {
-    const depts = [
+    const studentCounts = await db.query(
+      "SELECT department, COUNT(id) as count FROM students WHERE department IS NOT NULL AND department != '' GROUP BY department"
+    );
+    const facultyCounts = await db.query(
+      "SELECT department, COUNT(id) as count FROM faculty WHERE department IS NOT NULL AND department != '' GROUP BY department"
+    );
+    const courseCounts = await db.query(
+      "SELECT department, COUNT(id) as count FROM subjects WHERE department IS NOT NULL AND department != '' GROUP BY department"
+    );
+    const attendanceCounts = await db.query(
+      "SELECT st.department, COUNT(a.id) as attended_count FROM students st LEFT JOIN attendance a ON st.id = a.student_id AND a.status = 'PRESENT' WHERE st.department IS NOT NULL AND st.department != '' GROUP BY st.department"
+    );
+    const lectureCounts = await db.query(
+      "SELECT sub.department, COUNT(l.id) as total_lectures FROM subjects sub LEFT JOIN lectures l ON sub.id = l.subject_id WHERE sub.department IS NOT NULL AND sub.department != '' GROUP BY sub.department"
+    );
+
+    const studentMap = {};
+    (studentCounts || []).forEach((r) => {
+      studentMap[r.department.trim()] = Number(r.count || 0);
+    });
+
+    const facultyMap = {};
+    (facultyCounts || []).forEach((r) => {
+      facultyMap[r.department.trim()] = Number(r.count || 0);
+    });
+
+    const courseMap = {};
+    (courseCounts || []).forEach((r) => {
+      courseMap[r.department.trim()] = Number(r.count || 0);
+    });
+
+    const attendanceMap = {};
+    (attendanceCounts || []).forEach((r) => {
+      attendanceMap[r.department.trim()] = Number(r.attended_count || 0);
+    });
+
+    const lectureMap = {};
+    (lectureCounts || []).forEach((r) => {
+      lectureMap[r.department.trim()] = Number(r.total_lectures || 0);
+    });
+
+    const canonicalDepts = [
       {
-        id: 1,
+        id: "dept-1",
         name: "Department of Computer Science & Engineering",
         code: "CSE",
         head: "Prof. Department Head",
-        studentsCount: 142,
-        facultyCount: 18,
-        coursesCount: 12,
-        avgAttendance: 91.4,
       },
       {
-        id: 2,
+        id: "dept-2",
         name: "Department of Information Technology",
         code: "IT",
         head: "Dr. A. K. Sharma",
-        studentsCount: 110,
-        facultyCount: 14,
-        coursesCount: 10,
-        avgAttendance: 88.7,
       },
       {
-        id: 3,
+        id: "dept-3",
         name: "Department of Electronics & Communication",
         code: "ECE",
         head: "Dr. Meenakshi Sundaram",
-        studentsCount: 98,
-        facultyCount: 12,
-        coursesCount: 8,
-        avgAttendance: 86.2,
       },
     ];
 
-    res.json({ departments: depts });
+    const findKey = (map, name, code) => {
+      if (map[name] !== undefined) return map[name];
+      const match = Object.keys(map).find(
+        (k) =>
+          k.toLowerCase() === name.toLowerCase() ||
+          (code && k.toLowerCase().includes(code.toLowerCase()))
+      );
+      return match ? map[match] : 0;
+    };
+
+    const result = canonicalDepts.map((d) => {
+      const students = findKey(studentMap, d.name, d.code);
+      const faculty = findKey(facultyMap, d.name, d.code);
+      const courses = findKey(courseMap, d.name, d.code);
+      const attended = findKey(attendanceMap, d.name, d.code);
+      const lectures = findKey(lectureMap, d.name, d.code);
+
+      const theoretical = lectures * students;
+      const attendancePct =
+        theoretical > 0
+          ? Math.min(100, Math.round((attended / theoretical) * 1000) / 10)
+          : 0;
+
+      return {
+        id: d.id,
+        name: d.name,
+        code: d.code,
+        head: d.head,
+        students,
+        studentsCount: students,
+        faculty,
+        facultyCount: faculty,
+        courses,
+        coursesCount: courses,
+        avgAttendance: attendancePct,
+        attendancePct,
+      };
+    });
+
+    // Check for any extra custom departments in the database
+    const allDbDepts = new Set([
+      ...Object.keys(studentMap),
+      ...Object.keys(facultyMap),
+      ...Object.keys(courseMap),
+    ]);
+
+    let extraIndex = 4;
+    for (const extraDept of allDbDepts) {
+      if (
+        !canonicalDepts.some(
+          (c) =>
+            c.name.toLowerCase() === extraDept.toLowerCase() ||
+            extraDept.toLowerCase().includes(c.code.toLowerCase())
+        )
+      ) {
+        const students = studentMap[extraDept] || 0;
+        const faculty = facultyMap[extraDept] || 0;
+        const courses = courseMap[extraDept] || 0;
+        const attended = attendanceMap[extraDept] || 0;
+        const lectures = lectureMap[extraDept] || 0;
+        const theoretical = lectures * students;
+        const attendancePct =
+          theoretical > 0
+            ? Math.min(100, Math.round((attended / theoretical) * 1000) / 10)
+            : 0;
+
+        const words = extraDept.replace(/department\s+of\s+/i, "").split(/\s+/);
+        const code = words.map((w) => w[0]).join("").toUpperCase().slice(0, 4) || "DEPT";
+
+        result.push({
+          id: `dept-${extraIndex++}`,
+          name: extraDept,
+          code,
+          head: "Department In-Charge",
+          students,
+          studentsCount: students,
+          faculty,
+          facultyCount: faculty,
+          courses,
+          coursesCount: courses,
+          avgAttendance: attendancePct,
+          attendancePct,
+        });
+      }
+    }
+
+    res.json({ departments: result });
   } catch (err) {
     console.error("HOD Departments Error:", err);
     res.status(500).json({ message: "Failed to load departments." });
@@ -490,6 +605,48 @@ router.get("/departments", async (req, res) => {
 // GET /hod/analytics — Department-wise, course-wise, faculty-wise, and student statistics
 router.get("/analytics", async (req, res) => {
   try {
+    // Dynamic department attendance
+    const studentCounts = await db.query(
+      "SELECT department, COUNT(id) as count FROM students WHERE department IS NOT NULL AND department != '' GROUP BY department"
+    );
+    const attendanceCounts = await db.query(
+      "SELECT st.department, COUNT(a.id) as attended_count FROM students st LEFT JOIN attendance a ON st.id = a.student_id AND a.status = 'PRESENT' WHERE st.department IS NOT NULL AND st.department != '' GROUP BY st.department"
+    );
+    const lectureCounts = await db.query(
+      "SELECT sub.department, COUNT(l.id) as total_lectures FROM subjects sub LEFT JOIN lectures l ON sub.id = l.subject_id WHERE sub.department IS NOT NULL AND sub.department != '' GROUP BY sub.department"
+    );
+
+    const studentMap = {};
+    (studentCounts || []).forEach((r) => { studentMap[r.department.trim()] = Number(r.count || 0); });
+    const attendanceMap = {};
+    (attendanceCounts || []).forEach((r) => { attendanceMap[r.department.trim()] = Number(r.attended_count || 0); });
+    const lectureMap = {};
+    (lectureCounts || []).forEach((r) => { lectureMap[r.department.trim()] = Number(r.total_lectures || 0); });
+
+    const canonicalDepts = [
+      { name: "Computer Science & Eng", fullName: "Department of Computer Science & Engineering", code: "CSE" },
+      { name: "Information Tech", fullName: "Department of Information Technology", code: "IT" },
+      { name: "Electronics & Comm", fullName: "Department of Electronics & Communication", code: "ECE" },
+    ];
+
+    const departmentAttendance = canonicalDepts.map((d) => {
+      const matchKey = Object.keys(studentMap).find(
+        (k) => k.toLowerCase() === d.fullName.toLowerCase() || k.toLowerCase().includes(d.code.toLowerCase())
+      );
+      const students = matchKey ? studentMap[matchKey] : 0;
+      const attended = matchKey ? (attendanceMap[matchKey] || 0) : 0;
+      const lectures = matchKey ? (lectureMap[matchKey] || 0) : 0;
+      const theoretical = lectures * students;
+      const attendancePct = theoretical > 0 ? Math.min(100, Math.round((attended / theoretical) * 1000) / 10) : 0;
+
+      return {
+        name: d.name,
+        code: d.code,
+        attendancePct,
+        targetPct: 75.0,
+      };
+    });
+
     // Course-wise attendance
     const courseStats = await db.query(`
       SELECT 
@@ -537,11 +694,7 @@ router.get("/analytics", async (req, res) => {
     `);
 
     res.json({
-      departmentAttendance: [
-        { name: "Computer Science & Eng", code: "CSE", attendancePct: 91.4, targetPct: 95.0 },
-        { name: "Information Tech", code: "IT", attendancePct: 88.7, targetPct: 95.0 },
-        { name: "Electronics & Comm", code: "ECE", attendancePct: 86.2, targetPct: 95.0 },
-      ],
+      departmentAttendance,
       courseStats: courseStats || [],
       facultyStats: facultyStats || [],
       lowAttendanceStudents: lowAttendanceStudents || [],

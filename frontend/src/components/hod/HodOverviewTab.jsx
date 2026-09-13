@@ -3,13 +3,13 @@ import { AttendanceRing } from "../common/AttendanceRing";
 import { LiveCampusPulse } from "../common/LiveCampusPulse";
 
 export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCount, onExportLedger }) {
-  const aggregatePct = stats?.aggregateAttendance || 91.4;
+  const aggregatePct = stats?.aggregateAttendance !== undefined ? stats.aggregateAttendance : 0;
 
   return (
     <div className="space-y-8">
       {/* Live Campus Pulse Ribbon */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <LiveCampusPulse statusText="Office of Head of Department • NBA Tier-1 Governance Active" activeCount={coursesCount || 12} />
+        <LiveCampusPulse statusText="Office of Head of Department • NBA Tier-1 Governance Active" activeCount={coursesCount !== undefined ? coursesCount : (stats?.totalCourses || 0)} />
         <span className="font-mono text-xs text-[#6B7280]">
           STATUTORY CUTOFF: <strong className="text-[#9E3D24]">75.0% MANDATORY</strong>
         </span>
@@ -50,7 +50,7 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Total Students</span>
             <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
-              {studentsCount || stats?.totalStudents || 142}
+              {studentsCount !== undefined ? studentsCount : (stats?.totalStudents || 0)}
             </div>
             <span className="text-[11px] text-[#2E6B34] font-semibold mt-1">Active Academic Cohort</span>
           </div>
@@ -58,7 +58,7 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Total Faculty</span>
             <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
-              {facultyCount || stats?.totalFaculty || 18}
+              {facultyCount !== undefined ? facultyCount : (stats?.totalFaculty || 0)}
             </div>
             <span className="text-[11px] text-[#736F68] mt-1">Professors & Instructors</span>
           </div>
@@ -66,7 +66,7 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Accredited Courses</span>
             <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
-              {coursesCount || stats?.totalCourses || 12}
+              {coursesCount !== undefined ? coursesCount : (stats?.totalCourses || 0)}
             </div>
             <span className="text-[11px] text-[#736F68] mt-1">Fall Semester 2026</span>
           </div>
