@@ -20,7 +20,7 @@ const router = express.Router();
  */
 router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, async (req, res) => {
   try {
-    const { lecture_id } = req.body;
+    const { lecture_id, latitude, longitude, radius_meters } = req.body;
 
     // --- Ownership verification ---
     // Ensure the requesting faculty actually owns this lecture.
@@ -58,14 +58,34 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     // --- Set expiration (5 minutes from now) ---
     const expires_at = new Date(Date.now() + 5 * 60 * 1000);
 
-    // --- Persist session ---
+    // --- Geo-Fencing Coordinates & Classroom Radius ---
+    const finalLat = (latitude !== undefined && latitude !== null && !isNaN(Number(latitude)))
+      ? Number(latitude)
+      : (process.env.CAMPUS_LAT ? Number(process.env.CAMPUS_LAT) : 21.1702);
+
+    const finalLon = (longitude !== undefined && longitude !== null && !isNaN(Number(longitude)))
+      ? Number(longitude)
+      : (process.env.CAMPUS_LON ? Number(process.env.CAMPUS_LON) : 72.8311);
+
+    const finalRadius = (radius_meters !== undefined && radius_meters !== null && !isNaN(Number(radius_meters)))
+      ? Math.max(20, Math.min(500, Number(radius_meters)))
+      : 100;
+
+    // --- Persist session with Geo-Fence ---
     const insertSql = `
       INSERT INTO qr_sessions
-      (lecture_id, session_token, expires_at)
-      VALUES ($1, $2, $3)
-      RETURNING id
+      (lecture_id, session_token, expires_at, latitude, longitude, radius_meters)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, latitude, longitude, radius_meters
     `;
-    const result = await db.query(insertSql, [lecture_id, session_token, expires_at]);
+    const result = await db.query(insertSql, [
+      lecture_id,
+      session_token,
+      expires_at,
+      finalLat,
+      finalLon,
+      finalRadius,
+    ]);
 
     // --- QR payload contains ONLY the session_token ---
     // Never embed lecture_id in QR — the backend resolves it from the session.
@@ -73,14 +93,17 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     const qr_code = await QRCode.toDataURL(qrPayload);
 
     return res.status(201).json({
-      message: "QR session created successfully.",
+      message: "QR session created successfully with Geo-Fencing active.",
       session_id: result[0].id,
       session_token,
       expires_at,
       expires_in: 300,
       qr_code,
-      // Note: lecture_id is intentionally NOT returned in the body exposed to clients.
-      // The student's scan endpoint only accepts session_token.
+      geo_fence: {
+        latitude: finalLat,
+        longitude: finalLon,
+        radius_meters: finalRadius,
+      },
     });
   } catch (error) {
     console.error("QR session creation error:", error);

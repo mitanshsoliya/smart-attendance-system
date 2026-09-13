@@ -1,5 +1,6 @@
 const express = require("express");
 const { verifyToken, requireStudent, requireFacultyOrHod } = require("../middleware/auth");
+const { calculateDistanceInMeters } = require("../utils/geo");
 const db = require("../db");
 
 const router = express.Router();
@@ -37,7 +38,7 @@ const router = express.Router();
  *  - No silent auto-creation of missing student profiles.
  */
 router.post("/mark", verifyToken, requireStudent, async (req, res) => {
-  const { session_token } = req.body;
+  const { session_token, latitude, longitude } = req.body;
 
   // --- 1. session_token is strictly required ---
   const tokenToUse = session_token ? String(session_token).trim() : "";
@@ -48,9 +49,9 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
   }
 
   try {
-    // --- 2. Resolve QR session from token (server lookup — token is the only input) ---
+    // --- 2. Resolve QR session from token with Geo-Fence coordinates ---
     const sessionRows = await db.query(
-      "SELECT id, lecture_id, expires_at FROM qr_sessions WHERE session_token = $1",
+      "SELECT id, lecture_id, expires_at, latitude, longitude, radius_meters FROM qr_sessions WHERE session_token = $1",
       [tokenToUse]
     );
 
@@ -69,6 +70,42 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
         expired: true,
         expiredAt: session.expires_at,
       });
+    }
+
+    // --- 3b. Geo-Fencing GPS Verification (Anti-Proxy Defense) ---
+    let verifiedDistance = null;
+    if (
+      session.latitude !== null &&
+      session.latitude !== undefined &&
+      session.longitude !== null &&
+      session.longitude !== undefined
+    ) {
+      if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+        return res.status(400).json({
+          message: "GPS Location Access Required: Geo-fencing is active for this lecture. You must allow location access in your browser to verify physical presence in the classroom.",
+          locationRequired: true,
+        });
+      }
+
+      const radiusAllowed = session.radius_meters || 100;
+      const distance = calculateDistanceInMeters(session.latitude, session.longitude, latitude, longitude);
+
+      if (distance === null) {
+        return res.status(400).json({
+          message: "Invalid GPS coordinates detected. Please verify your browser location services and retry.",
+        });
+      }
+
+      if (distance > radiusAllowed) {
+        return res.status(403).json({
+          message: `Geo-Fence Verification Failed: You are ${distance}m away from the classroom. Attendance requires physical presence within ${radiusAllowed}m.`,
+          distance,
+          radiusAllowed,
+          outOfBounds: true,
+        });
+      }
+
+      verifiedDistance = distance;
     }
 
     // --- 4. Derive lecture_id strictly from the validated session record ---
@@ -144,20 +181,33 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
       });
     }
 
-    // --- 8. Mark attendance with server-side timestamp ---
+    // --- 8. Mark attendance with server-side timestamp and verified distance ---
     const insertRows = await db.query(
-      "INSERT INTO attendance (lecture_id, student_id, status) VALUES ($1, $2, 'PRESENT') RETURNING id, attendance_time",
-      [lectureId, studentId]
+      `INSERT INTO attendance
+       (lecture_id, student_id, status, distance_meters, student_latitude, student_longitude, location_verified)
+       VALUES ($1, $2, 'PRESENT', $3, $4, $5, $6)
+       RETURNING id, attendance_time, distance_meters`,
+      [
+        lectureId,
+        studentId,
+        verifiedDistance,
+        latitude !== undefined && latitude !== null ? Number(latitude) : null,
+        longitude !== undefined && longitude !== null ? Number(longitude) : null,
+        verifiedDistance !== null,
+      ]
     );
 
     const record = insertRows[0];
 
     return res.status(201).json({
-      message: "Attendance marked successfully. Status: PRESENT.",
+      message: `Attendance marked successfully. Status: PRESENT.${
+        verifiedDistance !== null ? ` (Location verified: ${verifiedDistance}m from classroom)` : ""
+      }`,
       attendance_id: record.id,
       lecture_id: lectureId,
       student_id: studentId,
       status: "PRESENT",
+      distance_meters: verifiedDistance,
       attendance_time: record.attendance_time,
     });
 
@@ -222,6 +272,10 @@ router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, (req, res) =
       a.lecture_id,
       a.attendance_time,
       a.status,
+      a.distance_meters,
+      a.student_latitude,
+      a.student_longitude,
+      a.location_verified,
       u.full_name,
       u.email,
       st.roll_number,

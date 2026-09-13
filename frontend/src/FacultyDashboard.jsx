@@ -16,6 +16,7 @@ import { useCourses } from "./hooks/useCourses";
 import { lectureService } from "./services/lectureService";
 import { courseService } from "./services/courseService";
 import { authService } from "./services/authService";
+import { attendanceService } from "./services/attendanceService";
 import api, { authHeader } from "./services/api";
 
 export default function FacultyDashboard({ user: initialUser, token, onLogout, onToggleRole }) {
@@ -29,6 +30,9 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const [remaining, setRemaining] = useState(300);
   const [copied, setCopied] = useState(false);
   const [studentRoster, setStudentRoster] = useState([]);
+  const [selectedRadius, setSelectedRadius] = useState(100);
+  const [lectureAttendance, setLectureAttendance] = useState([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
 
   // Create lecture form state
   const [lectureForm, setLectureForm] = useState({
@@ -107,6 +111,36 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     if (activeTab === "students") fetchRoster();
   }, [activeTab, token]);
 
+  const fetchLectureAttendance = async (lecId) => {
+    const targetLecId = lecId || selectedLectureId || (lectures[0] && lectures[0].id);
+    if (!targetLecId) return;
+    setLoadingAttendance(true);
+    try {
+      const data = await attendanceService.getLectureAttendanceRoster(targetLecId, token);
+      setLectureAttendance(data.attendance || []);
+    } catch (err) {
+      console.error("Failed to fetch lecture attendance roster:", err);
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
+
+  // Fetch attendance when lecture selection changes or switching to attendance tab
+  useEffect(() => {
+    if (selectedLectureId) {
+      fetchLectureAttendance(selectedLectureId);
+    }
+  }, [selectedLectureId, activeTab]);
+
+  // Live polling: refresh roster every 4 seconds while QR broadcast is actively running
+  useEffect(() => {
+    if (!qr || remaining <= 0) return;
+    const interval = setInterval(() => {
+      fetchLectureAttendance(qr.lecture_id || selectedLectureId);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [qr, remaining, selectedLectureId]);
+
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
     { id: "lectures", label: "Lectures", icon: "co_present" },
@@ -136,12 +170,33 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     return () => clearInterval(timer);
   }, [qr, remaining]);
 
-  const handleGenerateQR = async (lectureId) => {
+  const handleGenerateQR = async (lectureId, radius = 100) => {
     const targetId = lectureId || selectedLectureId || (lectures[0] && lectures[0].id);
     if (!targetId) return;
     const targetLecture = lectures.find((l) => String(l.id) === String(targetId));
+
+    const radiusToUse = radius || selectedRadius || 100;
+    const geoOptions = { radius_meters: radiusToUse };
+
+    // Request faculty's current device GPS if available for pinpoint classroom anchor
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 15000,
+          });
+        });
+        geoOptions.latitude = pos.coords.latitude;
+        geoOptions.longitude = pos.coords.longitude;
+      } catch (geoErr) {
+        console.warn("Using campus default GPS anchor coordinates:", geoErr);
+      }
+    }
+
     try {
-      const data = await lectureService.createQrSession(targetId, token);
+      const data = await lectureService.createQrSession(targetId, token, geoOptions);
       setQr({
         ...data,
         lecture_id: targetId,
@@ -149,6 +204,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
       });
       setRemaining(data.expires_in || 300);
       setActiveTab("attendance");
+      fetchLectureAttendance(targetId);
     } catch (err) {
       alert(err.response?.data?.message || "Failed to generate QR session.");
     }
@@ -267,6 +323,11 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
               }
             }}
             copied={copied}
+            selectedRadius={selectedRadius}
+            setSelectedRadius={setSelectedRadius}
+            attendanceRoster={lectureAttendance}
+            loadingAttendance={loadingAttendance}
+            onRefreshAttendance={() => fetchLectureAttendance(selectedLectureId)}
           />
         )}
 

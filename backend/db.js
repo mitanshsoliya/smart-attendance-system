@@ -70,6 +70,13 @@ if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)
       ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS department TEXT;
       ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS faculty_id BIGINT;
       ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS credit_hours INT DEFAULT 3;
+      ALTER TABLE public.qr_sessions ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+      ALTER TABLE public.qr_sessions ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+      ALTER TABLE public.qr_sessions ADD COLUMN IF NOT EXISTS radius_meters INT DEFAULT 100;
+      ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS student_latitude DOUBLE PRECISION;
+      ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS student_longitude DOUBLE PRECISION;
+      ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS distance_meters INT;
+      ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS location_verified BOOLEAN DEFAULT TRUE;
     `).catch((e) => console.error("PostgreSQL table init check:", e.message));
 
   } catch (error) {
@@ -158,6 +165,13 @@ function initSqliteSchemaAndSeed() {
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN department TEXT DEFAULT 'Department of Computer Science & Engineering';", () => {});
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN credit_hours INTEGER DEFAULT 3;", () => {});
       sqliteDb.run("ALTER TABLE subjects ADD COLUMN faculty_id INTEGER REFERENCES faculty(id);", () => {});
+      sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN latitude REAL;", () => {});
+      sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN longitude REAL;", () => {});
+      sqliteDb.run("ALTER TABLE qr_sessions ADD COLUMN radius_meters INTEGER DEFAULT 100;", () => {});
+      sqliteDb.run("ALTER TABLE attendance ADD COLUMN student_latitude REAL;", () => {});
+      sqliteDb.run("ALTER TABLE attendance ADD COLUMN student_longitude REAL;", () => {});
+      sqliteDb.run("ALTER TABLE attendance ADD COLUMN distance_meters INTEGER;", () => {});
+      sqliteDb.run("ALTER TABLE attendance ADD COLUMN location_verified INTEGER DEFAULT 1;", () => {});
 
       sqliteDb.run(`
         CREATE TABLE IF NOT EXISTS enrollments (

@@ -21,8 +21,9 @@ export const lectureService = {
     return data;
   },
 
-  async createQrSession(lectureId, token) {
-    const { data } = await api.post("/qr-session/create", { lecture_id: lectureId }, authHeader(token));
+  async createQrSession(lectureId, token, options = {}) {
+    const payload = { lecture_id: lectureId, ...options };
+    const { data } = await api.post("/qr-session/create", payload, authHeader(token));
     return data;
   },
 

@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS public.qr_sessions (
   lecture_id bigint NOT NULL REFERENCES public.lectures(id) ON UPDATE CASCADE ON DELETE CASCADE,
   session_token char(64) NOT NULL UNIQUE,
   expires_at timestamptz NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  radius_meters INT DEFAULT 100,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -83,6 +86,10 @@ CREATE TABLE IF NOT EXISTS public.attendance (
   student_id bigint NOT NULL REFERENCES public.students(id) ON UPDATE CASCADE ON DELETE CASCADE,
   status public.attendance_status NOT NULL DEFAULT 'PRESENT',
   attendance_time timestamptz NOT NULL DEFAULT now(),
+  student_latitude DOUBLE PRECISION,
+  student_longitude DOUBLE PRECISION,
+  distance_meters INT,
+  location_verified BOOLEAN DEFAULT TRUE,
   UNIQUE (lecture_id, student_id)
 );
 
