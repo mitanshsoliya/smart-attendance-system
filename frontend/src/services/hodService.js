@@ -60,4 +60,24 @@ export const hodService = {
     const { data } = await api.get("/hod/reports", authHeader(token));
     return data;
   },
+
+  async getRegistrationRequests(token) {
+    const { data } = await api.get("/hod/registration-requests", authHeader(token));
+    return data;
+  },
+
+  async approveRegistrationRequest(id, token) {
+    const { data } = await api.post(`/hod/registration-requests/${id}/approve`, {}, authHeader(token));
+    return data;
+  },
+
+  async rejectRegistrationRequest(id, token) {
+    const { data } = await api.post(`/hod/registration-requests/${id}/reject`, {}, authHeader(token));
+    return data;
+  },
+
+  async submitRegistrationRequest(requestData) {
+    const { data } = await api.post("/register/request", requestData);
+    return data;
+  },
 };

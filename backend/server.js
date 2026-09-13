@@ -29,9 +29,13 @@ app.use("/student", studentRoute);
 const facultyRoute = require("./routes/faculty");
 app.use("/faculty", facultyRoute);
 
-// Register Route
+// Register Route & Candidate Self-Registration Requests
 const registerRoute = require("./routes/register");
 app.use("/register", registerRoute);
+app.use("/register-request", (req, res, next) => {
+  req.url = "/request";
+  registerRoute(req, res, next);
+});
 
 // QR Session Route
 const qrSessionRoute = require("./routes/qrSession");

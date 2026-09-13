@@ -759,4 +759,176 @@ router.get("/reports", async (req, res) => {
   }
 });
 
+/**
+ * 8. Registration Requests Management (Student & Faculty Self-Registration Verification)
+ */
+
+// GET /hod/registration-requests
+router.get("/registration-requests", async (req, res) => {
+  try {
+    const rows = await db.query(`
+      SELECT 
+        id,
+        full_name,
+        email,
+        role,
+        roll_number,
+        section,
+        student_phone,
+        parent_phone,
+        employee_id,
+        designation,
+        phone,
+        department,
+        status,
+        created_at
+      FROM registration_requests
+      ORDER BY 
+        CASE WHEN status = 'PENDING' THEN 1 ELSE 2 END,
+        created_at DESC
+    `);
+
+    const requests = (rows || []).map((r) => ({
+      id: r.id,
+      fullName: r.full_name,
+      email: r.email,
+      role: r.role,
+      rollNumber: r.roll_number || "",
+      section: r.section || "",
+      studentPhone: r.student_phone || "",
+      parentPhone: r.parent_phone || "",
+      employeeId: r.employee_id || "",
+      designation: r.designation || "",
+      phone: r.phone || "",
+      department: r.department || "Department of Computer Science & Engineering",
+      status: r.status || "PENDING",
+      createdAt: r.created_at,
+    }));
+
+    const pendingStudents = requests.filter((r) => r.role === "STUDENT" && r.status === "PENDING").length;
+    const pendingFaculty = requests.filter((r) => r.role === "FACULTY" && r.status === "PENDING").length;
+    const approvedTotal = requests.filter((r) => r.status === "APPROVED").length;
+    const rejectedTotal = requests.filter((r) => r.status === "REJECTED").length;
+
+    res.json({
+      requests,
+      counts: {
+        total: requests.length,
+        pendingTotal: pendingStudents + pendingFaculty,
+        pendingStudents,
+        pendingFaculty,
+        approvedTotal,
+        rejectedTotal,
+      },
+    });
+  } catch (err) {
+    console.error("GET Registration Requests Error:", err);
+    res.status(500).json({ message: "Failed to load registration requests." });
+  }
+});
+
+// POST /hod/registration-requests/:id/approve
+router.post("/registration-requests/:id/approve", async (req, res) => {
+  const reqId = req.params.id;
+  try {
+    const rows = await db.query("SELECT * FROM registration_requests WHERE id = $1", [reqId]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: "Registration request not found." });
+    }
+
+    const reg = rows[0];
+    if (reg.status === "APPROVED") {
+      return res.status(400).json({ message: "This request has already been approved." });
+    }
+
+    const cleanEmail = String(reg.email).trim().toLowerCase();
+    const cleanRole = String(reg.role).trim().toUpperCase();
+    const cleanName = String(reg.full_name).trim();
+    const cleanDept = reg.department || "Department of Computer Science & Engineering";
+
+    // 1. Check if user with email already exists in users table
+    const existing = await db.query("SELECT id FROM users WHERE LOWER(email) = $1", [cleanEmail]);
+    let userId;
+
+    if (existing && existing.length > 0) {
+      userId = existing[0].id;
+    } else {
+      // Create user account with the password hash already stored in the request
+      const userRes = await db.query(
+        "INSERT INTO users (full_name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id",
+        [cleanName, cleanEmail, reg.password, cleanRole]
+      );
+      userId = userRes[0].id;
+    }
+
+    // 2. Link student or faculty profile
+    if (cleanRole === "STUDENT") {
+      const cleanRoll = reg.roll_number || `2026-CSE-${Math.floor(100 + Math.random() * 900)}`;
+      const cleanSec = reg.section || "Sec A";
+      const cleanStdPhone = reg.student_phone || null;
+      const cleanParPhone = reg.parent_phone || null;
+
+      const existingStd = await db.query("SELECT id FROM students WHERE user_id = $1", [userId]);
+      if (!existingStd || existingStd.length === 0) {
+        await db.query(
+          "INSERT INTO students (user_id, roll_number, section, student_phone, parent_phone, department) VALUES ($1, $2, $3, $4, $5, $6)",
+          [userId, cleanRoll, cleanSec, cleanStdPhone, cleanParPhone, cleanDept]
+        );
+      } else {
+        await db.query(
+          "UPDATE students SET roll_number = $1, section = $2, student_phone = $3, parent_phone = $4, department = $5 WHERE user_id = $6",
+          [cleanRoll, cleanSec, cleanStdPhone, cleanParPhone, cleanDept, userId]
+        );
+      }
+    } else if (cleanRole === "FACULTY") {
+      const cleanDesig = reg.designation || "Assistant Professor";
+      const cleanPhone = reg.phone || null;
+
+      const existingFac = await db.query("SELECT id FROM faculty WHERE user_id = $1", [userId]);
+      if (!existingFac || existingFac.length === 0) {
+        await db.query(
+          "INSERT INTO faculty (user_id, department, designation, phone) VALUES ($1, $2, $3, $4)",
+          [userId, cleanDept, cleanDesig, cleanPhone]
+        );
+      } else {
+        await db.query(
+          "UPDATE faculty SET department = $1, designation = $2, phone = $3 WHERE user_id = $4",
+          [cleanDept, cleanDesig, cleanPhone, userId]
+        );
+      }
+    }
+
+    // 3. Mark request as APPROVED
+    await db.query("UPDATE registration_requests SET status = 'APPROVED' WHERE id = $1", [reqId]);
+
+    res.json({
+      message: `${cleanRole === "STUDENT" ? "Student" : "Faculty"} account approved and onboarded successfully into ${cleanDept}.`,
+      requestId: reqId,
+      userId,
+      role: cleanRole,
+      department: cleanDept,
+    });
+  } catch (err) {
+    console.error("Approve Registration Request Error:", err);
+    res.status(500).json({ message: "Failed to approve registration request." });
+  }
+});
+
+// POST /hod/registration-requests/:id/reject
+router.post("/registration-requests/:id/reject", async (req, res) => {
+  const reqId = req.params.id;
+  try {
+    const rows = await db.query("SELECT id, status FROM registration_requests WHERE id = $1", [reqId]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: "Registration request not found." });
+    }
+
+    await db.query("UPDATE registration_requests SET status = 'REJECTED' WHERE id = $1", [reqId]);
+    res.json({ message: "Registration request rejected.", requestId: reqId });
+  } catch (err) {
+    console.error("Reject Registration Request Error:", err);
+    res.status(500).json({ message: "Failed to reject registration request." });
+  }
+});
+
 module.exports = router;

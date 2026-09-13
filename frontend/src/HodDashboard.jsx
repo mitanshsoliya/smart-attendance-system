@@ -10,6 +10,7 @@ import { HodCoursesTab } from "./components/hod/HodCoursesTab";
 import { HodAnalyticsTab } from "./components/hod/HodAnalyticsTab";
 import { HodReportsTab } from "./components/hod/HodReportsTab";
 import { HodSettingsTab } from "./components/hod/HodSettingsTab";
+import { HodRegistrationRequestsTab } from "./components/hod/HodRegistrationRequestsTab";
 import { useAuth } from "./hooks/useAuth";
 import { hodService } from "./services/hodService";
 import { courseService } from "./services/courseService";
@@ -23,6 +24,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
   const [faculty, setFaculty] = useState([]);
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   // Modals
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
@@ -107,6 +109,13 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         setDepartments(deptList);
       }
     } catch (e) {}
+
+    try {
+      const rData = await hodService.getRegistrationRequests(token).catch(() => null);
+      if (rData && rData.counts) {
+        setPendingRequestsCount(rData.counts.pendingTotal || 0);
+      }
+    } catch (e) {}
   }, [token]);
 
   useEffect(() => {
@@ -118,6 +127,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     { id: "students", altId: "hall-tickets", label: "Students", icon: "group", count: students.length },
     { id: "faculty", altId: "faculty-gov", label: "Faculty", icon: "supervisor_account", count: faculty.length },
     { id: "departments", altId: "departments", label: "Departments", icon: "apartment" },
+    { id: "requests", altId: "registration-requests", label: "Register Requests", icon: "how_to_reg", count: pendingRequestsCount || undefined },
     { id: "analytics", altId: "accreditation", label: "Attendance Analytics", icon: "analytics" },
     { id: "reports", altId: "dean-dossier", label: "Reports", icon: "assessment" },
     { id: "settings", altId: "governance", label: "Settings", icon: "settings" },
@@ -246,6 +256,12 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             faculty={faculty}
             courses={courses}
             stats={stats}
+          />
+        )}
+        {(activeTab === "requests" || activeTab === "registration-requests") && (
+          <HodRegistrationRequestsTab
+            token={token}
+            onDataChanged={fetchAllData}
           />
         )}
         {(activeTab === "analytics" || activeTab === "accreditation") && (

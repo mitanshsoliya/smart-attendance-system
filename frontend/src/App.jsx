@@ -3,6 +3,7 @@ import axios from "axios";
 import FacultyDashboard from "./FacultyDashboard";
 import StudentDashboard from "./StudentDashboard";
 import HodDashboard from "./HodDashboard";
+import { RegistrationRequestModal } from "./components/common/RegistrationRequestModal";
 import "./App.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -106,6 +107,8 @@ function Login({ onLogin, sessionNotice, onClearNotice }) {
   const [role, setRole] = useState("FACULTY");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [registerModalRole, setRegisterModalRole] = useState("STUDENT");
 
   const fillDemo = (demoRole) => {
     setRole(demoRole);
@@ -229,6 +232,48 @@ function Login({ onLogin, sessionNotice, onClearNotice }) {
             {loading ? "Signing in..." : "Log in"}
           </button>
         </form>
+
+        {/* Self-Registration Request Triggers matching Image 2 */}
+        {role === "STUDENT" && (
+          <div className="mt-4 pt-3 border-t border-line text-center">
+            <span className="text-xs text-muted">Don't have student credentials? </span>
+            <button
+              type="button"
+              onClick={() => {
+                setRegisterModalRole("STUDENT");
+                setShowRegisterModal(true);
+              }}
+              className="text-xs font-bold text-red hover:underline cursor-pointer inline-flex items-center gap-1"
+            >
+              <span>Student Registration Request</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
+
+        {role === "FACULTY" && (
+          <div className="mt-4 pt-3 border-t border-line text-center">
+            <span className="text-xs text-muted">New faculty member joining? </span>
+            <button
+              type="button"
+              onClick={() => {
+                setRegisterModalRole("FACULTY");
+                setShowRegisterModal(true);
+              }}
+              className="text-xs font-bold text-red hover:underline cursor-pointer inline-flex items-center gap-1"
+            >
+              <span>Faculty Registration Request</span>
+              <span>→</span>
+            </button>
+          </div>
+        )}
+
+        <RegistrationRequestModal
+          isOpen={showRegisterModal}
+          onClose={() => setShowRegisterModal(false)}
+          initialRole={registerModalRole}
+        />
+
         {sessionNotice && <Notice type="warning">{sessionNotice}</Notice>}
         {message && <Notice type="error">{message}</Notice>}
       </section>
