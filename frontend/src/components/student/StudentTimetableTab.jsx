@@ -1,34 +1,68 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   PERIOD_SLOTS,
   DEPARTMENT_TIMETABLES,
   getDepartmentTimetable,
   getBatchLabel,
 } from "../../data/departmentTimetables";
+import { timetableService } from "../../services/timetableService";
 
-export function StudentTimetableTab({ user }) {
-  // Determine initial department
-  const userDept = user?.department || user?.profile?.department || "Department of Computer Science & Engineering";
-  const [selectedDeptKey, setSelectedDeptKey] = useState(
-    userDept.includes("Information")
+export function StudentTimetableTab({ user, token }) {
+  // Determine student's enrolled department strictly from user profile (no switching allowed)
+  const userDept =
+    user?.department ||
+    user?.profile?.department ||
+    user?.student_profile?.department ||
+    "Department of Computer Science & Engineering";
+
+  const selectedDeptKey =
+    userDept.includes("Information") || userDept.includes("IT")
       ? "Department of Information Technology"
-      : userDept.includes("Electronics")
+      : userDept.includes("Electronics") || userDept.includes("ECE")
       ? "Department of Electronics & Communication"
-      : "Department of Computer Science & Engineering"
-  );
+      : "Department of Computer Science & Engineering";
 
-  // Determine initial section (Sec A -> Batch A1, Sec B -> Batch A2, Sec C -> Batch A3)
+  // Live fetched timetable state
+  const [liveTimetable, setLiveTimetable] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch live schedule from DB strictly for the student's own department
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLive = async () => {
+      try {
+        setLoading(true);
+        const data = await timetableService.getTimetable(token, selectedDeptKey);
+        if (isMounted && data && data.schedule) {
+          setLiveTimetable(data.schedule);
+        }
+      } catch (e) {
+        console.error("Failed to load live student timetable:", e);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchLive();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDeptKey, token]);
+
+  // Determine initial section (Sec A, Sec B, Sec C)
   const userSectionInfo = getBatchLabel(user?.profile?.section || "Sec A");
   const [activeSectionFilter, setActiveSectionFilter] = useState(userSectionInfo.section); // "All", "Sec A", "Sec B", "Sec C"
   const [viewMode, setViewMode] = useState("matrix"); // "matrix" (Official Matrix) or "mySection" (Individual schedule)
 
-  const currentTimetable = DEPARTMENT_TIMETABLES[selectedDeptKey] || DEPARTMENT_TIMETABLES["Department of Computer Science & Engineering"];
+  const currentTimetable =
+    liveTimetable ||
+    DEPARTMENT_TIMETABLES[selectedDeptKey] ||
+    DEPARTMENT_TIMETABLES["Department of Computer Science & Engineering"];
 
   const sections = [
-    { key: "All", label: "All Batches (A1, A2, A3)", batch: "Full Division" },
-    { key: "Sec A", label: "Sec A", batch: "BATCH A1" },
-    { key: "Sec B", label: "Sec B", batch: "BATCH A2" },
-    { key: "Sec C", label: "Sec C", batch: "BATCH A3" },
+    { key: "All", label: "All Sections (Sec A, B, C)" },
+    { key: "Sec A", label: "Sec A" },
+    { key: "Sec B", label: "Sec B" },
+    { key: "Sec C", label: "Sec C" },
   ];
 
   const handlePrint = () => {
@@ -45,23 +79,23 @@ export function StudentTimetableTab({ user }) {
             <h1 className="font-serif-display text-2xl text-primary font-bold">Academic Class Time Table</h1>
           </div>
           <p className="text-xs text-text-stone mt-1">
-            Official Winter 2026 weekly academic lecture, laboratory, and tutorial schedule.
+            Official Winter 2026 weekly academic lecture, laboratory, and tutorial schedule for your department.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Department Selector */}
-          <div className="flex items-center gap-1.5 bg-surface-container-low border border-border-default rounded px-3 py-1.5">
-            <span className="text-xs font-semibold text-text-stone">Department:</span>
-            <select
-              value={selectedDeptKey}
-              onChange={(e) => setSelectedDeptKey(e.target.value)}
-              className="text-xs font-bold text-primary bg-transparent focus:outline-none cursor-pointer"
-            >
-              <option value="Department of Computer Science & Engineering">CSE (Room 503)</option>
-              <option value="Department of Information Technology">IT (Room 402)</option>
-              <option value="Department of Electronics & Communication">ECE (Room 301)</option>
-            </select>
+          {/* Enrolled Department Display (Strictly Locked to Student's Department) */}
+          <div className="flex items-center gap-2 bg-surface-container-low border border-border-default rounded px-3 py-2 text-xs">
+            <span className="material-symbols-outlined text-secondary text-base">school</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Your Department</span>
+              <span className="font-bold text-primary">
+                {currentTimetable?.deptFullName || selectedDeptKey}
+              </span>
+            </div>
+            <span className="ml-1 text-[11px] font-mono font-bold text-primary bg-surface-container px-2 py-0.5 rounded">
+              Room {currentTimetable?.roomNo || "503"}
+            </span>
           </div>
 
           {/* View Mode Toggle */}
@@ -105,7 +139,7 @@ export function StudentTimetableTab({ user }) {
       {/* Section Filter Pills */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-container-low border border-border-default rounded px-4 py-3 text-xs print:hidden">
         <div className="flex items-center gap-2">
-          <span className="text-text-stone font-semibold">Filter Batch / Section:</span>
+          <span className="text-text-stone font-semibold">Filter Section:</span>
           <div className="flex flex-wrap gap-1.5">
             {sections.map((sec) => {
               const isUserSec = userSectionInfo.section === sec.key;
@@ -114,22 +148,13 @@ export function StudentTimetableTab({ user }) {
                 <button
                   key={sec.key}
                   onClick={() => setActiveSectionFilter(sec.key)}
-                  className={`px-3 py-1 rounded font-bold transition-colors flex items-center gap-1.5 border ${
+                  className={`px-3 py-1.5 rounded font-bold transition-colors flex items-center gap-1.5 border ${
                     isSelected
                       ? "bg-primary text-surface-lowest border-primary shadow-xs"
                       : "bg-surface-bright text-text-stone border-border-default hover:text-primary hover:border-text-stone"
                   }`}
                 >
                   <span>{sec.label}</span>
-                  {sec.batch !== "Full Division" && (
-                    <span
-                      className={`text-[10px] px-1 py-0.2 rounded font-mono ${
-                        isSelected ? "bg-white/20 text-white" : "bg-surface-container text-text-muted"
-                      }`}
-                    >
-                      {sec.batch}
-                    </span>
-                  )}
                   {isUserSec && (
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block ml-0.5" title="Your Assigned Section"></span>
                   )}
@@ -142,10 +167,10 @@ export function StudentTimetableTab({ user }) {
         <div className="text-[11px] text-text-stone flex items-center gap-2">
           <span className="inline-flex items-center gap-1 font-semibold text-primary">
             <span className="w-2 h-2 rounded-full bg-secondary"></span>
-            Your Section: <strong className="text-secondary">{userSectionInfo.section} ({userSectionInfo.batch})</strong>
+            Your Section: <strong className="text-secondary">{userSectionInfo.section}</strong>
           </span>
           <span>•</span>
-          <span>Labs rotate per batch allocation</span>
+          <span>Labs rotate per section allocation</span>
         </div>
       </div>
 
@@ -485,23 +510,31 @@ export function StudentTimetableTab({ user }) {
 }
 
 /**
- * Helper to render individual theory/tutorial/library lecture cell
+ * Helper to render individual theory/tutorial/library lecture cell with ultra-high contrast
  */
 function renderLectureCell(cell, activeSection) {
-  if (!cell) return <span>-</span>;
+  if (!cell) return <span className="text-[#94A3B8] font-bold">—</span>;
 
   const isLibrary = cell.type === "library";
   const isTutorial = cell.type === "tutorial";
 
   return (
-    <div className="py-1">
-      <span className={`block tracking-tight text-[11px] ${isLibrary ? "font-black text-text-stone" : "font-bold text-primary"}`}>
+    <div className="py-1 text-center">
+      <span
+        className={`block text-xs font-black tracking-tight ${
+          isLibrary ? "text-[#0F172A] font-black uppercase" : "text-[#0F172A]"
+        }`}
+      >
         {cell.title}
       </span>
       {!isLibrary && (
-        <span className="text-[9px] text-text-stone font-mono block mt-0.5">
-          Room {cell.room}
-          {isTutorial && <span className="ml-1 text-secondary font-bold">(Tutorial)</span>}
+        <span className="text-[10px] font-black text-[#334155] font-mono block mt-0.5">
+          Room {cell.room || "503"}
+          {isTutorial && (
+            <span className="ml-1 text-[#C2410C] font-black uppercase text-[9px]">
+              (Tutorial)
+            </span>
+          )}
         </span>
       )}
     </div>
@@ -509,53 +542,61 @@ function renderLectureCell(cell, activeSection) {
 }
 
 /**
- * Helper to render 2-Hour rotating lab block with Batch A1 / A2 / A3 breakdown
+ * Helper to render 2-Hour rotating lab block with Sec A / B / C breakdown with crisp high contrast
  */
 function renderLabBlock(labBlock, activeSection, viewMode) {
-  if (!labBlock || !labBlock.batches) return <span>-</span>;
+  if (!labBlock || !labBlock.batches) return <span className="text-[#94A3B8] font-bold">—</span>;
 
   // In "mySection" mode, show only the student's selected section if filtered
-  if (viewMode === "mySection" && activeSection !== "All" && labBlock.batches[activeSection]) {
-    const b = labBlock.batches[activeSection];
-    return (
-      <div className="p-2 bg-secondary-container/10 border-2 border-secondary/60 rounded text-left">
-        <div className="flex items-center justify-between gap-1">
-          <span className="font-mono text-[10px] font-extrabold text-secondary bg-secondary-fixed/50 px-1.5 py-0.5 rounded">
-            {b.batch} ({activeSection})
-          </span>
-          <span className="text-[10px] font-bold text-primary">{b.lab}</span>
+  if (viewMode === "mySection" && activeSection !== "All") {
+    const b = labBlock.batches[activeSection] || labBlock.batches[`Batch A${activeSection === "Sec A" ? "1" : activeSection === "Sec B" ? "2" : "3"}`];
+    if (b) {
+      return (
+        <div className="p-2.5 bg-[#F0FDF4] border-2 border-[#16A34A] rounded-lg text-left shadow-sm">
+          <div className="flex items-center justify-between gap-1">
+            <span className="font-mono text-[10px] font-black text-white bg-[#15803D] px-2.5 py-0.5 rounded shadow-2xs">
+              {activeSection}
+            </span>
+            <span className="text-xs font-black text-[#0F172A]">
+              Venue: <strong className="text-[#14532D] underline">{b.lab}</strong>
+            </span>
+          </div>
+          <div className="font-black text-sm text-[#064E3B] mt-1.5">
+            {b.subject} ({b.faculty})
+          </div>
+          <div className="text-xs font-bold text-[#15803D] mt-0.5">
+            2-Hour Practical Session
+          </div>
         </div>
-        <div className="font-bold text-xs text-primary mt-1">
-          {b.subject} ({b.faculty})
-        </div>
-        <div className="text-[10px] text-text-stone mt-0.5">
-          2-Hour Practical Session
-        </div>
-      </div>
-    );
+      );
+    }
   }
 
-  // Official Matrix View (Shows all 3 Batches with highlighting for activeSection)
+  // Official Matrix View (Shows all sections with crisp text)
   return (
-    <div className="space-y-0.5 text-left text-[10.5px] py-1">
+    <div className="space-y-1 text-left text-[11px] py-1">
       {Object.entries(labBlock.batches).map(([secKey, b]) => {
-        const isSelected = activeSection === secKey;
+        const displaySec = secKey.includes("A1") ? "Sec A" : secKey.includes("A2") ? "Sec B" : secKey.includes("A3") ? "Sec C" : secKey;
+        const isSelected = activeSection === displaySec;
+        const displayText = (b.text || `${b.subject}- ${b.faculty} (${b.lab})`)
+          .replace(/\s*\((?:Sec|Batch)\s*[A-C1-3]\)/gi, "");
+
         return (
           <div
             key={secKey}
-            className={`px-1.5 py-0.5 rounded font-medium transition-colors flex items-center justify-between ${
+            className={`px-2 py-0.5 rounded transition-colors flex items-center justify-between border ${
               isSelected
-                ? "bg-secondary-fixed/50 border border-secondary text-primary font-bold shadow-2xs"
-                : "hover:bg-surface-container-high/60 text-primary"
+                ? "bg-[#F1F5F9] border-2 border-[#CBD5E1] text-[#0F172A] font-black"
+                : "bg-white/80 hover:bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] font-bold"
             }`}
           >
-            <span className="truncate">{b.text}</span>
+            <span className="truncate text-xs">{displayText}</span>
             <span
-              className={`text-[9px] font-mono px-1 rounded ml-1 shrink-0 ${
-                isSelected ? "bg-secondary text-white font-bold" : "text-text-stone"
+              className={`text-xs font-mono font-bold ml-1.5 shrink-0 ${
+                isSelected ? "text-[#0F172A] font-black" : "text-[#475569]"
               }`}
             >
-              {secKey}
+              {displaySec}
             </span>
           </div>
         );

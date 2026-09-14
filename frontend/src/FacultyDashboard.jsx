@@ -346,7 +346,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
           />
         )}
 
-        {activeTab === "schedule" && <FacultyScheduleTab user={user} />}
+        {activeTab === "schedule" && <FacultyScheduleTab user={user} token={token} />}
         {activeTab === "reports" && <FacultyReportsTab lectures={lectures} />}
         {activeTab === "students" && (
           <FacultyStudentsTab

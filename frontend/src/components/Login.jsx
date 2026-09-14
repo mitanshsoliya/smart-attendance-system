@@ -27,9 +27,17 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
       setRole("STUDENT");
       setEmail("student.cse@univ.edu");
       setPassword("student123");
-    } else if (demoRole === "FACULTY") {
+    } else if (demoRole === "FACULTY_CSE") {
       setRole("FACULTY");
-      setEmail("faculty.ece@univ.edu");
+      setEmail("strivedi.cse@univ.edu");
+      setPassword("faculty123");
+    } else if (demoRole === "FACULTY_IT") {
+      setRole("FACULTY");
+      setEmail("vkumar.it@univ.edu");
+      setPassword("faculty123");
+    } else if (demoRole === "FACULTY_ECE" || demoRole === "FACULTY") {
+      setRole("FACULTY");
+      setEmail("rkulkarni.ece@univ.edu");
       setPassword("faculty123");
     } else if (demoRole === "HOD_IT") {
       setRole("HOD");
@@ -195,31 +203,57 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
           {/* Quick Demo Autofill Bar for frictionless evaluation */}
           <div className="mb-5 p-2.5 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#6F6B63]">
-                Demo Quick Fill:
+              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider">
+                Quick Demo:
               </span>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => fillDemo("STUDENT")}
-                  className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
                     role === "STUDENT"
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
                   }`}
+                  title="Demo CSE Student"
                 >
                   Student
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillDemo("FACULTY")}
-                  className={`text-[11px] px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                    role === "FACULTY"
+                  onClick={() => fillDemo("FACULTY_CSE")}
+                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                    role === "FACULTY" && email.includes("strivedi")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
                   }`}
+                  title="Prof. S. Trivedi (CSE Faculty)"
                 >
-                  Faculty
+                  CSE Fac (ST)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillDemo("FACULTY_IT")}
+                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                    role === "FACULTY" && email.includes("vkumar")
+                      ? "bg-[#BA5D3B] text-white"
+                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
+                  }`}
+                  title="Prof. V. Kumar (IT Faculty)"
+                >
+                  IT Fac (VK)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fillDemo("FACULTY_ECE")}
+                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                    role === "FACULTY" && email.includes("rkulkarni")
+                      ? "bg-[#BA5D3B] text-white"
+                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
+                  }`}
+                  title="Prof. R. Kulkarni (ECE Faculty)"
+                >
+                  ECE Fac (RK)
                 </button>
               </div>
             </div>

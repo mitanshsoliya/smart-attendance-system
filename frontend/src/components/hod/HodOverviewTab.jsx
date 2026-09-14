@@ -2,7 +2,7 @@ import React from "react";
 import { AttendanceRing } from "../common/AttendanceRing";
 import { LiveCampusPulse } from "../common/LiveCampusPulse";
 
-export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCount, onExportLedger }) {
+export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCount, onExportLedger, onEditTimetable }) {
   const aggregatePct = stats?.aggregateAttendance !== undefined ? stats.aggregateAttendance : 0;
 
   return (
@@ -30,14 +30,24 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onExportLedger}
-          className="px-4 py-2.5 bg-[#1C242E] hover:bg-[#12181F] text-[#EDE8DF] text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
-        >
-          <span className="material-symbols-outlined text-[16px]">file_download</span>
-          <span>Export Accreditation CSV</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onExportLedger}
+            className="px-3.5 py-2.5 bg-[#1C242E] hover:bg-[#12181F] text-[#EDE8DF] text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">file_download</span>
+            <span>Export CSV</span>
+          </button>
+          <button
+            type="button"
+            onClick={onEditTimetable}
+            className="px-4 py-2.5 bg-[#9E3D24] hover:bg-[#83311C] text-white text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">edit_calendar</span>
+            <span>Edit Timetable</span>
+          </button>
+        </div>
       </div>
 
       {/* Attendance Ring & Institutional KPI Metrics Grid */}

@@ -1,28 +1,9 @@
-/**
- * Centralized Department Class Timetables
- * Replicating the BMU Faculty of Engineering Class Time Table (Winter 2026, 3rd Div-A)
- * 
- * Batch-Section Mapping:
- * - Sec A -> Sec A
- * - Sec B -> Sec B
- * - Sec C -> Sec C
- */
+require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
+const bcrypt = require("bcryptjs");
+const db = require("../db");
 
-export const PERIOD_SLOTS = [
-  { id: 1, period: "1", time: "9:00 TO 10:00", label: "Period 1 (09:00 - 10:00)" },
-  { id: 2, period: "2", time: "10:00 TO 11:00", label: "Period 2 (10:00 - 11:00)" },
-  { id: 3, period: "3", time: "11:00 TO 12:00", label: "Period 3 (11:00 - 12:00)" },
-  { id: 4, period: "4", time: "12:00 TO 1:00", label: "Period 4 (12:00 - 13:00)" },
-  { id: "lunch", period: "LUNCH", time: "01:00 TO 01:30", label: "Recess (13:00 - 13:30)", isLunch: true },
-  { id: 5, period: "5", time: "1:30 TO 2:20", label: "Period 5 (13:30 - 14:20)" },
-  { id: 6, period: "6", time: "2:20 TO 3:10", label: "Period 6 (14:20 - 15:10)" },
-  { id: 7, period: "7", time: "3:10 TO 4.00", label: "Period 7 (15:10 - 16:00)" },
-];
-
-export const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-export const DEPARTMENT_TIMETABLES = {
-  // 1. Computer Science & Engineering (Exact replica of user's uploaded official timetable)
+// Initial Department Timetables data
+const DEFAULT_TIMETABLES = {
   "Department of Computer Science & Engineering": {
     deptKey: "CSE",
     deptFullName: "DEPARTMENT OF COMPUTER ENGINEERING",
@@ -36,18 +17,18 @@ export const DEPARTMENT_TIMETABLES = {
     class: "CSE",
     roomNo: "503",
     facultyDirectory: [
-      { code: "ST", name: "Prof. S. Trivedi", subject: "Digital Design & Signal Processing (DDSP) / Python" },
-      { code: "RM", name: "Prof. R. Mishra", subject: "Probability & Statistics (PS)" },
-      { code: "MTS", name: "Prof. M. T. Shah", subject: "Effective Technical Communication (ETC)" },
-      { code: "NP", name: "Prof. N. Patel", subject: "Data Structures (DS)" },
-      { code: "VP", name: "Prof. V. Patel", subject: "Data Structures (DS) / Python" },
-      { code: "RG", name: "Prof. R. Gupta", subject: "Discrete Linear Math & Algebra (DLMA)" },
-      { code: "SP", name: "Prof. S. Pandey", subject: "Discrete Linear Math & Algebra (DLMA)" },
-      { code: "DAS", name: "Prof. D. A. Shah", subject: "Python Programming (PY)" },
-      { code: "MS", name: "Prof. M. Sharma", subject: "Python Programming (PY)" },
-      { code: "SY", name: "Prof. S. Yadav", subject: "Python Programming / DDSP Lab" },
-      { code: "AH", name: "Prof. A. Hingorani", subject: "Python Programming (PY)" },
-      { code: "KT", name: "Prof. K. Tiwari", subject: "Indian Constitution (IC)" },
+      { code: "ST", name: "Prof. S. Trivedi", email: "strivedi.cse@univ.edu", subject: "Digital Design & Signal Processing (DDSP) / Python" },
+      { code: "RM", name: "Prof. R. Mishra", email: "rmishra.cse@univ.edu", subject: "Probability & Statistics (PS)" },
+      { code: "MTS", name: "Prof. M. T. Shah", email: "mtshah.cse@univ.edu", subject: "Effective Technical Communication (ETC)" },
+      { code: "NP", name: "Prof. N. Patel", email: "npatel.cse@univ.edu", subject: "Data Structures (DS)" },
+      { code: "VP", name: "Prof. V. Patel", email: "vpatel.cse@univ.edu", subject: "Data Structures (DS) / Python" },
+      { code: "RG", name: "Prof. R. Gupta", email: "rgupta.cse@univ.edu", subject: "Discrete Linear Math & Algebra (DLMA)" },
+      { code: "SP", name: "Prof. S. Pandey", email: "spandey.cse@univ.edu", subject: "Discrete Linear Math & Algebra (DLMA)" },
+      { code: "DAS", name: "Prof. D. A. Shah", email: "dashah.cse@univ.edu", subject: "Python Programming (PY)" },
+      { code: "MS", name: "Prof. M. Sharma", email: "msharma.cse@univ.edu", subject: "Python Programming (PY)" },
+      { code: "SY", name: "Prof. S. Yadav", email: "syadav.cse@univ.edu", subject: "Python Programming / DDSP Lab" },
+      { code: "AH", name: "Prof. A. Hingorani", email: "ahingorani.cse@univ.edu", subject: "Python Programming (PY)" },
+      { code: "KT", name: "Prof. K. Tiwari", email: "ktiwari.cse@univ.edu", subject: "Indian Constitution (IC)" },
     ],
     subjectDirectory: [
       { code: "DDSP", name: "Database Design and SQL Programming / Digital Design", type: "Theory & Lab" },
@@ -61,11 +42,8 @@ export const DEPARTMENT_TIMETABLES = {
     ],
     days: {
       Monday: {
-        // P1: DDSP(ST)
         p1: { type: "theory", subject: "DDSP", faculty: "ST", room: "503", title: "DDSP (ST)" },
-        // P2: PS(RM)
         p2: { type: "theory", subject: "PS", faculty: "RM", room: "503", title: "PS (RM)" },
-        // P3 & P4 (11:00 - 1:00): Combined 2-Hour Lab Block
         lab1: {
           periodSpan: [3, 4],
           timeRange: "11:00 TO 1:00",
@@ -75,9 +53,7 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "DLMA", faculty: "SP", lab: "Lab 618", text: "DLMA- SP (Lab 618)" },
           },
         },
-        // P5: DLMA(RG)
         p5: { type: "theory", subject: "DLMA", faculty: "RG", room: "503", title: "DLMA (RG)" },
-        // P6 & P7 (2:20 - 4:00): Combined 2-Hour Lab Block
         lab2: {
           periodSpan: [6, 7],
           timeRange: "2:20 TO 4.00",
@@ -89,11 +65,8 @@ export const DEPARTMENT_TIMETABLES = {
         },
       },
       Tuesday: {
-        // P1: IC(KT)
         p1: { type: "theory", subject: "IC", faculty: "KT", room: "503", title: "IC (KT)" },
-        // P2: PS(RM)
         p2: { type: "theory", subject: "PS", faculty: "RM", room: "503", title: "PS (RM)" },
-        // P3 & P4 (11:00 - 1:00): Combined 2-Hour Lab Block
         lab1: {
           periodSpan: [3, 4],
           timeRange: "11:00 TO 1:00",
@@ -103,7 +76,6 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "PY", faculty: "ST", lab: "Lab-413", text: "PY- ST (Lab-413)" },
           },
         },
-        // P5 & P6 (1:30 - 3:10): Combined 2-Hour Lab Block
         lab2: {
           periodSpan: [5, 6],
           timeRange: "1:30 TO 3:10",
@@ -113,15 +85,11 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "ETC", faculty: "MTS", lab: "Lab 512", text: "ETC- MTS (Lab 512)" },
           },
         },
-        // P7: DDSP(ST)
         p7: { type: "theory", subject: "DDSP", faculty: "ST", room: "503", title: "DDSP (ST)" },
       },
       Wednesday: {
-        // P1: ETC(MTS)
         p1: { type: "theory", subject: "ETC", faculty: "MTS", room: "503", title: "ETC (MTS)" },
-        // P2: DS(VP)
         p2: { type: "theory", subject: "DS", faculty: "VP", room: "503", title: "DS (VP)" },
-        // P3 & P4 (11:00 - 1:00): Combined 2-Hour Lab Block
         lab1: {
           periodSpan: [3, 4],
           timeRange: "11:00 TO 1:00",
@@ -131,15 +99,11 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "DS", faculty: "VP", lab: "Lab 415", text: "DS- VP (Lab 415)" },
           },
         },
-        // P5: DDSP(ST)
         p5: { type: "theory", subject: "DDSP", faculty: "ST", room: "503", title: "DDSP (ST)" },
-        // P6: PS(RM) T (Tutorial)
         p6: { type: "tutorial", subject: "PS", faculty: "RM", room: "503", title: "PS (RM) T" },
-        // P7: LIBRARY
         p7: { type: "library", subject: "LIBRARY", faculty: "-", room: "Central Library", title: "LIBRARY" },
       },
       Thursday: {
-        // P1 & P2 (9:00 - 11:00): Combined 2-Hour Lab Block
         lab1: {
           periodSpan: [1, 2],
           timeRange: "9:00 TO 11:00",
@@ -149,27 +113,17 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "DDSP", faculty: "ST", lab: "Lab 415", text: "DDSP-ST (Lab 415)" },
           },
         },
-        // P3: DLMA(RG)
         p3: { type: "theory", subject: "DLMA", faculty: "RG", room: "503", title: "DLMA (RG)" },
-        // P4: ETC(MTS)
         p4: { type: "theory", subject: "ETC", faculty: "MTS", room: "503", title: "ETC (MTS)" },
-        // P5: PS(RM)
         p5: { type: "theory", subject: "PS", faculty: "RM", room: "503", title: "PS (RM)" },
-        // P6: DS(VP)
         p6: { type: "theory", subject: "DS", faculty: "VP", room: "503", title: "DS (VP)" },
-        // P7: LIBRARY
         p7: { type: "library", subject: "LIBRARY", faculty: "-", room: "Central Library", title: "LIBRARY" },
       },
       Friday: {
-        // P1: DDSP(ST)
         p1: { type: "theory", subject: "DDSP", faculty: "ST", room: "503", title: "DDSP (ST)" },
-        // P2: DLMA(RG)
         p2: { type: "theory", subject: "DLMA", faculty: "RG", room: "503", title: "DLMA (RG)" },
-        // P3: PS(RM)
         p3: { type: "theory", subject: "PS", faculty: "RM", room: "503", title: "PS (RM)" },
-        // P4: IC(KT)
         p4: { type: "theory", subject: "IC", faculty: "KT", room: "503", title: "IC (KT)" },
-        // P5 & P6 (1:30 - 3:10): Combined 2-Hour Lab Block
         lab2: {
           periodSpan: [5, 6],
           timeRange: "1:30 TO 3:10",
@@ -179,7 +133,6 @@ export const DEPARTMENT_TIMETABLES = {
             "Sec C": { batch: "Sec C", subject: "DS", faculty: "VP", lab: "Lab 513", text: "DS- VP (Lab 513)" },
           },
         },
-        // P7: DS(VP)
         p7: { type: "theory", subject: "DS", faculty: "VP", room: "503", title: "DS (VP)" },
       },
       Saturday: {
@@ -189,7 +142,6 @@ export const DEPARTMENT_TIMETABLES = {
     },
   },
 
-  // 2. Information Technology (IT) - Synchronized with IT subjects & room allocations
   "Department of Information Technology": {
     deptKey: "IT",
     deptFullName: "DEPARTMENT OF INFORMATION TECHNOLOGY",
@@ -203,14 +155,14 @@ export const DEPARTMENT_TIMETABLES = {
     class: "IT",
     roomNo: "402",
     facultyDirectory: [
-      { code: "VK", name: "Prof. V. Kumar", subject: "Digital Electronics (DE - IT-105)" },
-      { code: "RM", name: "Prof. R. Mishra", subject: "Probability & Statistics (PS - IT-101)" },
-      { code: "MTS", name: "Prof. M. T. Shah", subject: "Effective Technical Communication (ETC - IT-102)" },
-      { code: "PS", name: "Prof. P. Sharma", subject: "Data Structures (DS - IT-103)" },
-      { code: "AK", name: "Dr. A. K. Sharma (HOD)", subject: "Basics of Web Technology (WT - IT-104)" },
-      { code: "RN", name: "Prof. R. Nair", subject: "Python & Scripting Lab (PY)" },
-      { code: "DAS", name: "Prof. D. A. Shah", subject: "Python & Scripting Lab (PY)" },
-      { code: "KT", name: "Prof. K. Tiwari", subject: "Indian Constitution (IC)" },
+      { code: "VK", name: "Prof. V. Kumar", email: "vkumar.it@univ.edu", subject: "Digital Electronics (DE - IT-105)" },
+      { code: "RM", name: "Prof. R. Mishra", email: "rmishra.it@univ.edu", subject: "Probability & Statistics (PS - IT-101)" },
+      { code: "MTS", name: "Prof. M. T. Shah", email: "mtshah.it@univ.edu", subject: "Effective Technical Communication (ETC - IT-102)" },
+      { code: "PS", name: "Prof. P. Sharma", email: "psharma.it@univ.edu", subject: "Data Structures (DS - IT-103)" },
+      { code: "AK", name: "Dr. A. K. Sharma (HOD)", email: "hod.it@univ.edu", subject: "Basics of Web Technology (WT - IT-104)" },
+      { code: "RN", name: "Prof. R. Nair", email: "rnair.it@univ.edu", subject: "Python & Scripting Lab (PY)" },
+      { code: "DAS", name: "Prof. D. A. Shah", email: "dashah.it@univ.edu", subject: "Python & Scripting Lab (PY)" },
+      { code: "KT", name: "Prof. K. Tiwari", email: "ktiwari.it@univ.edu", subject: "Indian Constitution (IC)" },
     ],
     subjectDirectory: [
       { code: "DE", name: "Digital Electronics – Theory & Lab", type: "Theory & Lab" },
@@ -324,7 +276,6 @@ export const DEPARTMENT_TIMETABLES = {
     },
   },
 
-  // 3. Electronics & Communication (ECE) - Synchronized with ECE subjects & circuit/VLSI labs
   "Department of Electronics & Communication": {
     deptKey: "ECE",
     deptFullName: "DEPARTMENT OF ELECTRONICS & COMMUNICATION",
@@ -338,12 +289,12 @@ export const DEPARTMENT_TIMETABLES = {
     class: "ECE",
     roomNo: "301",
     facultyDirectory: [
-      { code: "MS", name: "Dr. Meenakshi Sundaram (HOD)", subject: "Digital System Design (DSD - ECE-104)" },
-      { code: "RK", name: "Prof. R. Kulkarni", subject: "Mathematics-III (M-III - ECE-101) / HDL Lab" },
-      { code: "MTS", name: "Prof. M. T. Shah", subject: "Effective Technical Communication (ETC - ECE-102)" },
-      { code: "AN", name: "Prof. A. Natarajan", subject: "Network Analysis (NA - ECE-103) / HDL Lab" },
-      { code: "SG", name: "Prof. S. Ghosh", subject: "Modern Control Systems (MCS - ECE-105)" },
-      { code: "KT", name: "Prof. K. Tiwari", subject: "Indian Constitution (IC)" },
+      { code: "MS", name: "Dr. Meenakshi Sundaram (HOD)", email: "hod.ece@univ.edu", subject: "Digital System Design (DSD - ECE-104)" },
+      { code: "RK", name: "Prof. R. Kulkarni", email: "rkulkarni.ece@univ.edu", subject: "Mathematics-III (M-III - ECE-101) / HDL Lab" },
+      { code: "MTS", name: "Prof. M. T. Shah", email: "mtshah.ece@univ.edu", subject: "Effective Technical Communication (ETC - ECE-102)" },
+      { code: "AN", name: "Prof. A. Natarajan", email: "anatarajan.ece@univ.edu", subject: "Network Analysis (NA - ECE-103) / HDL Lab" },
+      { code: "SG", name: "Prof. S. Ghosh", email: "sghosh.ece@univ.edu", subject: "Modern Control Systems (MCS - ECE-105)" },
+      { code: "KT", name: "Prof. K. Tiwari", email: "ktiwari.ece@univ.edu", subject: "Indian Constitution (IC)" },
     ],
     subjectDirectory: [
       { code: "DSD", name: "Digital System Design – Theory & VLSI Lab", type: "Theory & Lab" },
@@ -458,31 +409,80 @@ export const DEPARTMENT_TIMETABLES = {
   },
 };
 
-/**
- * Standardize department key lookup
- */
-export function getDepartmentTimetable(deptName) {
-  if (!deptName) return DEPARTMENT_TIMETABLES["Department of Computer Science & Engineering"];
-  
-  if (deptName.includes("Computer") || deptName.includes("CSE")) {
-    return DEPARTMENT_TIMETABLES["Department of Computer Science & Engineering"];
+async function seed() {
+  console.log("Starting Department Timetables and Faculty Seeding...");
+  const hashedPassword = await bcrypt.hash("faculty123", 10);
+
+  try {
+    // 1. Ensure department_timetables table exists
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS public.department_timetables (
+        id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+        department varchar(150) NOT NULL UNIQUE,
+        schedule jsonb NOT NULL,
+        updated_by bigint REFERENCES public.users(id) ON DELETE SET NULL,
+        updated_at timestamptz DEFAULT now()
+      );
+    `);
+    console.log("✓ department_timetables table verified!");
+
+    // 2. Seed default timetables into department_timetables
+    for (const [deptName, schedule] of Object.entries(DEFAULT_TIMETABLES)) {
+      await db.query(
+        `INSERT INTO department_timetables (department, schedule)
+         VALUES ($1, $2)
+         ON CONFLICT (department) DO UPDATE SET schedule = EXCLUDED.schedule;`,
+        [deptName, JSON.stringify(schedule)]
+      );
+      console.log(`✓ Seeded schedule for [${deptName}]`);
+    }
+
+    // 3. Seed all faculty members from the timetables
+    for (const [deptName, sched] of Object.entries(DEFAULT_TIMETABLES)) {
+      for (const fac of sched.facultyDirectory) {
+        if (!fac.email) continue;
+
+        // Skip HOD accounts that already exist to preserve HOD role
+        const existing = await db.query("SELECT id, role FROM users WHERE LOWER(email) = LOWER($1)", [fac.email]);
+
+        let userId;
+        if (existing && existing.length > 0) {
+          userId = existing[0].id;
+          console.log(`- Existing user ${fac.email} (Role: ${existing[0].role})`);
+        } else {
+          const userRes = await db.query(
+            `INSERT INTO users (full_name, email, password, role)
+             VALUES ($1, $2, $3, 'FACULTY')
+             RETURNING id;`,
+            [fac.name, fac.email.toLowerCase(), hashedPassword]
+          );
+          userId = userRes[0].id;
+          console.log(`+ Created faculty user ${fac.name} (${fac.email})`);
+        }
+
+        // Link faculty record
+        const facExist = await db.query("SELECT id FROM faculty WHERE user_id = $1", [userId]);
+        if (facExist && facExist.length > 0) {
+          await db.query(
+            `UPDATE faculty SET department = $1, designation = COALESCE(designation, 'Assistant Professor') WHERE user_id = $2`,
+            [deptName, userId]
+          );
+        } else {
+          await db.query(
+            `INSERT INTO faculty (user_id, department, designation)
+             VALUES ($1, $2, 'Assistant Professor')`,
+            [userId, deptName]
+          );
+        }
+      }
+    }
+
+    console.log("All department timetables and faculty members seeded successfully!");
+    process.exit(0);
+  } catch (err) {
+    console.error("Seeding failed:", err);
+    process.exit(1);
   }
-  if (deptName.includes("Information") || deptName.includes("IT")) {
-    return DEPARTMENT_TIMETABLES["Department of Information Technology"];
-  }
-  if (deptName.includes("Electronics") || deptName.includes("ECE")) {
-    return DEPARTMENT_TIMETABLES["Department of Electronics & Communication"];
-  }
-  return DEPARTMENT_TIMETABLES["Department of Computer Science & Engineering"];
 }
 
-/**
- * Helper to convert Section name to Batch Name
- */
-export function getBatchLabel(section) {
-  const s = (section || "Sec A").trim().toUpperCase();
-  if (s.includes("A") || s === "1") return { section: "Sec A", batch: "Sec A" };
-  if (s.includes("B") || s === "2") return { section: "Sec B", batch: "Sec B" };
-  if (s.includes("C") || s === "3") return { section: "Sec C", batch: "Sec C" };
-  return { section: "Sec A", batch: "Sec A" };
-}
+seed();

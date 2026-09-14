@@ -5,13 +5,12 @@ import { Modal } from "./components/common/Modal";
 import { HodOverviewTab } from "./components/hod/HodOverviewTab";
 import { HodStudentsTab } from "./components/hod/HodStudentsTab";
 import { HodFacultyTab } from "./components/hod/HodFacultyTab";
-import { HodDepartmentsTab } from "./components/hod/HodDepartmentsTab";
 import { HodCoursesTab } from "./components/hod/HodCoursesTab";
 import { HodAnalyticsTab } from "./components/hod/HodAnalyticsTab";
 import { HodReportsTab } from "./components/hod/HodReportsTab";
 import { HodSettingsTab } from "./components/hod/HodSettingsTab";
 import { HodRegistrationRequestsTab } from "./components/hod/HodRegistrationRequestsTab";
-import { StudentTimetableTab } from "./components/student/StudentTimetableTab";
+import { HodTimetableTab } from "./components/hod/HodTimetableTab";
 import { useAuth } from "./hooks/useAuth";
 import { hodService } from "./services/hodService";
 import { courseService } from "./services/courseService";
@@ -136,7 +135,6 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     { id: "dashboard", altId: "overview", label: "Dashboard", icon: "dashboard", badge: "Live" },
     { id: "students", altId: "hall-tickets", label: "Students", icon: "group", count: students.length },
     { id: "faculty", altId: "faculty-gov", label: "Faculty", icon: "supervisor_account", count: faculty.length },
-    { id: "departments", altId: "departments", label: "Departments", icon: "apartment" },
     { id: "timetable", altId: "timetable", label: "Timetable", icon: "calendar_today" },
     { id: "requests", altId: "registration-requests", label: "Register Requests", icon: "how_to_reg", count: pendingRequestsCount || undefined },
     { id: "analytics", altId: "accreditation", label: "Attendance Analytics", icon: "analytics" },
@@ -226,15 +224,6 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         onTabChange={setActiveTab}
         title="LectureLog"
         subtitle={`${hodDept.replace("Department of ", "")} • HOD Office`}
-        actionButton={
-          <button
-            onClick={() => setShowAddStudentModal(true)}
-            className="w-full bg-[#9E3D24] text-white py-2.5 px-4 rounded hover:bg-[#83311C] transition-all flex items-center justify-center gap-2 font-bold text-xs cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">person_add</span>
-            <span>Onboard Student</span>
-          </button>
-        }
       >
         {(activeTab === "dashboard" || activeTab === "overview") && (
           <HodOverviewTab
@@ -243,6 +232,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             facultyCount={faculty.length}
             coursesCount={courses.length}
             onExportLedger={exportFormalLedger}
+            onEditTimetable={() => setActiveTab("timetable")}
           />
         )}
         {(activeTab === "students" || activeTab === "hall-tickets") && (
@@ -260,16 +250,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             onDeleteFaculty={handleDeleteFaculty}
           />
         )}
-        {activeTab === "departments" && (
-          <HodDepartmentsTab
-            departments={departments}
-            students={students}
-            faculty={faculty}
-            courses={courses}
-            stats={stats}
-          />
-        )}
-        {activeTab === "timetable" && <StudentTimetableTab user={user} />}
+        {activeTab === "timetable" && <HodTimetableTab user={user} token={token} />}
         {(activeTab === "requests" || activeTab === "registration-requests") && (
           <HodRegistrationRequestsTab
             token={token}
