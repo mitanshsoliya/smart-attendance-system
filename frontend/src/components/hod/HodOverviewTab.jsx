@@ -25,7 +25,7 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
             Department Operational Readiness & Accreditation Index
           </h1>
           <p className="text-xs text-[#555E68] mt-1 max-w-3xl leading-relaxed">
-            The Department of Computer Science & Engineering is operating at{" "}
+            The {stats?.department || "Academic Department"} is operating at{" "}
             <strong className="text-[#2E6B34]">{aggregatePct}% aggregate statutory attendance</strong>. Candidates meeting statutory standards are cleared for hall-ticket issuance under University Ordinance §42.1.
           </p>
         </div>

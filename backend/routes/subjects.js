@@ -23,6 +23,16 @@ router.get("/", async (req, res) => {
         filterClause = "WHERE s.department = $1 OR s.faculty_id = $2";
         params = [facRows[0].department, facRows[0].id];
       }
+    } else if (req.user.role === "HOD") {
+      let hodDept = req.user.department;
+      if (!hodDept) {
+        const facRows = await db.query("SELECT department FROM faculty WHERE user_id = $1", [req.user.id]);
+        hodDept = facRows && facRows[0]?.department ? facRows[0].department : null;
+      }
+      if (hodDept) {
+        filterClause = "WHERE s.department = $1";
+        params = [hodDept];
+      }
     }
 
     const sql = `
@@ -125,7 +135,15 @@ router.post("/", requireFacultyOrHod, async (req, res) => {
 
   const cleanCode = String(subject_code).trim().toUpperCase();
   const cleanName = String(subject_name).trim();
-  const cleanDept = department ? String(department).trim() : "Department of Computer Science & Engineering";
+  let cleanDept = department ? String(department).trim() : "Department of Computer Science & Engineering";
+  if (req.user.role === "HOD") {
+    let hodDept = req.user.department;
+    if (!hodDept) {
+      const facRows = await db.query("SELECT department FROM faculty WHERE user_id = $1", [req.user.id]);
+      hodDept = facRows && facRows[0]?.department ? facRows[0].department : null;
+    }
+    if (hodDept) cleanDept = hodDept;
+  }
   const cleanCredits = credit_hours ? Number(credit_hours) : 3;
 
   try {

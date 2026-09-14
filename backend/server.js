@@ -60,6 +60,10 @@ app.use("/hod", hodRoute);
 const usersRoute = require("./routes/users");
 app.use("/users", usersRoute);
 
+// Academic Timetables Route
+const timetablesRoute = require("./routes/timetables");
+app.use("/timetables", timetablesRoute);
+
 // Verify the database before accepting API traffic.
 db.connect((err) => {
   if (err) {

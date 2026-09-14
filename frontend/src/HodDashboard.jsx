@@ -11,6 +11,7 @@ import { HodAnalyticsTab } from "./components/hod/HodAnalyticsTab";
 import { HodReportsTab } from "./components/hod/HodReportsTab";
 import { HodSettingsTab } from "./components/hod/HodSettingsTab";
 import { HodRegistrationRequestsTab } from "./components/hod/HodRegistrationRequestsTab";
+import { StudentTimetableTab } from "./components/student/StudentTimetableTab";
 import { useAuth } from "./hooks/useAuth";
 import { hodService } from "./services/hodService";
 import { courseService } from "./services/courseService";
@@ -26,7 +27,8 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
   const [departments, setDepartments] = useState([]);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
-  // Modals
+  const hodDept = stats?.department || user?.department || user?.profile?.department || "Department of Computer Science & Engineering";
+
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [newStudentForm, setNewStudentForm] = useState({
     fullName: "",
@@ -35,7 +37,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     rollNumber: "",
     studentPhone: "",
     parentPhone: "",
-    department: "Department of Computer Science & Engineering",
+    department: hodDept,
     section: "Sec A",
   });
   const [showAddFacultyModal, setShowAddFacultyModal] = useState(false);
@@ -44,7 +46,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     email: "",
     password: "faculty123",
     contactNo: "",
-    department: "Department of Computer Science & Engineering",
+    department: hodDept,
     designation: "Assistant Professor",
   });
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
@@ -52,8 +54,16 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     subject_code: "",
     subject_name: "",
     credit_hours: "4",
-    department: "Department of Computer Science & Engineering",
+    department: hodDept,
   });
+
+  useEffect(() => {
+    if (hodDept) {
+      setNewStudentForm((prev) => ({ ...prev, department: hodDept }));
+      setNewFacultyForm((prev) => ({ ...prev, department: hodDept }));
+      setNewCourseForm((prev) => ({ ...prev, department: hodDept }));
+    }
+  }, [hodDept]);
 
   const fetchAllData = useCallback(async () => {
     if (!token) return;
@@ -127,6 +137,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     { id: "students", altId: "hall-tickets", label: "Students", icon: "group", count: students.length },
     { id: "faculty", altId: "faculty-gov", label: "Faculty", icon: "supervisor_account", count: faculty.length },
     { id: "departments", altId: "departments", label: "Departments", icon: "apartment" },
+    { id: "timetable", altId: "timetable", label: "Timetable", icon: "calendar_today" },
     { id: "requests", altId: "registration-requests", label: "Register Requests", icon: "how_to_reg", count: pendingRequestsCount || undefined },
     { id: "analytics", altId: "accreditation", label: "Attendance Analytics", icon: "analytics" },
     { id: "reports", altId: "dean-dossier", label: "Reports", icon: "assessment" },
@@ -214,7 +225,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         activeTab={activeTab}
         onTabChange={setActiveTab}
         title="LectureLog"
-        subtitle="Office of the HOD"
+        subtitle={`${hodDept.replace("Department of ", "")} • HOD Office`}
         actionButton={
           <button
             onClick={() => setShowAddStudentModal(true)}
@@ -258,6 +269,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             stats={stats}
           />
         )}
+        {activeTab === "timetable" && <StudentTimetableTab user={user} />}
         {(activeTab === "requests" || activeTab === "registration-requests") && (
           <HodRegistrationRequestsTab
             token={token}
@@ -268,7 +280,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
           <HodAnalyticsTab students={students} />
         )}
         {(activeTab === "reports" || activeTab === "dean-dossier") && (
-          <HodReportsTab students={students} onExportLedger={exportFormalLedger} />
+          <HodReportsTab students={students} onExportLedger={exportFormalLedger} department={hodDept} />
         )}
         {(activeTab === "settings" || activeTab === "governance") && <HodSettingsTab />}
 
@@ -351,15 +363,13 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
-              <select
-                value={newStudentForm.department}
-                onChange={(e) => setNewStudentForm({ ...newStudentForm, department: e.target.value })}
-                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F]"
-              >
-                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
-                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
-                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
-              </select>
+              <input
+                type="text"
+                readOnly
+                value={hodDept}
+                className="w-full p-2.5 bg-[#F3EFE6] border border-[#D8D2C4] rounded font-semibold text-[#12181F] cursor-not-allowed text-xs"
+              />
+              <span className="text-[10px] text-[#6B7280] mt-0.5 block">Locked to your active department.</span>
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Password *</label>
@@ -439,15 +449,13 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
-              <select
-                value={newFacultyForm.department}
-                onChange={(e) => setNewFacultyForm({ ...newFacultyForm, department: e.target.value })}
-                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F] text-sm"
-              >
-                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
-                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
-                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
-              </select>
+              <input
+                type="text"
+                readOnly
+                value={hodDept}
+                className="w-full p-2.5 bg-[#F3EFE6] border border-[#D8D2C4] rounded font-semibold text-[#12181F] cursor-not-allowed text-xs"
+              />
+              <span className="text-[10px] text-[#6B7280] mt-0.5 block">Locked to your active department.</span>
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Password *</label>
@@ -502,15 +510,13 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             </div>
             <div>
               <label className="block uppercase font-bold text-[#6B7280] mb-1">Academic Department *</label>
-              <select
-                value={newCourseForm.department || "Department of Computer Science & Engineering"}
-                onChange={(e) => setNewCourseForm({ ...newCourseForm, department: e.target.value })}
-                className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded font-semibold text-[#12181F]"
-              >
-                <option value="Department of Computer Science & Engineering">Department of Computer Science & Engineering (CSE)</option>
-                <option value="Department of Information Technology">Department of Information Technology (IT)</option>
-                <option value="Department of Electronics & Communication">Department of Electronics & Communication (ECE)</option>
-              </select>
+              <input
+                type="text"
+                readOnly
+                value={hodDept}
+                className="w-full p-2.5 bg-[#F3EFE6] border border-[#D8D2C4] rounded font-semibold text-[#12181F] cursor-not-allowed text-xs"
+              />
+              <span className="text-[10px] text-[#6B7280] mt-0.5 block">Locked to your active department.</span>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowAddCourseModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded">

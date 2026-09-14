@@ -104,8 +104,13 @@ router.put("/profile", async (req, res) => {
     section,
   } = req.body;
 
-  const cleanStudentPhone = student_phone || studentPhone || phone || null;
-  const cleanParentPhone = parent_phone || parentPhone || null;
+  const hasStudentPhone = student_phone !== undefined || studentPhone !== undefined || phone !== undefined;
+  const rawStudentPhone = student_phone !== undefined ? student_phone : (studentPhone !== undefined ? studentPhone : phone);
+  const cleanStudentPhone = rawStudentPhone !== null && rawStudentPhone !== undefined ? String(rawStudentPhone).trim() : null;
+
+  const hasParentPhone = parent_phone !== undefined || parentPhone !== undefined;
+  const rawParentPhone = parent_phone !== undefined ? parent_phone : parentPhone;
+  const cleanParentPhone = rawParentPhone !== null && rawParentPhone !== undefined ? String(rawParentPhone).trim() : null;
 
   // 1. Enforce immutability of institutional governance fields
   if (role && String(role).toUpperCase() !== "STUDENT") {
@@ -155,14 +160,41 @@ router.put("/profile", async (req, res) => {
     // 4. Update student_phone and parent_phone in students table
     const stExists = await db.query("SELECT id FROM students WHERE user_id = $1", [req.user.id]);
     if (stExists && stExists.length > 0) {
-      await db.query(
-        "UPDATE students SET student_phone = COALESCE($1, student_phone), parent_phone = COALESCE($2, parent_phone) WHERE user_id = $3",
-        [cleanStudentPhone ? String(cleanStudentPhone).trim() : null, cleanParentPhone ? String(cleanParentPhone).trim() : null, req.user.id]
-      );
+      const updates = [];
+      const params = [];
+      let idx = 1;
+
+      if (hasStudentPhone) {
+        updates.push(`student_phone = $${idx++}`);
+        params.push(cleanStudentPhone);
+      }
+      if (hasParentPhone) {
+        updates.push(`parent_phone = $${idx++}`);
+        params.push(cleanParentPhone);
+      }
+      if (settings !== undefined) {
+        updates.push(`settings = $${idx++}`);
+        params.push(typeof settings === "object" ? JSON.stringify(settings) : String(settings));
+      }
+
+      if (updates.length > 0) {
+        params.push(req.user.id);
+        await db.query(
+          `UPDATE students SET ${updates.join(", ")} WHERE user_id = $${idx}`,
+          params
+        );
+      }
     } else {
       await db.query(
-        "INSERT INTO students (user_id, student_phone, parent_phone) VALUES ($1, $2, $3)",
-        [req.user.id, cleanStudentPhone ? String(cleanStudentPhone).trim() : null, cleanParentPhone ? String(cleanParentPhone).trim() : null]
+        "INSERT INTO students (user_id, roll_number, section, student_phone, parent_phone, department) VALUES ($1, $2, $3, $4, $5, $6)",
+        [
+          req.user.id,
+          `2026-CSE-${String(req.user.id).padStart(3, "0")}`,
+          "Sec A",
+          cleanStudentPhone || "",
+          cleanParentPhone || "",
+          "Department of Computer Science & Engineering"
+        ]
       );
     }
 

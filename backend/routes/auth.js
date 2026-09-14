@@ -60,11 +60,19 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
     let profile = null;
     if (user.role === "STUDENT") {
       const studentRows = await db.query(
-        "SELECT id, roll_number, section FROM students WHERE user_id = $1",
+        "SELECT id, roll_number, section, student_phone, parent_phone, department FROM students WHERE user_id = $1",
         [user.id]
       );
       if (studentRows && studentRows.length > 0) {
-        profile = studentRows[0];
+        profile = {
+          id: studentRows[0].id,
+          student_id: studentRows[0].id,
+          roll_number: studentRows[0].roll_number || `2024-CSE-${String(studentRows[0].id).padStart(3, "0")}`,
+          section: studentRows[0].section || "Sec A",
+          student_phone: studentRows[0].student_phone || "",
+          parent_phone: studentRows[0].parent_phone || "",
+          department: studentRows[0].department || "Department of Computer Science & Engineering",
+        };
       }
     } else if (user.role === "FACULTY" || user.role === "HOD") {
       const facultyRows = await db.query(
@@ -82,6 +90,7 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
+        department: profile?.department || null,
       },
       jwtSecret,
       {
@@ -97,6 +106,7 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        department: profile?.department || null,
         profile: profile,
       },
     });
@@ -163,6 +173,7 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
         full_name: user.full_name,
         email: user.email,
         role: user.role,
+        department: profile?.department || null,
         created_at: user.created_at,
         profile: profile,
       },

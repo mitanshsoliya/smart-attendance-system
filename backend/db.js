@@ -64,6 +64,7 @@ if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)
       ALTER TABLE public.students ADD COLUMN IF NOT EXISTS student_phone TEXT;
       ALTER TABLE public.students ADD COLUMN IF NOT EXISTS parent_phone TEXT;
       ALTER TABLE public.students ADD COLUMN IF NOT EXISTS department TEXT DEFAULT 'Department of Computer Science & Engineering';
+      ALTER TABLE public.students ADD COLUMN IF NOT EXISTS settings TEXT;
       ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS phone TEXT;
       ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS department VARCHAR(150) DEFAULT 'Department of Computer Science & Engineering';
       ALTER TABLE public.faculty ADD COLUMN IF NOT EXISTS designation VARCHAR(100) DEFAULT 'Assistant Professor';

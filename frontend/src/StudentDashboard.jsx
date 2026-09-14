@@ -76,7 +76,7 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
             onScanQR={() => setShowQRScanner(true)}
           />
         )}
-        {activeTab === "timetable" && <StudentTimetableTab />}
+        {activeTab === "timetable" && <StudentTimetableTab user={user} />}
         {activeTab === "reports" && <StudentReportsTab attendanceRecords={attendanceRecords} />}
         {activeTab === "settings" && <StudentSettingsTab user={user} token={token} />}
 

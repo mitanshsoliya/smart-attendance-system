@@ -251,6 +251,18 @@ router.post("/faculty", requireHod, async (req, res) => {
  */
 router.get("/students", requireFacultyOrHod, async (req, res) => {
   try {
+    let filterClause = "";
+    let params = [];
+    let userDept = req.user.department;
+    if (!userDept && (req.user.role === "HOD" || req.user.role === "FACULTY")) {
+      const facRows = await db.query("SELECT department FROM faculty WHERE user_id = $1", [req.user.id]);
+      userDept = facRows && facRows[0]?.department ? facRows[0].department : null;
+    }
+    if (userDept) {
+      filterClause = "WHERE st.department = $1";
+      params = [userDept];
+    }
+
     const rows = await db.query(`
       SELECT 
         st.id as student_id,
@@ -265,19 +277,22 @@ router.get("/students", requireFacultyOrHod, async (req, res) => {
         u.created_at
       FROM students st
       JOIN users u ON st.user_id = u.id
+      ${filterClause}
       ORDER BY u.full_name ASC
-    `);
+    `, params);
+
+    const deptPrefix = (userDept || "Department of Computer Science & Engineering").includes("Information") ? "IT" : (userDept || "").includes("Electronics") ? "ECE" : "CSE";
 
     const students = (rows || []).map((r, i) => ({
       id: r.student_id,
       userId: r.user_id,
       fullName: r.full_name,
       email: r.email,
-      rollNumber: r.roll_number || `2024-CSE-${String(r.student_id || i + 1).padStart(3, "0")}`,
+      rollNumber: r.roll_number || `2024-${deptPrefix}-${String(r.student_id || i + 1).padStart(3, "0")}`,
       section: r.section || (i % 2 === 0 ? "Sec A" : "Sec B"),
       studentPhone: r.student_phone || "",
       parentPhone: r.parent_phone || "",
-      department: r.department || "Department of Computer Science & Engineering",
+      department: r.department || userDept || "Department of Computer Science & Engineering",
       createdAt: r.created_at,
     }));
 
@@ -293,8 +308,19 @@ router.get("/students", requireFacultyOrHod, async (req, res) => {
  * Permitted roles: HOD
  */
 router.get("/faculty", requireHod, async (req, res) => {
-
   try {
+    let filterClause = "";
+    let params = [];
+    let userDept = req.user.department;
+    if (!userDept) {
+      const facRows = await db.query("SELECT department FROM faculty WHERE user_id = $1", [req.user.id]);
+      userDept = facRows && facRows[0]?.department ? facRows[0].department : null;
+    }
+    if (userDept) {
+      filterClause = "WHERE f.department = $1 AND u.id != $2";
+      params = [userDept, req.user.id];
+    }
+
     const rows = await db.query(`
       SELECT 
         f.id as faculty_id,
@@ -307,8 +333,9 @@ router.get("/faculty", requireHod, async (req, res) => {
         u.created_at
       FROM faculty f
       JOIN users u ON f.user_id = u.id
+      ${filterClause}
       ORDER BY u.full_name ASC
-    `);
+    `, params);
 
     const faculty = (rows || []).map((r) => ({
       id: r.faculty_id,
@@ -316,7 +343,7 @@ router.get("/faculty", requireHod, async (req, res) => {
       fullName: r.full_name,
       email: r.email,
       role: r.role,
-      department: r.department || "Department of Computer Science & Engineering",
+      department: r.department || userDept || "Department of Computer Science & Engineering",
       designation: r.designation || (r.role === "HOD" ? "Professor & HOD" : "Assistant Professor"),
       createdAt: r.created_at,
     }));

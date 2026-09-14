@@ -3,8 +3,12 @@ import { authService } from "../../services/authService";
 
 export function StudentSettingsTab({ user, token }) {
   const [profile, setProfile] = useState(null);
-  const [studentPhone, setStudentPhone] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
+  const [studentPhone, setStudentPhone] = useState(
+    user?.profile?.student_phone || user?.profile?.studentPhone || ""
+  );
+  const [parentPhone, setParentPhone] = useState(
+    user?.profile?.parent_phone || user?.profile?.parentPhone || ""
+  );
   
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,8 +24,8 @@ export function StudentSettingsTab({ user, token }) {
       authService.getStudentProfile(token).then((res) => {
         if (res?.profile) {
           setProfile(res.profile);
-          setStudentPhone(res.profile.studentPhone || "");
-          setParentPhone(res.profile.parentPhone || "");
+          setStudentPhone(res.profile.studentPhone || res.profile.student_phone || "");
+          setParentPhone(res.profile.parentPhone || res.profile.parent_phone || "");
         }
       }).catch((err) => {
         console.error("Failed to load student profile:", err);
@@ -34,14 +38,37 @@ export function StudentSettingsTab({ user, token }) {
     setContactMsg("");
     setSavingContact(true);
     try {
-      await authService.updateStudentProfile(
-        { student_phone: studentPhone, parent_phone: parentPhone },
+      const res = await authService.updateStudentProfile(
+        {
+          student_phone: studentPhone.trim(),
+          parent_phone: parentPhone.trim(),
+          studentPhone: studentPhone.trim(),
+          parentPhone: parentPhone.trim(),
+        },
         token
       );
-      setContactMsg("Contact information updated successfully in institutional database!");
-      // Refresh profile data
-      const refreshed = await authService.getStudentProfile(token);
-      if (refreshed?.profile) setProfile(refreshed.profile);
+      setContactMsg("Emergency & personal contact information updated successfully in institutional database!");
+
+      if (res?.profile) {
+        setProfile(res.profile);
+        setStudentPhone(res.profile.studentPhone || res.profile.student_phone || "");
+        setParentPhone(res.profile.parentPhone || res.profile.parent_phone || "");
+      }
+
+      // Sync with localStorage so dashboard reflects changes instantly
+      try {
+        const stored = JSON.parse(localStorage.getItem("user")) || {};
+        if (stored) {
+          stored.profile = stored.profile || {};
+          stored.profile.student_phone = studentPhone.trim();
+          stored.profile.parent_phone = parentPhone.trim();
+          stored.profile.studentPhone = studentPhone.trim();
+          stored.profile.parentPhone = parentPhone.trim();
+          localStorage.setItem("user", JSON.stringify(stored));
+        }
+      } catch {
+        // ignore storage serialization error
+      }
     } catch (err) {
       setContactMsg(err.response?.data?.message || "Failed to update contact information.");
     } finally {
@@ -80,6 +107,8 @@ export function StudentSettingsTab({ user, token }) {
   const rollToDisplay = profile?.rollNumber || user?.profile?.roll_number || user?.roll_number || "2024-CSE-001";
   const sectionToDisplay = profile?.section || user?.profile?.section || user?.section || "Sec A";
   const deptToDisplay = profile?.department || user?.profile?.department || "Department of Computer Science & Engineering";
+  const currentStdPhone = profile?.studentPhone || profile?.student_phone || studentPhone || "Not Provided";
+  const currentParPhone = profile?.parentPhone || profile?.parent_phone || parentPhone || "Not Provided";
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -118,6 +147,14 @@ export function StudentSettingsTab({ user, token }) {
           <div className="p-3 bg-[#FBF9F5] rounded border border-[#D8D2C4]/60">
             <span className="text-[#6B7280] block font-mono text-[10px] uppercase font-bold">Cohort Section</span>
             <strong className="text-sm text-[#12181F] mt-0.5 block">{sectionToDisplay}</strong>
+          </div>
+          <div className="p-3 bg-[#FBF9F5] rounded border border-[#D8D2C4]/60">
+            <span className="text-[#6B7280] block font-mono text-[10px] uppercase font-bold">Registered Student Contact</span>
+            <strong className="text-sm font-mono text-[#12181F] mt-0.5 block">{currentStdPhone}</strong>
+          </div>
+          <div className="p-3 bg-[#FBF9F5] rounded border border-[#D8D2C4]/60">
+            <span className="text-[#6B7280] block font-mono text-[10px] uppercase font-bold">Emergency / Parent Contact</span>
+            <strong className="text-sm font-mono text-[#9E3D24] mt-0.5 block">{currentParPhone}</strong>
           </div>
           <div className="md:col-span-2 p-3 bg-[#FBF9F5] rounded border border-[#D8D2C4]/60">
             <span className="text-[#6B7280] block font-mono text-[10px] uppercase font-bold">Department</span>
