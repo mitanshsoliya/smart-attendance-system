@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from "react";
 import api, { authHeader } from "../../services/api";
 
-export function FacultySettingsTab({ user }) {
+const DEPARTMENTS = [
+  "Department of Computer Science & Engineering",
+  "Department of Information Technology",
+  "Department of Electronics & Communication",
+];
+
+const DESIGNATIONS = [
+  "Assistant Professor",
+  "Associate Professor",
+  "Professor",
+  "Visiting Faculty",
+];
+
+
+export function FacultySettingsTab({ user, onProfileUpdate }) {
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [department, setDepartment] = useState(user?.profile?.department || user?.department || "Department of Computer Science & Engineering");
   const [designation, setDesignation] = useState(user?.profile?.designation || "Assistant Professor");
@@ -15,7 +29,7 @@ export function FacultySettingsTab({ user }) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) { setLoading(false); return; }
-    api.get("/faculty/profile", { headers: authHeader() })
+    api.get("/faculty/profile", authHeader(token))
       .then((res) => {
         const p = res.data?.profile;
         if (p) {
@@ -43,7 +57,7 @@ export function FacultySettingsTab({ user }) {
           designation: designation.trim(),
           phone: phone.trim(),
         },
-        { headers: authHeader() }
+        authHeader(token)
       );
       if (res.data?.profile) {
         const p = res.data.profile;
@@ -54,6 +68,10 @@ export function FacultySettingsTab({ user }) {
       }
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2500);
+      // Refresh user data everywhere in the app
+      if (onProfileUpdate) {
+        try { await onProfileUpdate(); } catch (_) { /* ignore */ }
+      }
     } catch (err) {
       console.error("Failed to update faculty profile:", err);
       setErrorNotice(err.response?.data?.message || "Failed to save profile. Please try again.");
@@ -113,11 +131,27 @@ export function FacultySettingsTab({ user }) {
         </div>
         <div>
           <label className="block text-xs uppercase font-semibold text-text-stone mb-1">Department</label>
-          <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary" />
+          <select
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary cursor-pointer"
+          >
+            {DEPARTMENTS.map((dept) => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-xs uppercase font-semibold text-text-stone mb-1">Designation</label>
-          <input type="text" value={designation} onChange={(e) => setDesignation(e.target.value)} className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary" />
+          <select
+            value={designation}
+            onChange={(e) => setDesignation(e.target.value)}
+            className="w-full p-2.5 bg-surface border border-border-default rounded text-sm text-primary cursor-pointer"
+          >
+            {DESIGNATIONS.map((desig) => (
+              <option key={desig} value={desig}>{desig}</option>
+            ))}
+          </select>
         </div>
 
         <button
@@ -131,4 +165,3 @@ export function FacultySettingsTab({ user }) {
     </div>
   );
 }
-

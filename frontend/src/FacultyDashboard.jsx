@@ -20,7 +20,7 @@ import { attendanceService } from "./services/attendanceService";
 import api, { authHeader } from "./services/api";
 
 export default function FacultyDashboard({ user: initialUser, token, onLogout, onToggleRole }) {
-  const { user } = useAuth(initialUser, token);
+  const { user, refreshUser } = useAuth(initialUser, token);
   const { lectures, subjects, fetchLectures } = useLectures(token);
   const { courses } = useCourses(token);
 
@@ -408,7 +408,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             onOpenEnrolModal={() => setShowEnrolModal(true)}
           />
         )}
-        {activeTab === "settings" && <FacultySettingsTab user={user} />}
+        {activeTab === "settings" && <FacultySettingsTab user={user} onProfileUpdate={refreshUser} />}
 
         {/* Edit Lecture Modal */}
         <Modal
