@@ -32,6 +32,11 @@ if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)
       connectionString,
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 30000,
+      max: 10,
+    });
+    pool.on("error", (err) => {
+      console.warn("PostgreSQL pool idle connection warning (recovered):", err.message);
     });
     console.log("Database engine: PostgreSQL (Supabase)");
     

@@ -76,11 +76,15 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
       }
     } else if (user.role === "FACULTY" || user.role === "HOD") {
       const facultyRows = await db.query(
-        "SELECT id, department, designation FROM faculty WHERE user_id = $1",
+        "SELECT id, department, designation, phone FROM faculty WHERE user_id = $1",
         [user.id]
       );
       if (facultyRows && facultyRows.length > 0) {
-        profile = facultyRows[0];
+        profile = {
+          ...facultyRows[0],
+          phone: facultyRows[0].phone || "",
+          contactNo: facultyRows[0].phone || "",
+        };
       }
     }
 
@@ -155,7 +159,7 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
       }
     } else if (user.role === "FACULTY" || user.role === "HOD") {
       const facultyRows = await db.query(
-        "SELECT id, department, designation FROM faculty WHERE user_id = $1",
+        "SELECT id, department, designation, phone FROM faculty WHERE user_id = $1",
         [user.id]
       );
       if (facultyRows && facultyRows.length > 0) {
@@ -163,6 +167,8 @@ router.get(["/", "/me"], verifyToken, async (req, res) => {
           faculty_id: facultyRows[0].id,
           department: facultyRows[0].department || "Department of Computer Science & Engineering",
           designation: facultyRows[0].designation || (user.role === "HOD" ? "Professor & HOD" : "Assistant Professor"),
+          phone: facultyRows[0].phone || "",
+          contactNo: facultyRows[0].phone || "",
         };
       }
     }

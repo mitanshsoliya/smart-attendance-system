@@ -35,22 +35,6 @@ export function DashboardLayout({
         </div>
 
         <div className="flex items-center gap-4">
-          {onToggleRole && (
-            <div className="flex items-center bg-surface-container border border-border-default rounded px-2.5 py-1 text-xs font-medium">
-              <span className="text-text-stone mr-1 font-semibold hidden sm:inline">Portal:</span>
-              <select
-                value={user?.role || "STUDENT"}
-                onChange={(e) => onToggleRole(e.target.value)}
-                className="bg-transparent text-primary font-bold cursor-pointer focus:outline-none"
-                title="Switch application portal preview"
-              >
-                <option value="STUDENT">Student Portal</option>
-                <option value="FACULTY">Faculty Portal</option>
-                <option value="HOD">HOD Portal</option>
-              </select>
-            </div>
-          )}
-
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-xs">
               {user?.full_name ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2) : "U"}
