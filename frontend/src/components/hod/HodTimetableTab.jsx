@@ -242,8 +242,8 @@ export function HodTimetableTab({ user, token }) {
         </div>
 
         {/* Matrix Grid */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse text-xs">
+        <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+          <table className="w-full text-center border-collapse text-xs min-w-[720px]">
             <thead>
               <tr className="border-b-2 border-[#0F172A] font-extrabold bg-[#F1F5F9] text-[11px] text-[#0F172A]">
                 <th className="border-r-2 border-[#0F172A] p-2.5 w-28 text-left font-black">Period</th>

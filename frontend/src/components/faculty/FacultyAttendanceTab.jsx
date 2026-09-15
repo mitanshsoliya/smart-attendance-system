@@ -130,7 +130,7 @@ export function FacultyAttendanceTab({
             <img
               src={qr.qr_code}
               alt="QR Code"
-              className={`w-64 h-64 border-4 rounded p-2 transition-all ${
+              className={`w-52 h-52 sm:w-64 sm:h-64 max-w-full aspect-square border-4 rounded p-2 transition-all mx-auto ${
                 isExpired
                   ? "border-[#BA1A1A] opacity-25 grayscale filter blur-[1px]"
                   : "border-secondary"
@@ -278,8 +278,8 @@ export function FacultyAttendanceTab({
               : "No student attendance recorded for this lecture yet. Click \"Start Attendance\" to begin the live QR session."}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[640px]">
               <thead className="bg-surface-container-low text-text-stone uppercase text-[10px] tracking-wider border-b border-border-default">
                 <tr>
                   <th className="py-2.5 px-3">Student Name</th>

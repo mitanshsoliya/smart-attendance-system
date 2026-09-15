@@ -92,19 +92,19 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F0E8] text-[#1C1C1A] flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-[#BA5D3B]/20 selection:text-[#BA5D3B]">
+    <div className="min-h-screen bg-[#F4F0E8] text-[#1C1C1A] flex items-center justify-center p-3 sm:p-6 lg:p-8 selection:bg-[#BA5D3B]/20 selection:text-[#BA5D3B]">
       {/* Main Container Card matching user image */}
-      <div className="w-full max-w-5xl bg-white rounded-[24px] sm:rounded-[28px] shadow-2xl border border-[#EBE6DE] overflow-hidden flex flex-col lg:flex-row my-auto transition-all">
+      <div className="w-full max-w-5xl bg-white rounded-2xl sm:rounded-[28px] shadow-2xl border border-[#EBE6DE] overflow-hidden flex flex-col lg:flex-row my-auto transition-all">
         
         {/* ========================================================
             LEFT COLUMN: BRAND HERO, TEXT & CLASSROOM ILLUSTRATION
            ======================================================== */}
-        <div className="w-full lg:w-1/2 bg-[#F9F6F0] p-6 sm:p-8 lg:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-[#EBE6DE] select-none">
+        <div className="w-full lg:w-1/2 bg-[#F9F6F0] p-5 sm:p-8 lg:p-10 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-[#EBE6DE] select-none">
           <div>
             {/* Logo Header matching image */}
             <div className="flex items-center gap-3">
               {/* Custom SVG Open Book with Clock on right page */}
-              <svg className="w-12 h-12 flex-shrink-0" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Left book leaf */}
                 <path d="M10 44C17 40 25 40 30 44V18C25 14 17 14 10 18V44Z" stroke="#BA5D3B" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="#FAF7F2"/>
                 {/* Left bottom layer */}
@@ -129,19 +129,19 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             </div>
 
             {/* Headline */}
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[#1C1C1A] font-bold leading-[1.2] mt-7 sm:mt-9 mb-3 tracking-tight">
+            <h2 className="font-serif text-xl sm:text-2xl lg:text-4xl text-[#1C1C1A] font-bold leading-[1.25] mt-4 sm:mt-6 lg:mt-9 mb-2 sm:mb-3 tracking-tight">
               Track Lectures,<br />
               Manage Attendance<br />
               Effortlessly
             </h2>
 
             {/* Subtext */}
-            <p className="text-xs sm:text-sm text-[#6F6B63] leading-relaxed max-w-sm mb-6">
+            <p className="text-xs sm:text-sm text-[#6F6B63] leading-relaxed max-w-sm mb-3 sm:mb-6 hidden sm:block">
               A simple and secure platform for faculties and students to manage attendance using smart tools.
             </p>
 
-            {/* 3 Feature Bullets matching image */}
-            <div className="space-y-3 mb-6 sm:mb-8 text-xs sm:text-sm text-[#2E2B27] font-medium">
+            {/* 3 Feature Bullets */}
+            <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-8 text-xs sm:text-sm text-[#2E2B27] font-medium hidden sm:block">
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 flex items-center justify-center flex-shrink-0 text-[#2E2B27]">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,14 +171,13 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             </div>
           </div>
 
-          {/* Classroom Illustration in bottom area */}
-          <div className="mt-auto overflow-hidden rounded-2xl border border-[#E5E0D8]/60 shadow-sm bg-[#FAF8F5]">
+          {/* Classroom Illustration in bottom area - shown on desktop for sleek visual balance */}
+          <div className="mt-auto overflow-hidden rounded-2xl border border-[#E5E0D8]/60 shadow-sm bg-[#FAF8F5] hidden lg:block">
             <img
               src="/classroom_illustration.jpg"
               alt="Classroom Lecture"
               className="w-full h-48 sm:h-52 lg:h-56 object-cover object-center"
               onError={(e) => {
-                // Fallback elegant SVG illustration if image loading is delayed
                 e.target.style.display = "none";
               }}
             />
@@ -188,29 +187,29 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
         {/* ========================================================
             RIGHT COLUMN: WELCOME BACK & LOGIN FORM
            ======================================================== */}
-        <div className="w-full lg:w-1/2 bg-white p-6 sm:p-8 lg:p-12 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 bg-white p-5 sm:p-8 lg:p-12 flex flex-col justify-center">
           
           {/* Header */}
-          <div className="mb-6">
-            <h2 className="font-serif text-3xl sm:text-4xl text-[#1C1C1A] font-bold tracking-tight mb-1">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="font-serif text-2xl sm:text-4xl text-[#1C1C1A] font-bold tracking-tight mb-1">
               Welcome Back
             </h2>
-            <p className="text-sm text-[#6F6B63]">
+            <p className="text-xs sm:text-sm text-[#6F6B63]">
               Sign in to your LectureLog account
             </p>
           </div>
 
-          {/* Quick Demo Autofill Bar for frictionless evaluation */}
+          {/* Quick Demo Autofill Bar with mobile touch scrolling */}
           <div className="mb-5 p-2.5 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider shrink-0">
                 Quick Demo:
               </span>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
                 <button
                   type="button"
                   onClick={() => fillDemo("STUDENT")}
-                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "STUDENT"
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -222,7 +221,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                 <button
                   type="button"
                   onClick={() => fillDemo("FACULTY_CSE")}
-                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "FACULTY" && email.includes("strivedi")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -234,7 +233,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                 <button
                   type="button"
                   onClick={() => fillDemo("FACULTY_IT")}
-                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "FACULTY" && email.includes("vkumar")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -246,7 +245,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                 <button
                   type="button"
                   onClick={() => fillDemo("FACULTY_ECE")}
-                  className={`text-[10px] px-2 py-0.5 rounded font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "FACULTY" && email.includes("rkulkarni")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -259,15 +258,15 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             </div>
 
             {/* Department HOD Options */}
-            <div className="flex items-center justify-between pt-1.5 border-t border-[#E5E0D8]/60">
-              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pt-1.5 border-t border-[#E5E0D8]/60">
+              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider shrink-0">
                 HOD Portals:
               </span>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
                 <button
                   type="button"
                   onClick={() => fillDemo("HOD_CSE")}
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "HOD" && (email.includes("cse") || email.includes("example"))
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -279,7 +278,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                 <button
                   type="button"
                   onClick={() => fillDemo("HOD_IT")}
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "HOD" && email.includes("it")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -291,7 +290,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                 <button
                   type="button"
                   onClick={() => fillDemo("HOD_ECE")}
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-semibold transition-colors cursor-pointer ${
+                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
                     role === "HOD" && email.includes("ece")
                       ? "bg-[#BA5D3B] text-white"
                       : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
@@ -397,7 +396,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your registered email"
-                  className="w-full bg-transparent border-none outline-none text-sm text-[#1C1C1A] placeholder:text-[#969189]"
+                  className="w-full bg-transparent border-none outline-none text-base sm:text-sm text-[#1C1C1A] placeholder:text-[#969189]"
                   disabled={loading}
                 />
               </div>
@@ -421,7 +420,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full bg-transparent border-none outline-none text-sm text-[#1C1C1A] placeholder:text-[#969189]"
+                  className="w-full bg-transparent border-none outline-none text-base sm:text-sm text-[#1C1C1A] placeholder:text-[#969189]"
                   disabled={loading}
                 />
                 <button
@@ -448,7 +447,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-[#BA5D3B] hover:bg-[#A34F30] text-white rounded-xl font-medium text-base transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full min-h-[46px] py-3 px-4 bg-[#BA5D3B] hover:bg-[#A34F30] active:scale-[0.99] text-white rounded-xl font-medium text-base transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -466,6 +465,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
               )}
             </button>
           </form>
+
 
           {/* OR Divider */}
           <div className="relative my-6 flex items-center justify-center">

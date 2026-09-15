@@ -249,8 +249,8 @@ export function StudentTimetableTab({ user, token }) {
         </div>
 
         {/* Schedule Matrix Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse text-xs">
+        <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+          <table className="w-full text-center border-collapse text-xs min-w-[720px]">
             <thead>
               {/* Row 1: Period Numbers */}
               <tr className="border-b-2 border-primary/80 font-bold bg-surface-container-low/80 text-[11px]">

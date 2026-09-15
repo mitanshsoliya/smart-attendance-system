@@ -4,7 +4,7 @@ export function DashboardLayout({
   user,
   onLogout,
   onToggleRole,
-  navItems,
+  navItems = [],
   activeTab,
   onTabChange,
   title = "LectureLog",
@@ -14,65 +14,88 @@ export function DashboardLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // For bottom navigation on mobile (first 4 items)
+  const bottomNavItems = navItems.slice(0, 4);
+
   return (
-    <div className="min-h-screen bg-background text-on-background font-body">
+    <div className="min-h-screen bg-background text-on-background font-body flex flex-col">
       {/* Top Header */}
-      <header className="h-16 border-b border-border-default px-4 md:px-8 flex items-center justify-between sticky top-0 bg-surface-bright/90 backdrop-blur-md z-40">
-        <div className="flex items-center gap-3">
+      <header className="h-16 border-b border-border-default px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 bg-surface-bright/95 backdrop-blur-md z-40">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-primary p-2 cursor-pointer rounded hover:bg-surface-container"
-            title="Toggle Menu"
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden text-primary p-2 -ml-1 cursor-pointer rounded-lg hover:bg-surface-container active:scale-95 transition-transform"
+            aria-label="Open Navigation Menu"
           >
-            <span className="material-symbols-outlined text-2xl">
-              {mobileMenuOpen ? "close" : "menu"}
-            </span>
+            <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
 
-          <span className="font-greeting-serif text-2xl tracking-tight text-primary font-bold hidden sm:inline">
-            {title}
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-greeting-serif text-xl sm:text-2xl tracking-tight text-primary font-bold">
+              {title}
+            </span>
+            {user?.role && (
+              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 sm:hidden">
+                {user.role}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-xs">
+            <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-xs shadow-sm">
               {user?.full_name ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2) : "U"}
             </div>
-            <span className="text-xs font-bold text-primary hidden md:inline">
-              {user?.full_name || "User"}
-            </span>
+            <div className="hidden md:flex flex-col">
+              <span className="text-xs font-bold text-primary leading-tight">
+                {user?.full_name || "User"}
+              </span>
+              <span className="text-[10px] text-text-stone capitalize leading-none">
+                {user?.role || "Student"}
+              </span>
+            </div>
           </div>
 
           <button
             onClick={onLogout}
-            className="p-1.5 text-text-muted hover:text-error hover:bg-error-container/20 rounded transition-colors cursor-pointer"
+            className="p-1.5 sm:px-2.5 sm:py-1 text-text-muted hover:text-error hover:bg-error-container/20 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
             title="Sign out"
           >
             <span className="material-symbols-outlined text-[20px]">logout</span>
+            <span className="text-xs font-medium hidden sm:inline">Logout</span>
           </button>
         </div>
       </header>
 
       {/* Sidebar Navigation */}
       <nav
-        className={`bg-surface-warm h-screen w-64 fixed left-0 top-0 border-r border-border-default flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out ${
+        className={`bg-surface-warm h-screen w-72 sm:w-64 fixed left-0 top-0 border-r border-border-default flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="flex flex-col">
-          <div className="h-16 px-6 flex flex-col justify-center border-b border-border-default">
-            <span className="font-greeting-serif text-headline-md tracking-tight text-on-surface leading-none font-bold">
-              {title}
-            </span>
-            <span className="font-label-sm text-[10px] text-text-stone tracking-wider uppercase mt-1">
-              {subtitle}
-            </span>
+        <div className="flex flex-col h-full">
+          <div className="h-16 px-5 sm:px-6 flex items-center justify-between border-b border-border-default">
+            <div>
+              <span className="font-greeting-serif text-headline-md tracking-tight text-on-surface leading-none font-bold block">
+                {title}
+              </span>
+              <span className="font-label-sm text-[10px] text-text-stone tracking-wider uppercase mt-1 block">
+                {subtitle}
+              </span>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="md:hidden p-1.5 text-text-muted hover:text-primary rounded-lg hover:bg-surface-container"
+              aria-label="Close Navigation Menu"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
           </div>
 
           {actionButton && <div className="p-4 border-b border-border-default">{actionButton}</div>}
 
-          <div className="py-3 flex flex-col overflow-y-auto max-h-[calc(100vh-200px)]">
+          <div className="py-3 flex-1 overflow-y-auto custom-scrollbar">
             {navItems.map((item) => {
               const isActive = activeTab === item.id || activeTab === item.altId;
               return (
@@ -82,7 +105,7 @@ export function DashboardLayout({
                     onTabChange(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`px-6 py-2.5 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center justify-between gap-3 ${
+                  className={`w-full px-5 sm:px-6 py-3 font-label-md text-label-md text-left transition-colors border-l-4 cursor-pointer flex items-center justify-between gap-3 ${
                     isActive
                       ? "border-secondary bg-surface-container text-on-surface font-semibold"
                       : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface border-transparent"
@@ -90,7 +113,7 @@ export function DashboardLayout({
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                    <span>{item.label}</span>
+                    <span className="text-sm">{item.label}</span>
                   </div>
                   {item.badge && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded font-bold bg-success/20 text-success">
@@ -101,21 +124,65 @@ export function DashboardLayout({
               );
             })}
           </div>
+
+          {/* User profile info in drawer footer for mobile */}
+          <div className="p-4 border-t border-border-default bg-surface-container/50">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-bold text-xs">
+                {user?.full_name ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2) : "U"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-primary truncate">{user?.full_name || "User"}</p>
+                <p className="text-[11px] text-text-stone truncate">{user?.email || ""}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile Drawer Backdrop Overlay */}
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-xs transition-opacity"
         />
       )}
 
       {/* Main Workspace Canvas */}
-      <main className="md:ml-64 p-4 md:p-8 max-w-[1400px] mx-auto min-h-screen pb-24">
+      <main className="md:ml-64 px-3.5 py-4 sm:px-6 sm:py-6 md:p-8 max-w-[1400px] mx-auto w-full flex-1 pb-20 md:pb-12">
         {children}
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {bottomNavItems.length > 1 && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-bright/95 backdrop-blur-md border-t border-border-default z-30 flex items-center justify-around px-2 py-1.5 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+          {bottomNavItems.map((item) => {
+            const isActive = activeTab === item.id || activeTab === item.altId;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id)}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg text-[10px] font-medium transition-colors flex-1 ${
+                  isActive
+                    ? "text-secondary font-bold"
+                    : "text-text-muted hover:text-primary"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[22px]">{item.icon}</span>
+                <span className="truncate max-w-[64px]">{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center py-1 px-2 rounded-lg text-[10px] font-medium text-text-muted hover:text-primary flex-1"
+          >
+            <span className="material-symbols-outlined text-[22px]">more_horiz</span>
+            <span>More</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
+
