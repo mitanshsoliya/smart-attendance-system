@@ -16,7 +16,7 @@ import { hodService } from "./services/hodService";
 import { courseService } from "./services/courseService";
 
 export default function HodDashboard({ user: initialUser, token, onLogout, onToggleRole }) {
-  const { user } = useAuth(initialUser, token);
+  const { user, refreshUser } = useAuth(initialUser, token);
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const [stats, setStats] = useState(null);
@@ -280,7 +280,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         {(activeTab === "reports" || activeTab === "dean-dossier") && (
           <HodReportsTab students={students} onExportLedger={exportFormalLedger} department={hodDept} />
         )}
-        {(activeTab === "settings" || activeTab === "governance") && <HodSettingsTab />}
+        {(activeTab === "settings" || activeTab === "governance") && <HodSettingsTab user={user} onProfileUpdate={refreshUser} />}
 
         {/* Add Student Modal */}
         <Modal
