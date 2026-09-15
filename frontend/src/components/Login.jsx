@@ -19,40 +19,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
     if (message) setMessage("");
   }, [email, password, role]);
 
-  const fillDemo = (demoRole) => {
-    if (onClearNotice) onClearNotice();
-    setMessage("");
 
-    if (demoRole === "STUDENT") {
-      setRole("STUDENT");
-      setEmail("student.cse@univ.edu");
-      setPassword("student123");
-    } else if (demoRole === "FACULTY_CSE") {
-      setRole("FACULTY");
-      setEmail("strivedi.cse@univ.edu");
-      setPassword("faculty123");
-    } else if (demoRole === "FACULTY_IT") {
-      setRole("FACULTY");
-      setEmail("vkumar.it@univ.edu");
-      setPassword("faculty123");
-    } else if (demoRole === "FACULTY_ECE" || demoRole === "FACULTY") {
-      setRole("FACULTY");
-      setEmail("rkulkarni.ece@univ.edu");
-      setPassword("faculty123");
-    } else if (demoRole === "HOD_IT") {
-      setRole("HOD");
-      setEmail("hod.it@univ.edu");
-      setPassword("hod123");
-    } else if (demoRole === "HOD_ECE") {
-      setRole("HOD");
-      setEmail("hod.ece@univ.edu");
-      setPassword("hod123");
-    } else {
-      setRole("HOD");
-      setEmail("hod.cse@univ.edu");
-      setPassword("hod123");
-    }
-  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -199,109 +166,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             </p>
           </div>
 
-          {/* Quick Demo Autofill Bar with mobile touch scrolling */}
-          <div className="mb-5 p-2.5 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider shrink-0">
-                Quick Demo:
-              </span>
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-                <button
-                  type="button"
-                  onClick={() => fillDemo("STUDENT")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "STUDENT"
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Demo CSE Student"
-                >
-                  Student
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("FACULTY_CSE")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "FACULTY" && email.includes("strivedi")
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Prof. S. Trivedi (CSE Faculty)"
-                >
-                  CSE Fac (ST)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("FACULTY_IT")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "FACULTY" && email.includes("vkumar")
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Prof. V. Kumar (IT Faculty)"
-                >
-                  IT Fac (VK)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("FACULTY_ECE")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "FACULTY" && email.includes("rkulkarni")
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Prof. R. Kulkarni (ECE Faculty)"
-                >
-                  ECE Fac (RK)
-                </button>
-              </div>
-            </div>
 
-            {/* Department HOD Options */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pt-1.5 border-t border-[#E5E0D8]/60">
-              <span className="text-[10px] font-bold text-[#8C8275] uppercase tracking-wider shrink-0">
-                HOD Portals:
-              </span>
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
-                <button
-                  type="button"
-                  onClick={() => fillDemo("HOD_CSE")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "HOD" && (email.includes("cse") || email.includes("example"))
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Department of Computer Science & Engineering HOD"
-                >
-                  CSE HOD
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("HOD_IT")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "HOD" && email.includes("it")
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Department of Information Technology HOD"
-                >
-                  IT HOD
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo("HOD_ECE")}
-                  className={`text-[11px] sm:text-[10px] px-2.5 py-1 sm:py-0.5 rounded-md font-semibold transition-colors shrink-0 cursor-pointer ${
-                    role === "HOD" && email.includes("ece")
-                      ? "bg-[#BA5D3B] text-white"
-                      : "bg-white text-[#6F6B63] border border-[#E5E0D8] hover:bg-stone-50"
-                  }`}
-                  title="Department of Electronics & Communication HOD"
-                >
-                  ECE HOD
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Select Your Role Segmented Container */}
           <div className="mb-5">
