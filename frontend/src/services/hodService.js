@@ -66,8 +66,20 @@ export const hodService = {
     return data;
   },
 
-  async approveRegistrationRequest(id, token) {
-    const { data } = await api.post(`/hod/registration-requests/${id}/approve`, {}, authHeader(token));
+  async approveRegistrationRequest(id, payloadOrToken, maybeToken) {
+    let body = {};
+    let token = maybeToken;
+    if (typeof payloadOrToken === "string" && !maybeToken) {
+      token = payloadOrToken;
+      body = {};
+    } else if (typeof payloadOrToken === "string" && maybeToken) {
+      body = { section: payloadOrToken };
+      token = maybeToken;
+    } else if (typeof payloadOrToken === "object") {
+      body = payloadOrToken || {};
+      token = maybeToken;
+    }
+    const { data } = await api.post(`/hod/registration-requests/${id}/approve`, body, authHeader(token));
     return data;
   },
 

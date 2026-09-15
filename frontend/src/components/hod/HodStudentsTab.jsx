@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onExportLedger }) {
+export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUpdateSection, onExportLedger }) {
   const [search, setSearch] = useState("");
 
   const filtered = (students || []).filter((s) => {
@@ -88,8 +88,24 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onEx
                       <div className="text-xs font-mono font-normal text-[#6B7280]">{roll} • {s.email}</div>
                     </td>
                     <td className="py-3.5 px-4 text-xs font-semibold text-[#555E68]">
-                      <div>{s.section || "Sec A"}</div>
-                      <div className="text-[11px] font-normal text-[#6B7280]">{dept}</div>
+                      {onUpdateSection ? (
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={s.section || "Sec A"}
+                            onChange={(e) => onUpdateSection(s.id, e.target.value)}
+                            className="py-1 px-2 bg-white border border-[#D8D2C4] hover:border-[#9E3D24] rounded text-xs font-bold text-[#12181F] cursor-pointer focus:outline-none focus:border-[#9E3D24]"
+                            title="Assign Cohort Section (HOD Exclusive)"
+                          >
+                            <option value="Sec A">Sec A</option>
+                            <option value="Sec B">Sec B</option>
+                            <option value="Sec C">Sec C</option>
+                            <option value="Sec D">Sec D</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div>{s.section || "Sec A"}</div>
+                      )}
+                      <div className="text-[11px] font-normal text-[#6B7280] mt-0.5">{dept}</div>
                     </td>
                     <td className="py-3.5 px-4 font-mono text-xs font-semibold text-[#12181F]">{stdPhone}</td>
                     <td className="py-3.5 px-4 font-mono text-xs text-[#6B7280]">{parPhone}</td>

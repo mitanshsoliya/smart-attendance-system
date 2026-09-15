@@ -29,7 +29,7 @@ export function StudentOverviewTab({ user, attendanceRecords, courses, onScanQR,
             Welcome back, {user?.full_name || "Student"}!
           </h1>
           <p className="text-sm text-[#555E68] mt-1">
-            Roll Number: <strong className="font-mono text-[#12181F]">{user?.roll_number || "2024-CSE-001"}</strong> • Section: <strong className="text-[#12181F]">{user?.section || "Sec A"}</strong>
+            Roll Number: <strong className="font-mono text-[#12181F]">{user?.roll_number || user?.profile?.roll_number || "2024-CSE-001"}</strong> • Section: <strong className="text-[#12181F]">{user?.section || user?.profile?.section || "Sec A"}</strong>
           </p>
         </div>
         <button

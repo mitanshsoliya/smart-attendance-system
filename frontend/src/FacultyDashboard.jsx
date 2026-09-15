@@ -132,12 +132,12 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     }
   }, [selectedLectureId, activeTab]);
 
-  // Live polling: refresh roster every 4 seconds while QR broadcast is actively running
+  // Live polling: refresh roster every 2 seconds while QR broadcast is actively running
   useEffect(() => {
     if (!qr || remaining <= 0) return;
     const interval = setInterval(() => {
       fetchLectureAttendance(qr.lecture_id || selectedLectureId);
-    }, 4000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [qr, remaining, selectedLectureId]);
 
@@ -161,6 +161,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
       setRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          // On natural expiration, immediately fetch attendance to display absent students
+          fetchLectureAttendance(qr.lecture_id || selectedLectureId);
           return 0;
         }
         return prev - 1;
@@ -168,7 +170,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [qr, remaining]);
+  }, [qr, remaining, selectedLectureId]);
 
   const handleGenerateQR = async (lectureId, radius) => {
     const targetId = lectureId || selectedLectureId || (lectures[0] && lectures[0].id);
@@ -228,16 +230,59 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const handleStopQR = async () => {
     if (!qr) return;
     setStoppingQr(true);
+    const targetLecId = qr.lecture_id || selectedLectureId;
     try {
-      await lectureService.stopQrSession(qr.session_token, qr.lecture_id, token);
+      await lectureService.stopQrSession(qr.session_token, targetLecId, token);
       // Immediately set remaining to 0 so UI reflects expired state
       setRemaining(0);
+      // Immediately fetch attendance to display newly marked ABSENT students
+      await fetchLectureAttendance(targetLecId);
     } catch (err) {
       console.error("Failed to stop QR session:", err);
       // Even if network fails, expire locally to stop displaying valid QR
       setRemaining(0);
+      await fetchLectureAttendance(targetLecId);
     } finally {
       setStoppingQr(false);
+    }
+  };
+
+  const handleUpdateAttendanceStatus = async (studentId, newStatus, attendanceId, targetLectureIdOverride) => {
+    const targetLecId = targetLectureIdOverride || selectedLectureId || (qr && qr.lecture_id) || (lectures[0] && lectures[0].id);
+    if (!targetLecId) return;
+
+    // Optimistic UI update
+    setLectureAttendance((prev) =>
+      prev.map((att) =>
+        String(att.student_id) === String(studentId)
+          ? {
+              ...att,
+              status: newStatus,
+              attendance_time: newStatus === "PRESENT" ? (att.attendance_time || new Date().toISOString()) : null,
+              distance_meters: newStatus === "PRESENT" ? (att.distance_meters !== null ? att.distance_meters : 0) : null,
+              location_verified: newStatus === "PRESENT",
+            }
+          : att
+      )
+    );
+
+    try {
+      await attendanceService.updateAttendanceStatus(
+        {
+          lectureId: targetLecId,
+          studentId,
+          attendanceId,
+          status: newStatus,
+        },
+        token
+      );
+      // Re-fetch to guarantee database sync
+      await fetchLectureAttendance(targetLecId);
+    } catch (err) {
+      console.error("Failed to update student attendance status:", err);
+      alert(err.response?.data?.message || "Failed to update attendance status.");
+      // Rollback
+      fetchLectureAttendance(targetLecId);
     }
   };
 
@@ -343,11 +388,20 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             attendanceRoster={lectureAttendance}
             loadingAttendance={loadingAttendance}
             onRefreshAttendance={() => fetchLectureAttendance(selectedLectureId)}
+            isSessionActive={Boolean(qr && remaining > 0)}
+            isSessionExpired={Boolean(qr && remaining <= 0)}
+            onUpdateStatus={handleUpdateAttendanceStatus}
           />
         )}
 
         {activeTab === "schedule" && <FacultyScheduleTab user={user} token={token} />}
-        {activeTab === "reports" && <FacultyReportsTab lectures={lectures} />}
+        {activeTab === "reports" && (
+          <FacultyReportsTab
+            lectures={lectures}
+            token={token}
+            onUpdateStatus={handleUpdateAttendanceStatus}
+          />
+        )}
         {activeTab === "students" && (
           <FacultyStudentsTab
             studentRoster={studentRoster}

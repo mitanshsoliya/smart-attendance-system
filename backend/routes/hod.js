@@ -868,10 +868,16 @@ router.post("/registration-requests/:id/approve", async (req, res) => {
     }
 
     // 2. Link student or faculty profile
+    let assignedSection = null;
     if (cleanRole === "STUDENT") {
       const deptPrefix = cleanDept.includes("Information") ? "IT" : cleanDept.includes("Electronics") ? "ECE" : "CSE";
       const cleanRoll = reg.roll_number || `2026-${deptPrefix}-${Math.floor(100 + Math.random() * 900)}`;
-      const cleanSec = reg.section || "Sec A";
+
+      // Department HOD decides which section the student belongs to
+      assignedSection = (req.body && (req.body.section || req.body.cohort_section))
+        ? String(req.body.section || req.body.cohort_section).trim()
+        : (reg.section && reg.section !== "Pending HOD Allocation" ? reg.section : "Sec A");
+
       const cleanStdPhone = reg.student_phone || null;
       const cleanParPhone = reg.parent_phone || null;
 
@@ -879,12 +885,12 @@ router.post("/registration-requests/:id/approve", async (req, res) => {
       if (!existingStd || existingStd.length === 0) {
         await db.query(
           "INSERT INTO students (user_id, roll_number, section, student_phone, parent_phone, department) VALUES ($1, $2, $3, $4, $5, $6)",
-          [userId, cleanRoll, cleanSec, cleanStdPhone, cleanParPhone, cleanDept]
+          [userId, cleanRoll, assignedSection, cleanStdPhone, cleanParPhone, cleanDept]
         );
       } else {
         await db.query(
           "UPDATE students SET roll_number = $1, section = $2, student_phone = $3, parent_phone = $4, department = $5 WHERE user_id = $6",
-          [cleanRoll, cleanSec, cleanStdPhone, cleanParPhone, cleanDept, userId]
+          [cleanRoll, assignedSection, cleanStdPhone, cleanParPhone, cleanDept, userId]
         );
       }
     } else if (cleanRole === "FACULTY") {
@@ -905,14 +911,19 @@ router.post("/registration-requests/:id/approve", async (req, res) => {
       }
     }
 
-    // 3. Mark request as APPROVED
-    await db.query("UPDATE registration_requests SET status = 'APPROVED' WHERE id = $1", [reqId]);
+    // 3. Mark request as APPROVED and persist HOD-assigned section
+    if (assignedSection) {
+      await db.query("UPDATE registration_requests SET status = 'APPROVED', section = $1 WHERE id = $2", [assignedSection, reqId]);
+    } else {
+      await db.query("UPDATE registration_requests SET status = 'APPROVED' WHERE id = $1", [reqId]);
+    }
 
     res.json({
-      message: `${cleanRole === "STUDENT" ? "Student" : "Faculty"} account approved and onboarded successfully into ${cleanDept}.`,
+      message: `${cleanRole === "STUDENT" ? `Student account approved and assigned to ${assignedSection}` : "Faculty account approved"} and onboarded successfully into ${cleanDept}.`,
       requestId: reqId,
       userId,
       role: cleanRole,
+      section: assignedSection,
       department: cleanDept,
     });
   } catch (err) {

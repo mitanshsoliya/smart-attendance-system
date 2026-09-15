@@ -177,7 +177,57 @@ router.post("/stop", verifyToken, requireFacultyOrHod, async (req, res) => {
     const pastTime = new Date(Date.now() - 10000);
     await db.query("UPDATE qr_sessions SET expires_at = $1 WHERE id = $2", [pastTime, targetSession.id]);
 
-    return res.json({ message: "QR session stopped and expired successfully." });
+    // Automatically mark all eligible students who did NOT attend as 'ABSENT'
+    const lectureId = targetSession.lecture_id;
+    let markedAbsentCount = 0;
+
+    const lectureRows = await db.query(
+      `SELECT l.subject_id, s.department as subject_dept, f.department as faculty_dept
+       FROM lectures l
+       JOIN subjects s ON l.subject_id = s.id
+       JOIN faculty f ON l.faculty_id = f.id
+       WHERE l.id = $1`,
+      [lectureId]
+    );
+
+    if (lectureRows && lectureRows.length > 0) {
+      const { subject_id, subject_dept, faculty_dept } = lectureRows[0];
+      const targetDept = (subject_dept || faculty_dept || "").trim();
+
+      const eligibleStudents = await db.query(
+        `SELECT DISTINCT st.id as student_id
+         FROM students st
+         JOIN users u ON st.user_id = u.id
+         LEFT JOIN enrollments e ON e.student_id = st.id AND e.subject_id = $1
+         WHERE e.id IS NOT NULL
+            OR (LOWER(st.department) = LOWER($2) AND $2 != '')`,
+        [subject_id, targetDept]
+      );
+
+      const existingAttendance = await db.query(
+        "SELECT student_id FROM attendance WHERE lecture_id = $1",
+        [lectureId]
+      );
+      const attendedIds = new Set(existingAttendance.map((r) => String(r.student_id)));
+
+      for (const st of eligibleStudents || []) {
+        if (!attendedIds.has(String(st.student_id))) {
+          await db.query(
+            `INSERT INTO attendance
+             (lecture_id, student_id, status, attendance_time, distance_meters, location_verified)
+             VALUES ($1, $2, 'ABSENT', CURRENT_TIMESTAMP, NULL, FALSE)
+             ON CONFLICT (lecture_id, student_id) DO NOTHING`,
+            [lectureId, st.student_id]
+          );
+          markedAbsentCount++;
+        }
+      }
+    }
+
+    return res.json({
+      message: "QR session stopped and attendance closed successfully.",
+      marked_absent_count: markedAbsentCount,
+    });
   } catch (error) {
     console.error("Error stopping QR session:", error);
     return res.status(500).json({ message: "Failed to stop QR session." });

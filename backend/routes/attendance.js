@@ -171,7 +171,7 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
 
     // --- 6. Enrollment / eligibility check ---
     // Guarantee attendance can ONLY be recorded for eligible students enrolled in this subject.
-    const isEnrolled = await db.query(
+    let isEnrolled = await db.query(
       `SELECT e.id
        FROM enrollments e
        JOIN lectures l ON l.subject_id = e.subject_id
@@ -180,19 +180,40 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     );
 
     if (!isEnrolled || isEnrolled.length === 0) {
-      return res.status(403).json({
-        message: "You are not enrolled in the subject associated with this lecture.",
-        forbidden: true,
-      });
+      // If student belongs to the same department as the lecture or subject, auto-enroll them
+      const deptMatch = await db.query(
+        `SELECT l.subject_id FROM lectures l
+         JOIN subjects s ON l.subject_id = s.id
+         JOIN faculty f ON l.faculty_id = f.id
+         WHERE l.id = $1 AND (
+           LOWER(COALESCE(s.department, f.department, '')) = LOWER($2)
+           OR LOWER(COALESCE(s.department, f.department, '')) LIKE '%' || LOWER($2) || '%'
+         )`,
+        [lectureId, student.department || ""]
+      );
+
+      if (deptMatch && deptMatch.length > 0) {
+        const subjId = deptMatch[0].subject_id;
+        await db.query(
+          "INSERT INTO enrollments (student_id, subject_id) VALUES ($1, $2) ON CONFLICT (student_id, subject_id) DO NOTHING",
+          [studentId, subjId]
+        );
+        isEnrolled = [{ id: 1 }];
+      } else {
+        return res.status(403).json({
+          message: "You are not enrolled in the subject associated with this lecture.",
+          forbidden: true,
+        });
+      }
     }
 
     // --- 7. Duplicate attendance check ---
     const duplicateRows = await db.query(
-      "SELECT id FROM attendance WHERE lecture_id = $1 AND student_id = $2",
+      "SELECT id, status FROM attendance WHERE lecture_id = $1 AND student_id = $2",
       [lectureId, studentId]
     );
 
-    if (duplicateRows && duplicateRows.length > 0) {
+    if (duplicateRows && duplicateRows.length > 0 && duplicateRows[0].status === "PRESENT") {
       return res.status(409).json({
         message: "Attendance already marked for this lecture session.",
         conflict: true,
@@ -200,20 +221,44 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     }
 
     // --- 8. Mark attendance with server-side timestamp and verified distance ---
-    const insertRows = await db.query(
-      `INSERT INTO attendance
-       (lecture_id, student_id, status, distance_meters, student_latitude, student_longitude, location_verified)
-       VALUES ($1, $2, 'PRESENT', $3, $4, $5, $6)
-       RETURNING id, attendance_time, distance_meters`,
-      [
-        lectureId,
-        studentId,
-        verifiedDistance,
-        latitude !== undefined && latitude !== null ? Number(latitude) : null,
-        longitude !== undefined && longitude !== null ? Number(longitude) : null,
-        verifiedDistance !== null,
-      ]
-    );
+    // Upsert so if a placeholder ABSENT record existed, it is updated to PRESENT
+    let insertRows;
+    if (duplicateRows && duplicateRows.length > 0) {
+      insertRows = await db.query(
+        `UPDATE attendance
+         SET status = 'PRESENT',
+             attendance_time = CURRENT_TIMESTAMP,
+             distance_meters = $1,
+             student_latitude = $2,
+             student_longitude = $3,
+             location_verified = $4
+         WHERE lecture_id = $5 AND student_id = $6
+         RETURNING id, attendance_time, distance_meters`,
+        [
+          verifiedDistance,
+          latitude !== undefined && latitude !== null ? Number(latitude) : null,
+          longitude !== undefined && longitude !== null ? Number(longitude) : null,
+          verifiedDistance !== null,
+          lectureId,
+          studentId,
+        ]
+      );
+    } else {
+      insertRows = await db.query(
+        `INSERT INTO attendance
+         (lecture_id, student_id, status, distance_meters, student_latitude, student_longitude, location_verified, attendance_time)
+         VALUES ($1, $2, 'PRESENT', $3, $4, $5, $6, CURRENT_TIMESTAMP)
+         RETURNING id, attendance_time, distance_meters`,
+        [
+          lectureId,
+          studentId,
+          verifiedDistance,
+          latitude !== undefined && latitude !== null ? Number(latitude) : null,
+          longitude !== undefined && longitude !== null ? Number(longitude) : null,
+          verifiedDistance !== null,
+        ]
+      );
+    }
 
     const record = insertRows[0];
 
@@ -279,42 +324,246 @@ router.get("/my", verifyToken, requireStudent, (req, res) => {
 });
 
 /**
+ * Helper: Find all eligible students for a lecture
+ */
+async function getEligibleStudentsForLecture(lectureId) {
+  const lectureRows = await db.query(
+    `SELECT l.id, l.subject_id, s.department as subject_dept, f.department as faculty_dept
+     FROM lectures l
+     JOIN subjects s ON l.subject_id = s.id
+     JOIN faculty f ON l.faculty_id = f.id
+     WHERE l.id = $1`,
+    [lectureId]
+  );
+
+  if (!lectureRows || lectureRows.length === 0) return [];
+  const { subject_id, subject_dept, faculty_dept } = lectureRows[0];
+  const targetDept = (subject_dept || faculty_dept || "").trim();
+
+  const students = await db.query(
+    `SELECT DISTINCT
+       st.id as student_id,
+       st.roll_number,
+       st.section,
+       st.department,
+       u.id as user_id,
+       u.full_name,
+       u.email
+     FROM students st
+     JOIN users u ON st.user_id = u.id
+     LEFT JOIN enrollments e ON e.student_id = st.id AND e.subject_id = $1
+     WHERE e.id IS NOT NULL
+        OR (LOWER(st.department) = LOWER($2) AND $2 != '')
+     ORDER BY st.roll_number ASC, u.full_name ASC`,
+    [subject_id, targetDept]
+  );
+
+  return students || [];
+}
+
+/**
  * GET /attendance/lecture/:lectureId
  * Returns live attendance roster for a lecture.
+ * Shows PRESENT students in real-time, and if QR session has ended or stopped,
+ * displays ABSENT students below the present students.
  * Only accessible by FACULTY or HOD.
  */
-router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, (req, res) => {
-  const sql = `
-    SELECT
-      a.id,
-      a.lecture_id,
-      a.attendance_time,
-      a.status,
-      a.distance_meters,
-      a.student_latitude,
-      a.student_longitude,
-      a.location_verified,
-      u.full_name,
-      u.email,
-      st.roll_number,
-      st.section
-    FROM attendance a
-    JOIN students st ON a.student_id = st.id
-    JOIN users u ON st.user_id = u.id
-    WHERE a.lecture_id = $1
-    ORDER BY a.attendance_time DESC
-  `;
+router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, async (req, res) => {
+  const lectureId = req.params.lectureId;
+  try {
+    // 1. Check if there is an active QR session for this lecture
+    const activeSessions = await db.query(
+      "SELECT id, expires_at FROM qr_sessions WHERE lecture_id = $1 AND expires_at > CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 1",
+      [lectureId]
+    );
+    const hasActiveSession = Boolean(activeSessions && activeSessions.length > 0);
 
-  db.query(sql, [req.params.lectureId], (err, results) => {
-    if (err) {
-      console.error("Fetch lecture attendance error:", err);
-      return res.status(500).json({ message: "Failed to fetch lecture attendance." });
+    // 2. Check if any QR session ever existed for this lecture
+    const allSessions = await db.query(
+      "SELECT id, expires_at FROM qr_sessions WHERE lecture_id = $1 ORDER BY id DESC LIMIT 1",
+      [lectureId]
+    );
+    const hasAnySession = Boolean(allSessions && allSessions.length > 0);
+    const sessionEnded = hasAnySession && !hasActiveSession;
+
+    // 3. If session has ended or expired, insert ABSENT records for unrecorded eligible students
+    if (sessionEnded) {
+      const eligibleStudents = await getEligibleStudentsForLecture(lectureId);
+      const existingAttendance = await db.query(
+        "SELECT student_id, status FROM attendance WHERE lecture_id = $1",
+        [lectureId]
+      );
+      const recordedStudentIds = new Set(existingAttendance.map((r) => String(r.student_id)));
+
+      for (const st of eligibleStudents) {
+        if (!recordedStudentIds.has(String(st.student_id))) {
+          await db.query(
+            `INSERT INTO attendance
+             (lecture_id, student_id, status, attendance_time, distance_meters, location_verified)
+             VALUES ($1, $2, 'ABSENT', CURRENT_TIMESTAMP, NULL, FALSE)
+             ON CONFLICT (lecture_id, student_id) DO NOTHING`,
+            [lectureId, st.student_id]
+          );
+        }
+      }
     }
+
+    // 4. Query all attendance records for this lecture
+    // Sort: PRESENT first (ordered by attendance_time ASC), then ABSENT (ordered by roll_number ASC)
+    const sql = `
+      SELECT
+        a.id,
+        a.lecture_id,
+        a.student_id,
+        a.attendance_time,
+        a.status,
+        a.distance_meters,
+        a.student_latitude,
+        a.student_longitude,
+        a.location_verified,
+        u.full_name,
+        u.email,
+        st.roll_number,
+        st.section,
+        st.department
+      FROM attendance a
+      JOIN students st ON a.student_id = st.id
+      JOIN users u ON st.user_id = u.id
+      WHERE a.lecture_id = $1
+      ORDER BY
+        CASE WHEN a.status = 'PRESENT' THEN 0 ELSE 1 END,
+        CASE WHEN a.status = 'PRESENT' THEN a.attendance_time END ASC,
+        st.roll_number ASC,
+        u.full_name ASC
+    `;
+
+    const results = await db.query(sql, [lectureId]);
+    const attendanceRecords = results || [];
+
+    const presentCount = attendanceRecords.filter((r) => r.status === "PRESENT").length;
+    const absentCount = attendanceRecords.filter((r) => r.status === "ABSENT").length;
+
     res.json({
       message: "Lecture attendance fetched successfully.",
-      attendance: results || [],
+      attendance: attendanceRecords,
+      present_count: presentCount,
+      absent_count: absentCount,
+      total_count: attendanceRecords.length,
+      summary: {
+        present_count: presentCount,
+        absent_count: absentCount,
+        total_count: attendanceRecords.length,
+      },
+      has_active_session: hasActiveSession,
+      session_ended: sessionEnded,
     });
-  });
+  } catch (err) {
+    console.error("Fetch lecture attendance error:", err);
+    res.status(500).json({ message: "Failed to fetch lecture attendance roster." });
+  }
+});
+
+/**
+ * PUT /attendance/status
+ * Allows faculty (or HOD) to manually override / update a student's attendance status
+ * for a lecture session (e.g. mark Present as Absent, or Absent as Present).
+ */
+router.put("/status", verifyToken, requireFacultyOrHod, async (req, res) => {
+  const lecture_id = req.body.lecture_id || req.body.lectureId;
+  const student_id = req.body.student_id || req.body.studentId;
+  const attendance_id = req.body.attendance_id || req.body.attendanceId;
+  const status = req.body.status;
+
+  if (!status || !["PRESENT", "ABSENT"].includes(String(status).toUpperCase())) {
+    return res.status(400).json({
+      message: "Valid status ('PRESENT' or 'ABSENT') is required.",
+    });
+  }
+
+  const targetStatus = String(status).toUpperCase();
+
+  try {
+    let resolvedLectureId = lecture_id ? Number(lecture_id) : null;
+    let resolvedStudentId = student_id ? Number(student_id) : null;
+
+    if (attendance_id && (!resolvedLectureId || !resolvedStudentId)) {
+      const attRow = await db.query(
+        "SELECT lecture_id, student_id FROM attendance WHERE id = $1",
+        [attendance_id]
+      );
+      if (attRow && attRow.length > 0) {
+        resolvedLectureId = resolvedLectureId || attRow[0].lecture_id;
+        resolvedStudentId = resolvedStudentId || attRow[0].student_id;
+      }
+    }
+
+    if (!resolvedLectureId || !resolvedStudentId) {
+      return res.status(400).json({
+        message: "lecture_id and student_id (or valid attendance_id) are required.",
+      });
+    }
+
+    // Verify faculty ownership of the lecture (HOD can update any in department)
+    if (req.user.role !== "HOD") {
+      const ownerRows = await db.query(
+        `SELECT l.id FROM lectures l
+         JOIN faculty f ON l.faculty_id = f.id
+         WHERE l.id = $1 AND f.user_id = $2`,
+        [resolvedLectureId, req.user.id]
+      );
+      if (!ownerRows || ownerRows.length === 0) {
+        return res.status(403).json({
+          message: "Forbidden: You do not own this lecture session.",
+        });
+      }
+    }
+
+    // Update or insert into attendance table
+    const existing = await db.query(
+      "SELECT id, status, attendance_time, distance_meters FROM attendance WHERE lecture_id = $1 AND student_id = $2",
+      [resolvedLectureId, resolvedStudentId]
+    );
+
+    const isPresent = targetStatus === "PRESENT";
+    let updatedRecord = null;
+
+    if (existing && existing.length > 0) {
+      const updateResult = await db.query(
+        `UPDATE attendance
+         SET status = $1,
+             attendance_time = COALESCE(attendance_time, CURRENT_TIMESTAMP),
+             distance_meters = CASE WHEN $2 = true THEN COALESCE(distance_meters, 0) ELSE NULL END,
+             location_verified = $2
+         WHERE lecture_id = $3 AND student_id = $4
+         RETURNING id, lecture_id, student_id, status, attendance_time, distance_meters, location_verified`,
+        [targetStatus, isPresent, resolvedLectureId, resolvedStudentId]
+      );
+      updatedRecord = updateResult && updateResult[0] ? updateResult[0] : null;
+    } else {
+      const insertResult = await db.query(
+        `INSERT INTO attendance
+         (lecture_id, student_id, status, attendance_time, distance_meters, location_verified)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)
+         RETURNING id, lecture_id, student_id, status, attendance_time, distance_meters, location_verified`,
+        [
+          resolvedLectureId,
+          resolvedStudentId,
+          targetStatus,
+          isPresent ? 0 : null,
+          isPresent,
+        ]
+      );
+      updatedRecord = insertResult && insertResult[0] ? insertResult[0] : null;
+    }
+
+    return res.json({
+      message: `Student attendance successfully updated to ${targetStatus}.`,
+      record: updatedRecord,
+    });
+  } catch (err) {
+    console.error("Update attendance status error:", err);
+    return res.status(500).json({ message: "Failed to update attendance status." });
+  }
 });
 
 module.exports = router;

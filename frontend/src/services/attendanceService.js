@@ -15,4 +15,18 @@ export const attendanceService = {
     const { data } = await api.get(`/attendance/lecture/${lectureId}`, authHeader(token));
     return data;
   },
+
+  async updateAttendanceStatus({ lectureId, studentId, attendanceId, status }, token) {
+    const { data } = await api.put(
+      "/attendance/status",
+      {
+        lecture_id: lectureId,
+        student_id: studentId,
+        attendance_id: attendanceId,
+        status,
+      },
+      authHeader(token)
+    );
+    return data;
+  },
 };

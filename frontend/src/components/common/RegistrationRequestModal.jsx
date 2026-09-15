@@ -12,7 +12,7 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
     email: "",
     password: "",
     rollNumber: "",
-    section: "Sec A",
+    section: "Pending HOD Allocation",
     studentPhone: "",
     parentPhone: "",
     employeeId: "",
@@ -32,7 +32,7 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
         email: "",
         password: "",
         rollNumber: "",
-        section: "Sec A",
+        section: "Pending HOD Allocation",
         studentPhone: "",
         parentPhone: "",
         employeeId: "",
@@ -157,7 +157,7 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
 
           {isStudent ? (
             <>
-              {/* Row: Roll Number & Section */}
+              {/* Row: Roll Number & Cohort Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block uppercase text-[11px] font-bold text-[#6B7280] tracking-wider mb-1">
@@ -173,18 +173,17 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
                   />
                 </div>
                 <div>
-                  <label className="block uppercase text-[11px] font-bold text-[#6B7280] tracking-wider mb-1">
-                    Cohort Section *
+                  <label className="block uppercase text-[11px] font-bold text-[#6B7280] tracking-wider mb-1 flex items-center justify-between">
+                    <span>Cohort Section</span>
+                    <span className="text-[10px] text-[#9E3D24] font-semibold lowercase font-mono">HOD assigned</span>
                   </label>
-                  <select
-                    value={form.section}
-                    onChange={(e) => handleChange("section", e.target.value)}
-                    className="w-full p-2.5 bg-[#FBF9F5] border border-[#D8D2C4] rounded text-sm text-[#12181F] focus:outline-none focus:border-[#9E3D24]"
-                  >
-                    <option value="Sec A">Sec A</option>
-                    <option value="Sec B">Sec B</option>
-                    <option value="Sec C">Sec C</option>
-                  </select>
+                  <div className="w-full p-2.5 bg-[#F3EFE6]/70 border border-[#D8D2C4] rounded text-xs text-[#555E68] flex items-center gap-1.5 font-medium select-none">
+                    <span className="material-symbols-outlined text-[15px] text-[#9E3D24]">lock</span>
+                    <span className="font-semibold text-[#12181F]">Assigned by Department HOD</span>
+                  </div>
+                  <p className="text-[10px] text-[#6B7280] mt-1 leading-tight">
+                    Section will be designated by your Department HOD upon admission review.
+                  </p>
                 </div>
               </div>
 

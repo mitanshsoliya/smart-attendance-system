@@ -155,7 +155,9 @@ router.post("/request", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const cleanRoll = (rollNumber || roll_number) ? String(rollNumber || roll_number).trim() : null;
-    const cleanSec = section ? String(section).trim() : (cleanRole === "STUDENT" ? "Sec A" : null);
+    const cleanSec = cleanRole === "STUDENT"
+      ? (section && !["Sec A", "Sec B", "Sec C"].includes(section) ? String(section).trim() : "Pending HOD Allocation")
+      : null;
     const cleanStdPhone = (studentPhone || student_phone) ? String(studentPhone || student_phone).trim() : null;
     const cleanParPhone = (parentPhone || parent_phone) ? String(parentPhone || parent_phone).trim() : null;
     const cleanEmpId = (employeeId || employee_id) ? String(employeeId || employee_id).trim() : null;

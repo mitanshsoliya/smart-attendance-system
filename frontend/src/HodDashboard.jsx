@@ -178,6 +178,21 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     }
   };
 
+  const handleUpdateStudentSection = async (studentId, newSection) => {
+    try {
+      // Optimistic update
+      setStudents((prev) =>
+        prev.map((s) => (s.id === studentId ? { ...s, section: newSection } : s))
+      );
+      await hodService.editHodStudent(studentId, { section: newSection }, token);
+      fetchAllData();
+    } catch (err) {
+      console.error("Failed to update student section:", err);
+      alert(err.response?.data?.message || "Failed to update student section.");
+      fetchAllData();
+    }
+  };
+
   const handleDeleteStudent = async (id) => {
     if (!window.confirm("Are you sure you want to delete this student record?")) return;
     try {
@@ -222,11 +237,12 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
         navItems={navItems}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        title="LectureLog"
-        subtitle={`${hodDept.replace("Department of ", "")} • HOD Office`}
+        title="Department Control Room"
+        subtitle={hodDept}
       >
         {(activeTab === "dashboard" || activeTab === "overview") && (
           <HodOverviewTab
+            user={user}
             stats={stats}
             studentsCount={students.length}
             facultyCount={faculty.length}
@@ -240,6 +256,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             students={students}
             onOpenAddModal={() => setShowAddStudentModal(true)}
             onDeleteStudent={handleDeleteStudent}
+            onUpdateSection={handleUpdateStudentSection}
             onExportLedger={exportFormalLedger}
           />
         )}

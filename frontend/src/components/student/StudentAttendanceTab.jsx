@@ -52,7 +52,13 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
                     </span>
                   </td>
                   <td className="p-3.5 text-center">
-                    <span className="px-2.5 py-1 text-xs font-bold bg-success/20 text-success rounded uppercase">
+                    <span
+                      className={`px-2.5 py-1 text-xs font-bold rounded uppercase ${
+                        rec.status === "PRESENT"
+                          ? "bg-success/20 text-success"
+                          : "bg-[#BA1A1A]/15 text-[#BA1A1A]"
+                      }`}
+                    >
                       {rec.status}
                     </span>
                   </td>

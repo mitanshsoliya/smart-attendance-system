@@ -18,6 +18,7 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [processingId, setProcessingId] = useState(null);
+  const [assignedSections, setAssignedSections] = useState({});
 
   const fetchRequests = async () => {
     if (!token) return;
@@ -39,7 +40,12 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
   }, [token]);
 
   const handleApprove = async (id, name, role) => {
-    if (!window.confirm(`Are you sure you want to ALLOW and onboard ${name} (${role}) into the departmental registry?`)) {
+    const targetSection = assignedSections[id] || "Sec A";
+    const confirmMsg = role === "STUDENT"
+      ? `Are you sure you want to onboard candidate ${name} into ${targetSection}?`
+      : `Are you sure you want to ALLOW and onboard ${name} (${role}) into the departmental registry?`;
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
@@ -47,7 +53,8 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
       setProcessingId(id);
       setError("");
       setSuccessMessage("");
-      const res = await hodService.approveRegistrationRequest(id, token);
+      const payload = role === "STUDENT" ? { section: targetSection } : {};
+      const res = await hodService.approveRegistrationRequest(id, payload, token);
       setSuccessMessage(res.message || `${role} account approved and added to department!`);
       await fetchRequests();
       if (onDataChanged) {
@@ -341,7 +348,16 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                             </div>
                             <div>
                               <span className="font-bold text-[#6B7280]">Section:</span>{" "}
-                              <span>{req.section || "Sec A"}</span>
+                              {req.section === "Pending HOD Allocation" || !req.section ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FEF08A] text-[#854D0E] border border-[#FDE047]">
+                                  <span className="material-symbols-outlined text-[12px]">pending</span>
+                                  <span>Pending HOD Allocation</span>
+                                </span>
+                              ) : (
+                                <span className="font-semibold text-[#12181F] bg-[#FBF9F5] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
+                                  {req.section}
+                                </span>
+                              )}
                             </div>
                             {req.studentPhone && (
                               <div>
@@ -386,9 +402,29 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex items-center gap-2.5 shrink-0 self-end lg:self-center pt-2 lg:pt-0">
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-end lg:self-center pt-2 lg:pt-0">
                     {isPending ? (
                       <>
+                        {req.role === "STUDENT" && (
+                          <div className="flex items-center gap-1.5 bg-[#FBF9F5] py-1 px-2 rounded border border-[#D8D2C4]">
+                            <span className="material-symbols-outlined text-[15px] text-[#9E3D24]">school</span>
+                            <label className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider whitespace-nowrap">
+                              Assign Section:
+                            </label>
+                            <select
+                              value={assignedSections[req.id] || "Sec A"}
+                              onChange={(e) => setAssignedSections((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                              disabled={isProcessing}
+                              className="py-1 px-2 bg-white border border-[#D8D2C4] rounded text-xs font-bold text-[#9E3D24] focus:outline-none focus:border-[#9E3D24] cursor-pointer"
+                            >
+                              <option value="Sec A">Sec A</option>
+                              <option value="Sec B">Sec B</option>
+                              <option value="Sec C">Sec C</option>
+                              <option value="Sec D">Sec D</option>
+                            </select>
+                          </div>
+                        )}
+
                         <button
                           type="button"
                           disabled={isProcessing}
@@ -413,7 +449,11 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                           ) : (
                             <>
                               <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                              <span>Allow / Approve</span>
+                              <span>
+                                {req.role === "STUDENT"
+                                  ? `Assign & Allow (${assignedSections[req.id] || "Sec A"})`
+                                  : "Allow / Approve"}
+                              </span>
                             </>
                           )}
                         </button>
