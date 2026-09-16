@@ -34,19 +34,12 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
     { id: "settings", label: "Settings", icon: "settings" },
   ];
 
-  const handleScanSuccess = async (scannedCode) => {
-    if (!scannedCode) return;
-    const res = await markAttendance(scannedCode);
-    if (res.success) {
-      setScanMessage(res.data?.message || "Attendance recorded successfully!");
-      fetchMyAttendance();
-      setTimeout(() => {
-        setShowQRScanner(false);
-        setScanMessage("");
-      }, 2000);
-    } else {
-      setScanMessage(res.error || "Attendance verification failed.");
-    }
+  const handleScanSuccess = () => {
+    fetchMyAttendance();
+    setTimeout(() => {
+      setShowQRScanner(false);
+      setScanMessage("");
+    }, 2200);
   };
 
   return (
@@ -96,7 +89,10 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
                 {scanMessage}
               </div>
             )}
-            <QRScanner onScanSuccess={handleScanSuccess} />
+            <QRScanner
+              onAttendanceMarked={handleScanSuccess}
+              onScanSuccess={handleScanSuccess}
+            />
           </div>
         </Modal>
       </DashboardLayout>

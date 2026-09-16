@@ -4,7 +4,7 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-function QRScanner({ onAttendanceMarked }) {
+function QRScanner({ onAttendanceMarked, onScanSuccess }) {
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -14,6 +14,7 @@ function QRScanner({ onAttendanceMarked }) {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState("");
   const scannerRef = useRef(null);
+  const isProcessingRef = useRef(false);
   const [geoCoords, setGeoCoords] = useState(null); // { latitude, longitude, accuracy }
   const [geoStatus, setGeoStatus] = useState("idle"); // 'idle' | 'locating' | 'ready' | 'denied' | 'unavailable'
   const [geoError, setGeoError] = useState("");
@@ -132,9 +133,28 @@ function QRScanner({ onAttendanceMarked }) {
       if (onAttendanceMarked) {
         onAttendanceMarked();
       }
+      if (onScanSuccess) {
+        onScanSuccess(session_token);
+      }
     } catch (error) {
       console.error("Mark Attendance Error:", error);
       const data = error.response?.data;
+      const status = error.response?.status;
+
+      // If already marked, student is ALREADY verified and PRESENT! Show positive confirmation
+      if (status === 409 || data?.conflict || data?.alreadyMarked) {
+        const alreadyMsg = data?.message || "Attendance already marked for this lecture session.";
+        setMessage(`✓ ${alreadyMsg} You are recorded as PRESENT.`);
+        setIsSuccess(true);
+        if (onAttendanceMarked) {
+          onAttendanceMarked();
+        }
+        if (onScanSuccess) {
+          onScanSuccess(session_token);
+        }
+        return;
+      }
+
       if (data?.outOfBounds) {
         setMessage(
           `Classroom Geo-Fence Violation: You are ${data.distance}m away from the faculty device! Attendance requires physical presence within ${data.allowedRadius}m.`
@@ -184,7 +204,11 @@ function QRScanner({ onAttendanceMarked }) {
     };
 
     const handleSuccess = async (decodedText) => {
-      await markAttendance(decodedText);
+      // Guard against multiple camera frames firing concurrently
+      if (isProcessingRef.current) return;
+      isProcessingRef.current = true;
+
+      // Immediately stop camera to prevent duplicate frame captures while processing
       try {
         if (scannerRef.current && scannerRef.current.isScanning) {
           await scannerRef.current.stop();
@@ -192,6 +216,14 @@ function QRScanner({ onAttendanceMarked }) {
         }
       } catch (err) {
         console.log("Error stopping camera after scan:", err);
+      }
+
+      try {
+        await markAttendance(decodedText);
+      } finally {
+        setTimeout(() => {
+          isProcessingRef.current = false;
+        }, 1200);
       }
     };
 
@@ -283,6 +315,9 @@ function QRScanner({ onAttendanceMarked }) {
     const file = event.target.files[0];
     if (!file) return;
 
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
     try {
       setMessage("Processing QR code from image...");
       setIsSuccess(false);
@@ -294,11 +329,16 @@ function QRScanner({ onAttendanceMarked }) {
       console.error("Image QR Error:", error);
       setMessage("Could not detect a valid QR code in this image. Please try a clearer image.");
       setIsSuccess(false);
+    } finally {
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1200);
     }
   };
 
   const handleManualSubmit = (e) => {
     e.preventDefault();
+    if (isProcessingRef.current) return;
     markAttendance(manualToken);
   };
 
