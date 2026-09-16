@@ -14,6 +14,7 @@ export function FacultyLecturesTab({
   onGenerateQR,
   selectedFacultyCode,
   departmentName,
+  onNavigateTab,
 }) {
   return (
     <div className="space-y-8">
@@ -38,8 +39,20 @@ export function FacultyLecturesTab({
           Schedule New Lecture Session
         </h3>
         {createMessage && (
-          <div className="mb-4 p-3 bg-surface-container border-l-4 border-secondary text-xs text-primary">
-            {createMessage}
+          <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border-l-4 border-emerald-600 text-xs text-emerald-900 dark:text-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-r">
+            <div className="flex items-center gap-2 font-medium">
+              <span className="material-symbols-outlined text-emerald-600 text-base">check_circle</span>
+              <span>{createMessage} Fresh attendance session initialized.</span>
+            </div>
+            {onNavigateTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateTab("attendance")}
+                className="px-3 py-1.5 bg-emerald-600 text-white rounded text-[11px] font-bold hover:bg-emerald-700 transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
+              >
+                Go to Live Attendance →
+              </button>
+            )}
           </div>
         )}
         <form onSubmit={onCreateLecture} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

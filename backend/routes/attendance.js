@@ -469,29 +469,58 @@ async function getEligibleStudentsForLecture(lectureId) {
  * Returns live attendance roster for a lecture.
  * Shows PRESENT students in real-time, and if QR session has ended or stopped,
  * displays ABSENT students below the present students.
+ * Guarantees 100% isolation per lecture session.
  * Only accessible by FACULTY or HOD.
  */
 router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, async (req, res) => {
   const lectureId = req.params.lectureId;
+  const includeEligible = req.query.include_eligible === "true" || req.query.report === "true";
+
   try {
-    // 1. Check if there is an active QR session for this lecture
+    // 1. Fetch lecture details
+    const lectureRows = await db.query(
+      `SELECT l.id, l.subject_id, l.faculty_id, l.lecture_date, l.start_time, l.end_time, l.radius_meters,
+              s.subject_code, s.subject_name, s.department as subject_dept
+       FROM lectures l
+       JOIN subjects s ON l.subject_id = s.id
+       WHERE l.id = $1`,
+      [lectureId]
+    );
+
+    if (!lectureRows || lectureRows.length === 0) {
+      return res.status(404).json({ message: "Lecture not found" });
+    }
+
+    const lectureInfo = lectureRows[0];
+
+    // 2. Check if there is an active QR session for this lecture
     const activeSessions = await db.query(
       "SELECT id, expires_at FROM qr_sessions WHERE lecture_id = $1 AND expires_at > CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 1",
       [lectureId]
     );
     const hasActiveSession = Boolean(activeSessions && activeSessions.length > 0);
 
-    // 2. Check if any QR session ever existed for this lecture
+    // 3. Check if any QR session ever existed for this lecture
     const allSessions = await db.query(
       "SELECT id, expires_at FROM qr_sessions WHERE lecture_id = $1 ORDER BY id DESC LIMIT 1",
       [lectureId]
     );
     const hasAnySession = Boolean(allSessions && allSessions.length > 0);
-    const sessionEnded = hasAnySession && !hasActiveSession;
 
-    // 3. If session has ended or expired, insert ABSENT records for unrecorded eligible students
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const currentTimeStr = now.toTimeString().split(" ")[0];
+    const isPastLecture =
+      lectureInfo.lecture_date < todayStr ||
+      (lectureInfo.lecture_date === todayStr && currentTimeStr > lectureInfo.end_time);
+
+    const sessionEnded = (hasAnySession && !hasActiveSession) || Boolean(isPastLecture);
+
+    // 4. Fetch eligible students for this lecture
+    const eligibleStudents = await getEligibleStudentsForLecture(lectureId);
+
+    // 5. If session has ended or expired, insert ABSENT records for unrecorded eligible students
     if (sessionEnded) {
-      const eligibleStudents = await getEligibleStudentsForLecture(lectureId);
       const existingAttendance = await db.query(
         "SELECT student_id, status FROM attendance WHERE lecture_id = $1",
         [lectureId]
@@ -511,7 +540,7 @@ router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, async (req, 
       }
     }
 
-    // 4. Query all attendance records for this lecture
+    // 6. Query all attendance records for this lecture (strictly isolated to lecture_id)
     // Sort: PRESENT first (ordered by attendance_time ASC), then ABSENT (ordered by roll_number ASC)
     const sql = `
       SELECT
@@ -541,13 +570,44 @@ router.get("/lecture/:lectureId", verifyToken, requireFacultyOrHod, async (req, 
     `;
 
     const results = await db.query(sql, [lectureId]);
-    const attendanceRecords = results || [];
+    let attendanceRecords = results || [];
+
+    // If report requested or not in active session and records are empty, synthesize eligible class roster as ABSENT so report is never blank
+    if ((includeEligible || attendanceRecords.length === 0) && !hasActiveSession && eligibleStudents.length > 0) {
+      const recordedMap = new Map(attendanceRecords.map((r) => [String(r.student_id), r]));
+      const completeList = [];
+
+      for (const st of eligibleStudents) {
+        if (recordedMap.has(String(st.student_id))) {
+          completeList.push(recordedMap.get(String(st.student_id)));
+        } else {
+          completeList.push({
+            id: null,
+            lecture_id: Number(lectureId),
+            student_id: st.student_id,
+            attendance_time: null,
+            status: "ABSENT",
+            distance_meters: null,
+            student_latitude: null,
+            student_longitude: null,
+            location_verified: false,
+            full_name: st.full_name,
+            email: st.email,
+            roll_number: st.roll_number,
+            section: st.section,
+            department: st.department,
+          });
+        }
+      }
+      attendanceRecords = completeList;
+    }
 
     const presentCount = attendanceRecords.filter((r) => r.status === "PRESENT").length;
     const absentCount = attendanceRecords.filter((r) => r.status === "ABSENT").length;
 
     res.json({
       message: "Lecture attendance fetched successfully.",
+      lecture: lectureInfo,
       attendance: attendanceRecords,
       present_count: presentCount,
       absent_count: absentCount,

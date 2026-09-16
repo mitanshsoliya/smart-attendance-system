@@ -5,6 +5,7 @@ export function FacultyAttendanceTab({
   selectedLectureId,
   setSelectedLectureId,
   qr,
+  setQr,
   onGenerateQR,
   onStopQR,
   stoppingQr,
@@ -21,7 +22,10 @@ export function FacultyAttendanceTab({
   onUpdateStatus,
 }) {
   const isExpired = remaining <= 0;
-  const activeSession = isSessionActive ?? (!isExpired && Boolean(qr));
+  const isQrForSelectedLecture = Boolean(qr && String(qr.lecture_id) === String(selectedLectureId));
+  const activeSession = isSessionActive ?? (!isExpired && isQrForSelectedLecture);
+
+  const selectedLecture = lectures.find((l) => String(l.id) === String(selectedLectureId)) || lectures[0] || null;
 
   const presentStudents = attendanceRoster.filter((a) => a.status === "PRESENT");
   const absentStudents = attendanceRoster.filter((a) => a.status === "ABSENT");
@@ -43,7 +47,11 @@ export function FacultyAttendanceTab({
           <select
             value={selectedLectureId}
             onChange={(e) => {
-              setSelectedLectureId(e.target.value);
+              const newLecId = e.target.value;
+              setSelectedLectureId(newLecId);
+              if (setQr && qr && String(qr.lecture_id) !== String(newLecId)) {
+                setQr(null);
+              }
             }}
             className="w-full sm:w-auto p-2.5 bg-white border border-border-default rounded text-sm text-primary font-medium focus:outline-none focus:border-secondary"
           >
@@ -77,8 +85,35 @@ export function FacultyAttendanceTab({
         </div>
       </div>
 
-      {/* QR Code Session Card */}
-      {qr ? (
+      {/* Selected Lecture Details Banner */}
+      {selectedLecture && (
+        <div className="bg-surface-bright border border-border-default rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-md bg-secondary/10 text-secondary flex items-center justify-center font-bold text-sm">
+              <span className="material-symbols-outlined text-[20px]">co_present</span>
+            </span>
+            <div>
+              <div className="font-bold text-sm text-primary flex items-center gap-2">
+                <span>{selectedLecture.subject_code} - {selectedLecture.subject_name}</span>
+                <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-surface-container text-text-stone">
+                  Session #{selectedLecture.id}
+                </span>
+              </div>
+              <p className="text-xs text-text-stone font-mono mt-0.5">
+                📅 Date: <strong className="text-primary">{selectedLecture.lecture_date}</strong> • ⏰ Time: <strong className="text-primary">{selectedLecture.start_time} - {selectedLecture.end_time}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-secondary/10 text-secondary border border-secondary/20">
+              {presentStudents.length} Present • {attendanceRoster.length} Total
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Session Card (Strictly for this selected lecture only) */}
+      {isQrForSelectedLecture ? (
         <div className="bg-surface-bright border border-border-default rounded p-4 sm:p-6 shadow-xs flex flex-col items-center text-center space-y-4 max-w-xl mx-auto">
           {isExpired ? (
             <div className="w-full py-2 px-3 bg-[#BA1A1A]/10 border border-[#BA1A1A] rounded text-[#BA1A1A] text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2">

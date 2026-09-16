@@ -15,7 +15,7 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
     setSearchTerm("");
     setLoadingReport(true);
     try {
-      const data = await attendanceService.getLectureAttendanceRoster(lecture.id, token);
+      const data = await attendanceService.getLectureAttendanceRoster(lecture.id, token, { report: "true" });
       setReportData(data);
     } catch (err) {
       console.error("Failed to load lecture report:", err);
@@ -36,7 +36,7 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
       await onUpdateStatus(studentId, newStatus, attendanceId, selectedLecture.id);
       // Re-fetch report data to keep in sync
       try {
-        const freshData = await attendanceService.getLectureAttendanceRoster(selectedLecture.id, token);
+        const freshData = await attendanceService.getLectureAttendanceRoster(selectedLecture.id, token, { report: "true" });
         setReportData(freshData);
       } catch (e) {
         console.error("Failed to re-fetch report data:", e);

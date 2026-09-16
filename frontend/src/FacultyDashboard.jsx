@@ -184,6 +184,11 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const handleGenerateQR = async (lectureId, radius) => {
     const targetId = lectureId || selectedLectureId || (lectures[0] && lectures[0].id);
     if (!targetId) return;
+
+    // Synchronously set selectedLectureId to targetId so dropdown and useEffect match
+    setSelectedLectureId(String(targetId));
+    setLectureAttendance([]); // Clear old roster so previous lecture attendance is not shown
+
     const targetLecture = lectures.find((l) => String(l.id) === String(targetId));
 
     const radiusToUse = radius !== undefined ? Number(radius) : Number(selectedRadius || 0);
@@ -301,8 +306,23 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     setCreateMessage("");
     try {
       const data = await lectureService.createLecture(lectureForm, token);
+      const newLecId = data.lecture_id ? String(data.lecture_id) : "";
       setCreateMessage(data.message || "Lecture scheduled successfully!");
-      fetchLectures();
+
+      // Auto-select the newly created lecture so old lecture attendance is never shown
+      if (newLecId) {
+        setSelectedLectureId(newLecId);
+      }
+      // Reset QR state and clear attendance roster for clean session
+      setQr(null);
+      setRemaining(300);
+      setLectureAttendance([]);
+
+      await fetchLectures();
+
+      if (newLecId) {
+        await fetchLectureAttendance(newLecId);
+      }
     } catch (err) {
       setCreateMessage(err.response?.data?.message || "Failed to schedule lecture.");
     } finally {
@@ -375,6 +395,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             onGenerateQR={handleGenerateQR}
             selectedFacultyCode={selectedFacultyCode}
             departmentName={facultyDeptName}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -384,6 +405,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             selectedLectureId={selectedLectureId}
             setSelectedLectureId={setSelectedLectureId}
             qr={qr}
+            setQr={setQr}
             onGenerateQR={handleGenerateQR}
             onStopQR={handleStopQR}
             stoppingQr={stoppingQr}

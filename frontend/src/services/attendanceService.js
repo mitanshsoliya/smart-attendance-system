@@ -16,8 +16,10 @@ export const attendanceService = {
     return data;
   },
 
-  async getLectureAttendanceRoster(lectureId, token) {
-    const { data } = await api.get(`/attendance/lecture/${lectureId}`, authHeader(token));
+  async getLectureAttendanceRoster(lectureId, token, params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const url = `/attendance/lecture/${lectureId}${query ? `?${query}` : ""}`;
+    const { data } = await api.get(url, authHeader(token));
     return data;
   },
 
