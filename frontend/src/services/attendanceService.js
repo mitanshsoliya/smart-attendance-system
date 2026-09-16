@@ -2,7 +2,12 @@ import api, { authHeader } from "./api";
 
 export const attendanceService = {
   async markAttendance(sessionToken, token) {
-    const { data } = await api.post("/attendance/mark", { session_token: sessionToken }, authHeader(token));
+    const deviceToken = typeof localStorage !== "undefined" ? localStorage.getItem("lecturelog_device_token") : null;
+    const { data } = await api.post(
+      "/attendance/mark",
+      { session_token: sessionToken, ...(deviceToken ? { device_token: deviceToken } : {}) },
+      authHeader(token)
+    );
     return data;
   },
 

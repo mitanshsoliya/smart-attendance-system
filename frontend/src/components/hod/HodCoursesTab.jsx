@@ -8,7 +8,7 @@ export function HodCoursesTab({ courses, onOpenAddCourseModal }) {
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
             DEPARTMENTAL CURRICULUM ACCREDITATION
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Accredited Courses & Curricula Modules
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
@@ -19,7 +19,7 @@ export function HodCoursesTab({ courses, onOpenAddCourseModal }) {
         <button
           type="button"
           onClick={onOpenAddCourseModal}
-          className="px-4 py-2 bg-[#9E3D24] hover:bg-[#83311C] text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer shadow-xs"
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-[#9E3D24] hover:bg-[#83311C] text-white text-xs font-bold rounded flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[16px]">add_box</span>
           <span>Register Course</span>
@@ -28,7 +28,7 @@ export function HodCoursesTab({ courses, onOpenAddCourseModal }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {courses.map((c) => (
-          <div key={c.id} className="bg-white border border-[#D8D2C4] rounded p-5 shadow-xs space-y-3">
+          <div key={c.id} className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-5 shadow-xs space-y-3">
             <span className="text-xs font-mono font-bold bg-[#9E3D24]/10 text-[#9E3D24] px-2 py-0.5 rounded">
               {c.subjectCode || c.subject_code}
             </span>

@@ -47,12 +47,32 @@ button {
   background: #94a3b8;
 }
 
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* Touch scrolling & table panning */
+.touch-pan-x {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+/* Safe area padding for mobile navigation */
+.safe-bottom-padding {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Html5Qrcode video containment */
+#qr-reader {
+  border: none !important;
+  width: 100% !important;
+}
+
+#qr-reader video,
+#qr-reader canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+  border-radius: 4px;
+}
+
+#qr-reader img[alt="Info icon"] {
+  display: none !important;
 }
 

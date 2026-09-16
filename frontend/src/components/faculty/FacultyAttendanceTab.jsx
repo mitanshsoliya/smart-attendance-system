@@ -31,21 +31,21 @@ export function FacultyAttendanceTab({
       {/* Top Header & Action Bar */}
       <div className="border-b border-border-default pb-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
-          <h1 className="font-serif-display text-3xl text-primary font-bold">
+          <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">
             Live Attendance Sessions & Geo-Fenced QR
           </h1>
           <p className="text-sm text-text-stone mt-1">
             Generate dynamic QR codes with GPS Geo-Fencing to prevent proxy attendance from outside the classroom.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full lg:w-auto">
           {/* Lecture Selector */}
           <select
             value={selectedLectureId}
             onChange={(e) => {
               setSelectedLectureId(e.target.value);
             }}
-            className="p-2.5 bg-white border border-border-default rounded text-sm text-primary font-medium focus:outline-none focus:border-secondary"
+            className="w-full sm:w-auto p-2.5 bg-white border border-border-default rounded text-sm text-primary font-medium focus:outline-none focus:border-secondary"
           >
             {lectures.map((l) => (
               <option key={l.id} value={l.id}>
@@ -58,7 +58,7 @@ export function FacultyAttendanceTab({
           <select
             value={selectedRadius}
             onChange={(e) => setSelectedRadius && setSelectedRadius(Number(e.target.value))}
-            className="p-2.5 bg-white border border-border-default rounded text-sm text-secondary font-bold focus:outline-none focus:border-secondary"
+            className="w-full sm:w-auto p-2.5 bg-white border border-border-default rounded text-sm text-secondary font-bold focus:outline-none focus:border-secondary"
             title="Classroom Geo-Fence Perimeter"
           >
             <option value={0}>🌐 Without Geo-Fence (Open Attendance)</option>
@@ -69,7 +69,7 @@ export function FacultyAttendanceTab({
           {/* Start Attendance Button */}
           <button
             onClick={() => onGenerateQR(selectedLectureId, selectedRadius)}
-            className="px-4 py-2.5 bg-secondary text-on-secondary rounded text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+            className="w-full sm:w-auto justify-center px-4 py-2.5 bg-secondary text-on-secondary rounded text-xs font-bold hover:opacity-90 transition-all cursor-pointer shadow-xs flex items-center gap-1.5 whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-[16px]">play_circle</span>
             <span>Start Attendance</span>
@@ -79,7 +79,7 @@ export function FacultyAttendanceTab({
 
       {/* QR Code Session Card */}
       {qr ? (
-        <div className="bg-surface-bright border border-border-default rounded p-6 shadow-xs flex flex-col items-center text-center space-y-4 max-w-xl mx-auto">
+        <div className="bg-surface-bright border border-border-default rounded p-4 sm:p-6 shadow-xs flex flex-col items-center text-center space-y-4 max-w-xl mx-auto">
           {isExpired ? (
             <div className="w-full py-2 px-3 bg-[#BA1A1A]/10 border border-[#BA1A1A] rounded text-[#BA1A1A] text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
@@ -212,7 +212,7 @@ export function FacultyAttendanceTab({
       )}
 
       {/* Live Classroom Attendance Roster & Distance Verification Section */}
-      <div className="bg-surface border border-border-default rounded p-5 space-y-4">
+      <div className="bg-surface border border-border-default rounded p-3.5 sm:p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-default pb-3">
           <div>
             <div className="flex items-center gap-2">
@@ -279,7 +279,7 @@ export function FacultyAttendanceTab({
           </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar touch-pan-x">
-            <table className="w-full text-left text-xs min-w-[640px]">
+            <table className="w-full text-left text-xs min-w-[660px]">
               <thead className="bg-surface-container-low text-text-stone uppercase text-[10px] tracking-wider border-b border-border-default">
                 <tr>
                   <th className="py-2.5 px-3">Student Name</th>

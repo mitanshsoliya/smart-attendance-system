@@ -62,7 +62,7 @@ export function HodSettingsTab({ user, onProfileUpdate }) {
     return (
       <div className="max-w-2xl space-y-6">
         <div className="border-b border-[#D8D2C4] pb-4">
-          <h1 className="font-serif text-3xl font-bold text-[#12181F]">Department Governance & Settings</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F]">Department Governance & Settings</h1>
           <p className="text-sm text-[#6B7280] mt-1">Loading profile…</p>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function HodSettingsTab({ user, onProfileUpdate }) {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="border-b border-[#D8D2C4] pb-4">
-        <h1 className="font-serif text-3xl font-bold text-[#12181F]">Department Governance & Settings</h1>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F]">Department Governance & Settings</h1>
         <p className="text-sm text-[#6B7280] mt-1">Configure HOD profile details.</p>
       </div>
 
@@ -87,7 +87,7 @@ export function HodSettingsTab({ user, onProfileUpdate }) {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-white border border-[#D8D2C4] rounded p-6 shadow-xs space-y-4">
+      <form onSubmit={handleSave} className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="font-bold text-lg text-[#12181F] border-b border-[#D8D2C4] pb-2">HOD Profile</h3>
         <div>
           <label className="block text-xs uppercase font-bold text-[#6B7280] mb-1">Full Name</label>
@@ -111,7 +111,7 @@ export function HodSettingsTab({ user, onProfileUpdate }) {
         <button
           type="submit"
           disabled={saving}
-          className="px-5 py-2.5 bg-[#9E3D24] text-white text-xs font-bold rounded cursor-pointer hover:bg-[#83311C] disabled:opacity-50"
+          className="w-full sm:w-auto px-5 py-2.5 bg-[#9E3D24] text-white text-xs font-bold rounded cursor-pointer hover:bg-[#83311C] disabled:opacity-50 text-center"
         >
           {saving ? "Saving…" : "Save Settings"}
         </button>

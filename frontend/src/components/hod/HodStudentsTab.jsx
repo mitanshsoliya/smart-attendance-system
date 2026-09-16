@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUpdateSection, onExportLedger }) {
+export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onResetDevice, onUnlockAttendance, onUpdateSection, onExportLedger }) {
   const [search, setSearch] = useState("");
 
   const filtered = (students || []).filter((s) => {
@@ -18,7 +18,7 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#BA1A1A] font-bold">
             STUDENT COHORT & EXAMINATION CLEARANCE
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Student Roster & Statutory Clearance ({filtered.length})
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
@@ -26,11 +26,11 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={onOpenAddModal}
-            className="px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[16px]">person_add</span>
             <span>Add Student</span>
@@ -38,7 +38,7 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
           <button
             type="button"
             onClick={onExportLedger}
-            className="px-4 py-2 bg-white border border-[#D8D2C4] hover:bg-[#F3EFE6] text-xs font-semibold rounded cursor-pointer flex items-center gap-1.5"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-white border border-[#D8D2C4] hover:bg-[#F3EFE6] text-xs font-semibold rounded cursor-pointer flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[16px]">download</span>
             <span>Export Roster CSV</span>
@@ -54,13 +54,13 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
         className="w-full px-3 py-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5]"
       />
 
-      <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded shadow-xs overflow-x-auto">
+      <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded shadow-xs overflow-x-auto custom-scrollbar touch-pan-x">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#6B7280]">
             No student records found in the directory.
           </div>
         ) : (
-          <table className="w-full text-left border-collapse text-sm">
+          <table className="w-full text-left border-collapse text-sm min-w-[800px]">
             <thead>
               <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono text-xs uppercase text-[#6B7280]">
                 <th className="py-3 px-4">Candidate Student</th>
@@ -85,7 +85,23 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
                   <tr key={s.id || idx} className="hover:bg-[#FBF9F5]">
                     <td className="py-3.5 px-4 font-bold text-[#12181F]">
                       <div>{name}</div>
-                      <div className="text-xs font-mono font-normal text-[#6B7280]">{roll} • {s.email}</div>
+                      <div className="text-xs font-mono font-normal text-[#6B7280] flex items-center gap-1.5 flex-wrap">
+                        <span>{roll} • {s.email}</span>
+                        {s.isAttendanceLocked && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-sans font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300" title="Attendance locked due to unauthorized identity manipulation">
+                            <span className="material-symbols-outlined text-[11px]">lock</span> Locked 🔒
+                          </span>
+                        )}
+                        {s.isDeviceBound ? (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-sans font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" title="Device bound">
+                            <span className="material-symbols-outlined text-[11px]">smartphone</span> Device Bound
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-sans font-normal text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200" title="No device bound yet">
+                            Unbound
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-xs font-semibold text-[#555E68]">
                       {onUpdateSection ? (
@@ -116,10 +132,39 @@ export function HodStudentsTab({ students, onOpenAddModal, onDeleteStudent, onUp
                         {pct >= 75 ? "CLEARED" : "DISQUALIFIED"}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <button onClick={() => onDeleteStudent(s.id)} className="text-xs text-[#BA1A1A] hover:underline cursor-pointer">
-                        Delete
-                      </button>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-2">
+                        {onUnlockAttendance && s.isAttendanceLocked && (
+                          <button
+                            type="button"
+                            onClick={() => onUnlockAttendance(s.id, name)}
+                            className="px-2 py-1 text-xs font-bold rounded bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer flex items-center gap-1 transition-colors"
+                            title="Unlock Attendance Access"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">lock_open</span>
+                            <span>Unlock</span>
+                          </button>
+                        )}
+                        {onResetDevice && (
+                          <button
+                            type="button"
+                            onClick={() => onResetDevice(s.id, name)}
+                            disabled={!s.isDeviceBound}
+                            className={`px-2 py-1 text-xs font-semibold rounded flex items-center gap-1 transition-colors ${
+                              s.isDeviceBound
+                                ? "bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300 cursor-pointer"
+                                : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+                            }`}
+                            title={s.isDeviceBound ? "Reset registered device binding" : "No device bound yet"}
+                          >
+                            <span className="material-symbols-outlined text-[13px]">phonelink_erase</span>
+                            <span>{s.isDeviceBound ? "Reset Device" : "No Device"}</span>
+                          </button>
+                        )}
+                        <button onClick={() => onDeleteStudent(s.id)} className="text-xs text-[#BA1A1A] hover:underline cursor-pointer">
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

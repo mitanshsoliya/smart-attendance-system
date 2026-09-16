@@ -138,7 +138,7 @@ export function HodDepartmentsTab({
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
             INSTITUTIONAL DEPARTMENTS OVERVIEW
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Academic Departments & Performance Metrics
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
@@ -151,7 +151,7 @@ export function HodDepartmentsTab({
         {departments.map((dept) => (
           <div
             key={dept.id}
-            className="bg-white border border-[#D8D2C4] rounded p-6 shadow-xs flex flex-col justify-between gap-4"
+            className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs flex flex-col justify-between gap-4"
           >
             <div>
               <div className="flex items-center justify-between mb-2">

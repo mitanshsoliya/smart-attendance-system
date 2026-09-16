@@ -10,7 +10,7 @@ export function HodAnalyticsTab({ students }) {
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
             NAAC / NBA COMPLIANCE ANALYTICS
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Institutional Attendance Metrics & Cohort Risk
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
@@ -20,13 +20,13 @@ export function HodAnalyticsTab({ students }) {
       </div>
 
       {/* Low Attendance Audit Table */}
-      <div className="bg-white border border-[#D8D2C4] rounded p-6 shadow-xs space-y-4">
+      <div className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="font-serif text-xl font-bold text-[#BA1A1A]">Students Below 75% Statutory Threshold ({lowAttendance.length})</h3>
         {lowAttendance.length === 0 ? (
           <p className="text-xs text-[#2E6B34] font-semibold">All enrolled students are above the 75% statutory attendance threshold!</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto custom-scrollbar touch-pan-x">
+            <table className="w-full text-left text-xs min-w-[550px]">
               <thead>
                 <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono font-bold text-[#6B7280]">
                   <th className="p-3">Roll Number</th>

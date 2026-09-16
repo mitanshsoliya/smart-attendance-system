@@ -16,12 +16,12 @@ export function FacultyLecturesTab({
   return (
     <div className="space-y-8">
       <div className="border-b border-border-default pb-4">
-        <h1 className="font-serif-display text-3xl text-primary font-bold">Classroom Lectures Directory</h1>
+        <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Classroom Lectures Directory</h1>
         <p className="text-sm text-text-stone mt-1">Schedule new lecture sessions, verify active status, and modify class timings.</p>
       </div>
 
       {/* Schedule Form */}
-      <div className="bg-surface-warm border border-border-default p-6 rounded shadow-xs">
+      <div className="bg-surface-warm border border-border-default p-4 sm:p-6 rounded shadow-xs">
         <h3 className="font-bold text-lg text-primary mb-4 flex items-center gap-2">
           <span className="material-symbols-outlined text-secondary">add_circle</span>
           Schedule New Lecture Session
@@ -95,11 +95,11 @@ export function FacultyLecturesTab({
             </select>
           </div>
 
-          <div className="sm:col-span-2 md:col-span-4 flex justify-end">
+          <div className="sm:col-span-2 md:col-span-4 flex justify-stretch sm:justify-end">
             <button
               type="submit"
               disabled={createLoading}
-              className="px-6 py-2.5 bg-secondary text-on-secondary font-bold text-xs rounded hover:opacity-90 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 bg-secondary text-on-secondary font-bold text-xs rounded hover:opacity-90 cursor-pointer disabled:opacity-50 text-center"
             >
               {createLoading ? "Creating Lecture..." : "Create & Schedule Lecture"}
             </button>
@@ -112,8 +112,8 @@ export function FacultyLecturesTab({
         {lectures.map((lec) => {
           const isActive = lec.is_active || lec.status === "ACTIVE";
           return (
-            <div key={lec.id} className="border p-5 bg-surface-bright rounded flex flex-col justify-between gap-4">
-              <div className="flex justify-between items-start">
+            <div key={lec.id} className="border p-4 sm:p-5 bg-surface-bright rounded flex flex-col justify-between gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-secondary uppercase bg-secondary/10 px-2 py-0.5 rounded font-mono">
@@ -134,7 +134,7 @@ export function FacultyLecturesTab({
                     {formatShortDate(lec.lecture_date)} • {lec.start_time} - {lec.end_time}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1 self-end sm:self-auto">
                   <button onClick={() => onOpenEdit(lec)} className="px-2 py-1 text-xs border border-border-default rounded">Edit</button>
                   <button onClick={() => onDeleteLecture(lec.id)} className="px-2 py-1 text-xs text-error">Delete</button>
                 </div>

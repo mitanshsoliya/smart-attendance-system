@@ -16,12 +16,12 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
       </div>
 
       {/* Header Banner */}
-      <div className="bg-[#FFFFFF] border-l-4 border-[#9E3D24] border-t border-r border-b border-[#D8D2C4] rounded-r p-6 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-[#FFFFFF] border-l-4 border-[#9E3D24] border-t border-r border-b border-[#D8D2C4] rounded-r p-4 sm:p-6 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
             EXECUTIVE BRIEFING • AY 2026-27 (FALL TERM)
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Department Operational Readiness & Accreditation Index
           </h1>
           <p className="text-xs text-[#555E68] mt-1 max-w-3xl leading-relaxed">
@@ -30,11 +30,11 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full sm:w-auto">
           <button
             type="button"
             onClick={onExportLedger}
-            className="px-3.5 py-2.5 bg-[#1C242E] hover:bg-[#12181F] text-[#EDE8DF] text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial justify-center px-3.5 py-2.5 bg-[#1C242E] hover:bg-[#12181F] text-[#EDE8DF] text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer text-center"
           >
             <span className="material-symbols-outlined text-[16px]">file_download</span>
             <span>Export CSV</span>
@@ -42,7 +42,7 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
           <button
             type="button"
             onClick={onEditTimetable}
-            className="px-4 py-2.5 bg-[#9E3D24] hover:bg-[#83311C] text-white text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-[#9E3D24] hover:bg-[#83311C] text-white text-xs font-bold rounded shadow-xs flex items-center gap-1.5 cursor-pointer text-center"
           >
             <span className="material-symbols-outlined text-[16px]">edit_calendar</span>
             <span>Edit Timetable</span>
@@ -52,30 +52,30 @@ export function HodOverviewTab({ stats, studentsCount, facultyCount, coursesCoun
 
       {/* Attendance Ring & Institutional KPI Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white border border-[#D8D2C4] p-6 rounded shadow-xs flex flex-col items-center justify-center">
+        <div className="bg-white border border-[#D8D2C4] p-4 sm:p-6 rounded shadow-xs flex flex-col items-center justify-center">
           <AttendanceRing percentage={aggregatePct} size={150} label="Department Average" />
         </div>
 
         <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Total Students</span>
-            <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
+            <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">
               {studentsCount !== undefined ? studentsCount : (stats?.totalStudents || 0)}
             </div>
             <span className="text-[11px] text-[#2E6B34] font-semibold mt-1">Active Academic Cohort</span>
           </div>
 
-          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Total Faculty</span>
-            <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
+            <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">
               {facultyCount !== undefined ? facultyCount : (stats?.totalFaculty || 0)}
             </div>
             <span className="text-[11px] text-[#736F68] mt-1">Professors & Instructors</span>
           </div>
 
-          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-5 shadow-xs flex flex-col justify-between">
+          <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded p-4 sm:p-5 shadow-xs flex flex-col justify-between">
             <span className="text-[#736F68] text-[11px] font-mono font-bold uppercase">Accredited Courses</span>
-            <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">
+            <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">
               {coursesCount !== undefined ? coursesCount : (stats?.totalCourses || 0)}
             </div>
             <span className="text-[11px] text-[#736F68] mt-1">Fall Semester 2026</span>

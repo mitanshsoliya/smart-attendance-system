@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const { verifyToken, requireStudent, requireFacultyOrHod } = require("../middleware/auth");
 const { calculateDistanceInMeters } = require("../utils/geo");
 const db = require("../db");
@@ -38,18 +39,106 @@ const router = express.Router();
  *  - No silent auto-creation of missing student profiles.
  */
 router.post("/mark", verifyToken, requireStudent, async (req, res) => {
-  const { session_token, latitude, longitude } = req.body;
-
-  // --- 1. session_token is strictly required ---
-  const tokenToUse = session_token ? String(session_token).trim() : "";
-  if (!tokenToUse) {
-    return res.status(400).json({
-      message: "A valid session_token is required to mark attendance. Scan the QR code displayed by your instructor.",
-    });
-  }
-
   try {
-    // --- 2. Resolve QR session from token with Geo-Fence coordinates ---
+    // --- 1. Resolve authenticated student record strictly from JWT identity ---
+    const studentRows = await db.query(
+      "SELECT id, user_id, roll_number, department, attendance_security_locked, device_token_hash FROM students WHERE user_id = $1",
+      [req.user.id]
+    );
+
+    if (!studentRows || studentRows.length === 0) {
+      return res.status(403).json({
+        message: "No student profile found for your account. Please contact your institution.",
+      });
+    }
+
+    const student = studentRows[0];
+    const studentId = student.id;
+
+    const clientDeviceToken = req.body?.device_token || req.headers["x-device-token"] || null;
+    const clientDeviceHash = clientDeviceToken ? crypto.createHash("sha256").update(String(clientDeviceToken).trim()).digest("hex") : null;
+    const effectiveDeviceHash = student.device_token_hash || clientDeviceHash;
+
+    // --- 1b. Security Check: Is this student's attendance access locked? ---
+    if (student.attendance_security_locked) {
+      return res.status(403).json({
+        message: "Attendance request rejected. Your account has been locked. Please contact the HOD.",
+        locked: true,
+      });
+    }
+
+    // --- 1c. Identity Manipulation Detection ---
+    // Detect if client attempts to send another student's ID, user_id, or enrollment number.
+    const incoming = { ...(req.query || {}), ...(req.body || {}) };
+    const incomingStudentId = incoming.student_id ?? incoming.studentId;
+    const incomingUserId = incoming.user_id ?? incoming.userId;
+    const incomingRoll = incoming.enrollment_no ?? incoming.roll_number ?? incoming.rollNumber ?? incoming.enrollmentNumber;
+
+    let hasIdentityManipulation = false;
+
+    if (incomingStudentId !== undefined && incomingStudentId !== null && String(incomingStudentId).trim() !== "") {
+      if (String(incomingStudentId).trim() !== String(student.id).trim()) {
+        hasIdentityManipulation = true;
+      }
+    }
+
+    if (incomingUserId !== undefined && incomingUserId !== null && String(incomingUserId).trim() !== "") {
+      if (String(incomingUserId).trim() !== String(req.user.id).trim()) {
+        hasIdentityManipulation = true;
+      }
+    }
+
+    if (incomingRoll !== undefined && incomingRoll !== null && String(incomingRoll).trim() !== "") {
+      if (!student.roll_number || String(incomingRoll).trim().toLowerCase() !== String(student.roll_number).trim().toLowerCase()) {
+        hasIdentityManipulation = true;
+      }
+    }
+
+    if (hasIdentityManipulation) {
+      await db.query(
+        "UPDATE students SET attendance_security_locked = TRUE WHERE id = $1",
+        [student.id]
+      );
+
+      return res.status(403).json({
+        message: "Attendance request rejected. Your account has been locked. Please contact the HOD.",
+        locked: true,
+      });
+    }
+
+    // Security: Purge any client-supplied identity parameters so downstream operations never see them
+    if (req.body) {
+      delete req.body.student_id;
+      delete req.body.studentId;
+      delete req.body.user_id;
+      delete req.body.userId;
+      delete req.body.enrollment_no;
+      delete req.body.roll_number;
+      delete req.body.rollNumber;
+      delete req.body.enrollmentNumber;
+    }
+    if (req.query) {
+      delete req.query.student_id;
+      delete req.query.studentId;
+      delete req.query.user_id;
+      delete req.query.userId;
+      delete req.query.enrollment_no;
+      delete req.query.roll_number;
+      delete req.query.rollNumber;
+      delete req.query.enrollmentNumber;
+    }
+
+    const { session_token, latitude, longitude } = req.body || {};
+
+    // --- 2. session_token is strictly required ---
+    const tokenToUse = session_token ? String(session_token).trim() : "";
+    if (!tokenToUse) {
+      return res.status(400).json({
+        message: "A valid session_token is required to mark attendance. Scan the QR code displayed by your instructor.",
+      });
+    }
+
+    // --- 3. Resolve QR session from token with Geo-Fence coordinates ---
     const sessionRows = await db.query(
       "SELECT id, lecture_id, expires_at, latitude, longitude, radius_meters FROM qr_sessions WHERE session_token = $1",
       [tokenToUse]
@@ -63,7 +152,7 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
 
     const session = sessionRows[0];
 
-    // --- 3. Check session expiration (server clock — not client-supplied) ---
+    // --- 3a. Check session expiration (server clock — not client-supplied) ---
     if (new Date() > new Date(session.expires_at)) {
       return res.status(400).json({
         message: "QR session has expired. Please ask your instructor for a new QR code.",
@@ -113,7 +202,6 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
       verifiedDistance = distance;
     } else {
       // Open Attendance Session (No Geo-Fence)
-      // If student provided GPS coordinates and faculty coordinates exist, calculate distance for logging
       if (
         session.latitude !== null &&
         session.longitude !== null &&
@@ -127,23 +215,35 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     }
 
     // --- 4. Derive lecture_id strictly from the validated session record ---
-    //         The student NEVER controls which lecture they are marking.
     const lectureId = session.lecture_id;
 
-    // --- 5. Resolve authenticated student record from JWT identity ---
-    const studentRows = await db.query(
-      "SELECT id, department FROM students WHERE user_id = $1",
-      [req.user.id]
-    );
+    // --- 4b. Anti-Proxy Single-Device Enforcement per Lecture Session ---
+    // A single physical device cannot mark attendance for more than one student in the same lecture session.
+    const hashesToCheck = Array.from(new Set([clientDeviceHash, student.device_token_hash].filter(Boolean)));
+    if (hashesToCheck.length > 0) {
+      const deviceUsedRows = await db.query(
+        `SELECT a.id, a.student_id 
+         FROM attendance a 
+         WHERE a.lecture_id = $1 
+           AND a.device_token_hash = ANY($2::varchar[]) 
+           AND a.student_id != $3`,
+        [lectureId, hashesToCheck, studentId]
+      );
 
-    if (!studentRows || studentRows.length === 0) {
-      return res.status(403).json({
-        message: "No student profile found for your account. Please contact your institution.",
-      });
+      if (deviceUsedRows && deviceUsedRows.length > 0) {
+        // Lock this student's account for proxy attendance on the same device
+        await db.query(
+          "UPDATE students SET attendance_security_locked = TRUE WHERE id = $1",
+          [studentId]
+        );
+
+        return res.status(403).json({
+          message: "Attendance has already been marked for this lecture session from this device. Multiple student attendance from the same device is strictly prohibited. Your account has been locked. Please contact the HOD.",
+          deviceConflict: true,
+          locked: true,
+        });
+      }
     }
-
-    const student = studentRows[0];
-    const studentId = student.id;
 
     // --- 5b. Department Check: Student must belong to the same department as the Faculty's Lecture ---
     const lectureFacultyRows = await db.query(
@@ -231,14 +331,16 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
              distance_meters = $1,
              student_latitude = $2,
              student_longitude = $3,
-             location_verified = $4
-         WHERE lecture_id = $5 AND student_id = $6
+             location_verified = $4,
+             device_token_hash = COALESCE($5, device_token_hash)
+         WHERE lecture_id = $6 AND student_id = $7
          RETURNING id, attendance_time, distance_meters`,
         [
           verifiedDistance,
           latitude !== undefined && latitude !== null ? Number(latitude) : null,
           longitude !== undefined && longitude !== null ? Number(longitude) : null,
           verifiedDistance !== null,
+          effectiveDeviceHash,
           lectureId,
           studentId,
         ]
@@ -246,8 +348,8 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     } else {
       insertRows = await db.query(
         `INSERT INTO attendance
-         (lecture_id, student_id, status, distance_meters, student_latitude, student_longitude, location_verified, attendance_time)
-         VALUES ($1, $2, 'PRESENT', $3, $4, $5, $6, CURRENT_TIMESTAMP)
+         (lecture_id, student_id, status, distance_meters, student_latitude, student_longitude, location_verified, device_token_hash, attendance_time)
+         VALUES ($1, $2, 'PRESENT', $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
          RETURNING id, attendance_time, distance_meters`,
         [
           lectureId,
@@ -256,6 +358,7 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
           latitude !== undefined && latitude !== null ? Number(latitude) : null,
           longitude !== undefined && longitude !== null ? Number(longitude) : null,
           verifiedDistance !== null,
+          effectiveDeviceHash,
         ]
       );
     }

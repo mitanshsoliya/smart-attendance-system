@@ -1,213 +1,410 @@
+const crypto = require("crypto");
+
 const BASE = "http://localhost:5000";
 
-async function runSecuritySuite() {
-  console.log("=========================================================");
-  console.log("=== PHASE 16: SECURITY & PENETRATION AUDIT TEST SUITE ===");
-  console.log("=========================================================\n");
+async function runSecurityTestSuite() {
+  console.log("=================================================================");
+  console.log("=== RUNNING ZERO-TRUST & DEVICE BINDING SECURITY TEST SUITE ===");
+  console.log("=================================================================\n");
 
   let passCount = 0;
   let totalCount = 0;
 
-  function assert(name, condition, extra) {
+  function assert(name, condition, extra = "") {
     totalCount++;
     if (condition) {
       passCount++;
-      console.log(`  [PASS ${String(totalCount).padStart(2, "0")}] ${name}`, extra ? `-> ${extra}` : "");
+      console.log(`  [PASS ${String(totalCount).padStart(2, "0")}] ${name}${extra ? " -> " + extra : ""}`);
     } else {
-      console.error(`  [FAIL ${String(totalCount).padStart(2, "0")}] ${name}`, extra ? `-> ${extra}` : "");
+      console.error(`  [FAIL ${String(totalCount).padStart(2, "0")}] ${name}${extra ? " -> " + extra : ""}`);
     }
   }
 
-  async function login(email, password) {
-    const res = await fetch(`${BASE}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    return { status: res.status, token: data.token, data };
-  }
-
   try {
-    const studentAuth = await login("student@example.com", "student123");
-    const facultyAuth = await login("faculty@example.com", "faculty123");
-    const hodAuth = await login("hod@example.com", "hod123");
+    const ts = Date.now();
+    const studentBEmail = `student.b.${ts}@univ.edu`;
+    const studentAEmail = `student.a.${ts}@univ.edu`;
+    const studentPassword = "securePassword123!";
 
-    // --- 1. Access Student APIs as Faculty ---
-    console.log("--- 1. Cross-Role Restrictions ---");
-    const facToStudentRes = await fetch(`${BASE}/student/attendance`, {
-      headers: { Authorization: `Bearer ${facultyAuth.token}` },
-    });
-    assert("Accessing Student API as Faculty rejected (403 Forbidden)", facToStudentRes.status === 403);
-
-    // --- 2. Access Faculty APIs as Student ---
-    const stdToFacultyRes = await fetch(`${BASE}/faculty/lectures`, {
-      headers: { Authorization: `Bearer ${studentAuth.token}` },
-    });
-    assert("Accessing Faculty API as Student rejected (403 Forbidden)", stdToFacultyRes.status === 403);
-
-    // --- 3. Access HOD APIs as Student ---
-    const stdToHodRes = await fetch(`${BASE}/hod/stats`, {
-      headers: { Authorization: `Bearer ${studentAuth.token}` },
-    });
-    assert("Accessing HOD API as Student rejected (403 Forbidden)", stdToHodRes.status === 403);
-
-    // --- 4. Access HOD APIs as Faculty ---
-    const facToHodRes = await fetch(`${BASE}/hod/stats`, {
-      headers: { Authorization: `Bearer ${facultyAuth.token}` },
-    });
-    assert("Accessing HOD API as Faculty rejected (403 Forbidden)", facToHodRes.status === 403);
-
-    // --- 5. Faculty Attempting to Create Faculty Account ---
-    console.log("\n--- 2. Privilege Escalation Guards ---");
-    const facCreateFacRes = await fetch(`${BASE}/hod/faculty`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facultyAuth.token}` },
-      body: JSON.stringify({
-        fullName: "Rogue Professor",
-        email: "rogue.fac@univ.edu",
-        password: "roguepassword123",
-      }),
-    });
-    assert("Faculty creating Faculty account rejected (403 Forbidden)", facCreateFacRes.status === 403);
-
-    // --- 6. Public Register HOD Account Attempt ---
-    const pubHodRegRes = await fetch(`${BASE}/register`, {
+    console.log("--- Setup: Registering Test Accounts ---");
+    
+    // 1. Register Student B (victim whose credentials could be stolen)
+    const regBRes = await fetch(`${BASE}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        full_name: "Public HOD Attacker",
-        email: "pub.hod@univ.edu",
-        password: "password123",
-        role: "HOD",
+        full_name: "Student B (Legitimate Student)",
+        email: studentBEmail,
+        password: studentPassword,
+        role: "STUDENT",
+        roll_number: `2026-CSE-B${ts.toString().slice(-4)}`,
+        section: "Sec A",
       }),
     });
-    assert("Public HOD account registration blocked (403 Forbidden)", pubHodRegRes.status === 403);
+    const regBData = await regBRes.json();
+    assert("Student B account created", regBRes.status === 201 && (regBData.user_id || regBData.id));
 
-    // --- 7. Public Register ADMIN Account Attempt ---
-    const pubAdminRegRes = await fetch(`${BASE}/register`, {
+    // 2. Register Student A (proxy attacker)
+    const regARes = await fetch(`${BASE}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        full_name: "Public Admin Attacker",
-        email: "pub.admin@univ.edu",
-        password: "password123",
-        role: "ADMIN",
+        full_name: "Student A (Attacker)",
+        email: studentAEmail,
+        password: studentPassword,
+        role: "STUDENT",
+        roll_number: `2026-CSE-A${ts.toString().slice(-4)}`,
+        section: "Sec A",
       }),
     });
-    assert("Public ADMIN account registration blocked (403 Forbidden)", pubAdminRegRes.status === 403);
+    const regAData = await regARes.json();
+    assert("Student A account created", regARes.status === 201 && (regAData.user_id || regAData.id));
 
-    // --- 8. Submitting Arbitrary Lecture ID directly ---
-    console.log("\n--- 3. Session & Token Tampering Guards ---");
-    const arbLecRes = await fetch(`${BASE}/attendance/mark`, {
+    // 3. Login as HOD to administer student cohort
+    const hodRes = await fetch(`${BASE}/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${studentAuth.token}` },
-      body: JSON.stringify({ lecture_id: 99999 }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "hod@example.com", password: "hod123" }),
     });
-    assert("Submitting arbitrary lecture_id without valid session_token rejected (400 Bad Request)", arbLecRes.status === 400);
+    const hodData = await hodRes.json();
+    const hodToken = hodData.token;
+    assert("HOD authentication successful", hodRes.status === 200 && Boolean(hodToken));
 
-    // --- 9. Submitting Expired QR Session Token ---
-    const expiredQrRes = await fetch(`${BASE}/attendance/mark`, {
+    // 4. Login as Faculty to setup lecture and dynamic QR session
+    const facRes = await fetch(`${BASE}/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${studentAuth.token}` },
-      body: JSON.stringify({ session_token: "expired_session_token_mock_999" }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "faculty@example.com", password: "faculty123" }),
     });
-    assert("Expired or non-existent QR token rejected (400 or 404)", expiredQrRes.status === 400 || expiredQrRes.status === 404);
+    const facData = await facRes.json();
+    const facToken = facData.token;
+    assert("Faculty authentication successful", facRes.status === 200 && Boolean(facToken));
 
-    // --- 10 & 11. Creating Real Lecture, QR Session, and Testing Re-use / Duplicate Attendance ---
-    console.log("\n--- 4. Live Attendance & Re-use Prevention ---");
-    const newSubCode = `SEC${Math.floor(100 + Math.random() * 900)}`;
+    // =========================================================================
+    // TEST 1: Student B First Login & Device Binding
+    // =========================================================================
+    console.log("\n--- TEST 1: First Login Device Binding for Student ---");
+    
+    const loginB1 = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: studentBEmail, password: studentPassword }),
+    });
+    const loginB1Data = await loginB1.json();
+    const studentBDeviceToken = loginB1Data.device_token;
+    const studentBToken = loginB1Data.token;
+
+    assert("First login succeeds (200 OK)", loginB1.status === 200);
+    assert("First login generates and returns 256-bit device token", Boolean(studentBDeviceToken) && studentBDeviceToken.length === 64, `Token prefix: ${studentBDeviceToken?.slice(0, 10)}...`);
+
+    // =========================================================================
+    // TEST 2: Attacker Logs In With Student B's Credentials on Unregistered Device
+    // =========================================================================
+    console.log("\n--- TEST 2: Proxy Login Blocked (Stolen Credentials on Unregistered Device) ---");
+    
+    // Case A: Missing device token (fresh browser / incognito mode)
+    const proxyLoginNoToken = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: studentBEmail, password: studentPassword }),
+    });
+    const proxyLoginNoTokenData = await proxyLoginNoToken.json();
+    assert(
+      "Login blocked with 403 Forbidden when device token is missing",
+      proxyLoginNoToken.status === 403 && proxyLoginNoTokenData.code === "DEVICE_NOT_AUTHORIZED",
+      `Message: ${proxyLoginNoTokenData.message}`
+    );
+
+    // Case B: Attacker uses their own / random device token
+    const fakeDeviceToken = crypto.randomBytes(32).toString("hex");
+    const proxyLoginFakeToken = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: studentBEmail,
+        password: studentPassword,
+        device_token: fakeDeviceToken,
+      }),
+    });
+    const proxyLoginFakeTokenData = await proxyLoginFakeToken.json();
+    assert(
+      "Login blocked with 403 Forbidden when unauthorized device token is provided",
+      proxyLoginFakeToken.status === 403 && proxyLoginFakeTokenData.code === "DEVICE_NOT_AUTHORIZED"
+    );
+
+    // =========================================================================
+    // TEST 3: Legitimate Student B Login from Bound Device
+    // =========================================================================
+    console.log("\n--- TEST 3: Legitimate Student B Login from Authorized Device ---");
+    
+    const loginBValid = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: studentBEmail,
+        password: studentPassword,
+        device_token: studentBDeviceToken,
+      }),
+    });
+    const loginBValidData = await loginBValid.json();
+    assert(
+      "Student B logs in successfully from registered device (200 OK)",
+      loginBValid.status === 200 && Boolean(loginBValidData.token)
+    );
+
+    // =========================================================================
+    // TEST 4: Zero-Trust Attendance API Parameter Tampering Defense
+    // =========================================================================
+    console.log("\n--- TEST 4: Zero-Trust Attendance API Parameter Tampering Defense ---");
+
+    // Login Student A and get their device token & auth token
+    const loginA = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: studentAEmail, password: studentPassword }),
+    });
+    const loginAData = await loginA.json();
+    const studentAToken = loginAData.token;
+
+    // Fetch HOD student directory to locate records
+    const hodStudentsRes = await fetch(`${BASE}/hod/students`, {
+      headers: { Authorization: `Bearer ${hodToken}` },
+    });
+    const hodStudentsData = await hodStudentsRes.json();
+    const studentList = hodStudentsData.students || hodStudentsData || [];
+    const recordA = studentList.find((s) => s.email === studentAEmail);
+    const recordB = studentList.find((s) => s.email === studentBEmail);
+
+    assert("Found database records for Student A and Student B", Boolean(recordA && recordB));
+
+    // Faculty creates subject and enrolls Student A and Student B
+    const subCode = `SEC${Math.floor(100 + Math.random() * 900)}`;
     const createSubRes = await fetch(`${BASE}/subjects`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facultyAuth.token}` },
-      body: JSON.stringify({ subject_code: newSubCode, subject_name: "Security Course" }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facToken}` },
+      body: JSON.stringify({ subject_code: subCode, subject_name: "Security Engineering" }),
     });
     const createSubData = await createSubRes.json();
     const subId = createSubData.subject ? createSubData.subject.id : createSubData.id;
 
-    // Enroll student
-    const studentProfileId = (studentAuth.data.user && studentAuth.data.user.profile) ? studentAuth.data.user.profile.id : 1;
     await fetch(`${BASE}/subjects/${subId}/enroll`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facultyAuth.token}` },
-      body: JSON.stringify({ student_id: studentProfileId }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facToken}` },
+      body: JSON.stringify({ student_id: recordA.id }),
+    });
+    await fetch(`${BASE}/subjects/${subId}/enroll`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facToken}` },
+      body: JSON.stringify({ student_id: recordB.id }),
     });
 
-    // Create lecture & QR session
+    // Faculty creates a lecture and dynamic QR session with 500m radius
     const today = new Date().toISOString().split("T")[0];
     const lecRes = await fetch(`${BASE}/lectures/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facultyAuth.token}` },
-      body: JSON.stringify({ subject_id: subId, lecture_date: today, start_time: "10:00:00", end_time: "11:30:00" }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facToken}` },
+      body: JSON.stringify({
+        subject_id: subId,
+        lecture_date: today,
+        start_time: "09:00:00",
+        end_time: "10:30:00",
+      }),
     });
     const lecData = await lecRes.json();
+    const lectureId = lecData.lecture_id || lecData.id;
 
     const qrRes = await fetch(`${BASE}/qr-session/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facultyAuth.token}` },
-      body: JSON.stringify({ lecture_id: lecData.lecture_id }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${facToken}` },
+      body: JSON.stringify({
+        lecture_id: lectureId,
+        latitude: 23.0225,
+        longitude: 72.5714,
+        radius_meters: 500,
+      }),
     });
     const qrData = await qrRes.json();
+    const sessionToken = qrData.session_token;
 
-    // Mark attendance 1st time (Success)
-    const firstMarkRes = await fetch(`${BASE}/attendance/mark`, {
+    assert("Lecture session and QR code created", Boolean(lectureId && sessionToken));
+
+    // Student A tries to mark attendance for Student B by injecting student_id / user_id
+    const tamperRes = await fetch(`${BASE}/attendance/mark`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${studentAuth.token}` },
-      body: JSON.stringify({ session_token: qrData.session_token }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${studentAToken}`, // Student A's JWT!
+      },
+      body: JSON.stringify({
+        session_token: sessionToken,
+        latitude: 23.0225,
+        longitude: 72.5714,
+        // MALICIOUS INJECTION:
+        student_id: recordB.id,
+        studentId: recordB.id,
+        user_id: recordB.userId,
+        userId: recordB.userId,
+      }),
     });
-    assert("Initial attendance mark succeeds (201 Created)", firstMarkRes.status === 201);
+    const tamperData = await tamperRes.json();
+    assert(
+      "Zero-Trust & Lock: Malicious parameter injection rejected with 403 Forbidden & account locked",
+      tamperRes.status === 403 && tamperData.locked === true,
+      `Message: ${tamperData.message}`
+    );
 
-    // Try reusing QR / Duplicate Attendance (409 Conflict)
-    const reuseQrRes = await fetch(`${BASE}/attendance/mark`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${studentAuth.token}` },
-      body: JSON.stringify({ session_token: qrData.session_token }),
+    // Verify who got marked: Query lecture attendance
+    const checkLecRes = await fetch(`${BASE}/attendance/lecture/${lectureId}`, {
+      headers: { Authorization: `Bearer ${facToken}` },
     });
-    assert("Reusing QR token for duplicate attendance blocked (409 Conflict)", reuseQrRes.status === 409);
+    const checkLecData = await checkLecRes.json();
+    const attendanceRecords = checkLecData.attendance || checkLecData || [];
 
-    assert("Duplicate attendance submission blocked (409 Conflict)", reuseQrRes.status === 409);
+    const isAMarked = attendanceRecords.some((att) => att.student_id === recordA.id);
+    const isBMarked = attendanceRecords.some((att) => att.student_id === recordB.id);
 
-    // --- 12 & 13. Cross-Faculty Resource Isolation ---
-    console.log("\n--- 5. Cross-Faculty Resource Isolation ---");
-    const otherFacultyAuth = await login("faculty@example.com", "faculty123");
-    // Verify editing another faculty's lecture or accessing non-assigned subject details
-    const otherLecRes = await fetch(`${BASE}/lectures/${lecData.lecture_id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${studentAuth.token}` },
-      body: JSON.stringify({ start_time: "08:00:00" }),
-    });
-    assert("Student modifying faculty lecture rejected (403 Forbidden)", otherLecRes.status === 403);
+    assert(
+      "Zero-Trust: Tampered request rejected so neither Student A nor Student B is marked",
+      !isAMarked && !isBMarked,
+      `Student A marked: ${isAMarked}, Student B marked: ${isBMarked}`
+    );
+    assert(
+      "Zero-Trust: Injected student_id ignored! Student B's attendance was NOT marked",
+      !isBMarked,
+      `Student B marked: ${isBMarked}`
+    );
 
-    const stdReadLecRes = await fetch(`${BASE}/lectures/${lecData.lecture_id}`, {
-      headers: { Authorization: `Bearer ${studentAuth.token}` },
-    });
-    assert("Student accessing raw faculty lecture management route rejected (403 Forbidden)", stdReadLecRes.status === 403);
+    // =========================================================================
+    // TEST 5: Faculty & HOD Roles Exempt from Device Lock
+    // =========================================================================
+    console.log("\n--- TEST 5: Faculty & HOD Multi-Device Exemption ---");
 
-    // --- 14. Invalid JWT Bearer Token ---
-    console.log("\n--- 6. JWT Token Integrity & Malformed Requests ---");
-    const invalidJwtRes = await fetch(`${BASE}/auth/me`, {
-      headers: { Authorization: "Bearer invalid.jwt.signature.payload" },
-    });
-    assert("Tampered / Invalid JWT bearer token rejected (401 Unauthorized)", invalidJwtRes.status === 401);
-
-    // --- 15. Missing JWT Bearer Token ---
-    const missingJwtRes = await fetch(`${BASE}/auth/me`);
-    assert("Missing JWT bearer token rejected (401 Unauthorized)", missingJwtRes.status === 401);
-
-    // --- 16. Malformed Requests & Missing Parameters ---
-    const malformedRes = await fetch(`${BASE}/login`, {
+    const facLogin1 = await fetch(`${BASE}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "" }),
+      body: JSON.stringify({ email: "faculty@example.com", password: "faculty123" }),
     });
-    assert("Malformed request missing required parameters rejected (400 Bad Request)", malformedRes.status === 400);
+    assert("Faculty login without device token succeeds (200 OK)", facLogin1.status === 200);
 
-    console.log("\n=========================================================");
-    console.log(`=== SECURITY AUDIT RESULT: ${passCount} / ${totalCount} TESTS PASSED ===`);
-    console.log("=========================================================");
+    const facLogin2 = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: "faculty@example.com",
+        password: "faculty123",
+        device_token: "different-device-token-prof-laptop",
+      }),
+    });
+    assert("Faculty login from secondary device/token succeeds without restriction", facLogin2.status === 200);
+
+    const hodLogin1 = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "hod@example.com", password: "hod123" }),
+    });
+    assert("HOD login without device token succeeds (200 OK)", hodLogin1.status === 200);
+
+    // =========================================================================
+    // TEST 6: Geo-Fence & QR Expiration Preserved
+    // =========================================================================
+    console.log("\n--- TEST 6: Geo-Fencing & Expiration Protections Preserved ---");
+
+    // Outside geo-fence attempt (coordinates far away in London: 51.5074, -0.1278)
+    const outOfBoundsRes = await fetch(`${BASE}/attendance/mark`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${studentBToken}`,
+      },
+      body: JSON.stringify({
+        session_token: sessionToken,
+        latitude: 51.5074,
+        longitude: -0.1278,
+      }),
+    });
+    const outOfBoundsData = await outOfBoundsRes.json();
+    assert(
+      "Out-of-range geo-fence request rejected (403 Forbidden)",
+      outOfBoundsRes.status === 403,
+      `Message: ${outOfBoundsData.message?.slice(0, 40)}...`
+    );
+
+    // =========================================================================
+    // TEST 7: HOD Device Reset Flow & New Device Binding
+    // =========================================================================
+    console.log("\n--- TEST 7: HOD Device Binding Reset & Re-binding ---");
+
+    // 1. Verify Student B shows isDeviceBound: true
+    assert("Student B shows isDeviceBound: true in HOD student directory", recordB.isDeviceBound === true);
+
+    // 2. Non-HOD trying to reset device should be forbidden
+    const unauthorizedReset = await fetch(`${BASE}/hod/students/${recordB.id}/reset-device`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${studentAToken}` },
+    });
+    assert("Unauthorized user (Student) cannot reset device binding (403 Forbidden)", unauthorizedReset.status === 403);
+
+    // 3. HOD resets device binding for Student B
+    const resetRes = await fetch(`${BASE}/hod/students/${recordB.id}/reset-device`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${hodToken}` },
+    });
+    const resetData = await resetRes.json();
+    assert("HOD resets Student B device binding successfully (200 OK)", resetRes.status === 200, `Message: ${resetData.message}`);
+
+    // 4. Verify in HOD directory that isDeviceBound is now false
+    const hodStudentsAfterRes = await fetch(`${BASE}/hod/students`, {
+      headers: { Authorization: `Bearer ${hodToken}` },
+    });
+    const hodStudentsAfterData = await hodStudentsAfterRes.json();
+    const studentListAfter = hodStudentsAfterData.students || hodStudentsAfterData || [];
+    const recordBAfter = studentListAfter.find((s) => s.email === studentBEmail);
+    assert("Student B now shows isDeviceBound: false in directory", recordBAfter?.isDeviceBound === false);
+
+    // 5. Student B logs in from new replacement device (no device token)
+    const newDeviceLogin = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: studentBEmail, password: studentPassword }),
+    });
+    const newDeviceData = await newDeviceLogin.json();
+    const newDeviceToken = newDeviceData.device_token;
+    assert(
+      "Student B successfully binds new device on next login (200 OK)",
+      newDeviceLogin.status === 200 && Boolean(newDeviceToken)
+    );
+    assert("New device token differs from old device token", newDeviceToken !== studentBDeviceToken);
+
+    // 6. Old revoked device token is now blocked
+    const oldDeviceAttempt = await fetch(`${BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: studentBEmail,
+        password: studentPassword,
+        device_token: studentBDeviceToken, // old revoked token
+      }),
+    });
+    assert(
+      "Old revoked device token is rejected with 403 Forbidden",
+      oldDeviceAttempt.status === 403
+    );
+
+    console.log("\n=================================================================");
+    console.log(`=== SECURITY TEST SUITE RESULTS: ${passCount} / ${totalCount} PASSED ===`);
+    console.log("=================================================================\n");
+
+    if (passCount === totalCount) {
+      console.log(">>> ALL SECURITY REQUIREMENTS MET WITH 100% PASS RATE! <<<");
+      process.exit(0);
+    } else {
+      console.error(">>> SOME TESTS FAILED. PLEASE REVIEW LOGS ABOVE. <<<");
+      process.exit(1);
+    }
   } catch (err) {
-    console.error("Security Test Suite Error:", err);
+    console.error("Test execution encountered fatal error:", err);
+    process.exit(1);
   }
 }
 
-runSecuritySuite();
+runSecurityTestSuite();

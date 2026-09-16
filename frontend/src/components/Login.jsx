@@ -28,10 +28,16 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
     setMessage("");
 
     try {
-      const { data } = await api.post("/login", {
+      const savedDeviceToken = localStorage.getItem("lecturelog_device_token");
+      const payload = {
         email: email.trim(),
         password: password.trim(),
-      });
+      };
+      if (savedDeviceToken) {
+        payload.device_token = savedDeviceToken;
+      }
+
+      const { data } = await api.post("/login", payload);
 
       const accountRole = (data.user?.role || "").toUpperCase();
       const selectedRole = role.toUpperCase();
@@ -47,21 +53,34 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
         return;
       }
 
+      // If backend issued or verified a device token for student, persist it securely
+      if (data.device_token) {
+        localStorage.setItem("lecturelog_device_token", data.device_token);
+      }
+
       localStorage.setItem("lecturelog_saved_email", email.trim());
       onLogin(data);
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Invalid credentials or unable to connect to the server."
-      );
+      const errRes = error.response?.data;
+      if (error.response?.status === 403 && errRes?.code === "DEVICE_NOT_AUTHORIZED") {
+        setMessage(
+          errRes.message ||
+            "Your account is registered on another device. Please contact the HOD/admin to verify or reset your registered device."
+        );
+      } else {
+        setMessage(
+          errRes?.message || "Invalid credentials or unable to connect to the server."
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F0E8] text-[#1C1C1A] flex items-center justify-center p-3 sm:p-6 lg:p-8 selection:bg-[#BA5D3B]/20 selection:text-[#BA5D3B]">
+    <div className="min-h-screen bg-[#F4F0E8] text-[#1C1C1A] flex items-center justify-center p-2.5 sm:p-6 lg:p-8 selection:bg-[#BA5D3B]/20 selection:text-[#BA5D3B]">
       {/* Main Container Card matching user image */}
-      <div className="w-full max-w-5xl bg-white rounded-2xl sm:rounded-[28px] shadow-2xl border border-[#EBE6DE] overflow-hidden flex flex-col lg:flex-row my-auto transition-all">
+      <div className="w-full max-w-5xl bg-white rounded-xl sm:rounded-[28px] shadow-2xl border border-[#EBE6DE] overflow-hidden flex flex-col lg:flex-row my-auto transition-all">
         
         {/* ========================================================
             LEFT COLUMN: BRAND HERO, TEXT & CLASSROOM ILLUSTRATION
@@ -154,7 +173,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
         {/* ========================================================
             RIGHT COLUMN: WELCOME BACK & LOGIN FORM
            ======================================================== */}
-        <div className="w-full lg:w-1/2 bg-white p-5 sm:p-8 lg:p-12 flex flex-col justify-center">
+        <div className="w-full lg:w-1/2 bg-white p-4 sm:p-8 lg:p-12 flex flex-col justify-center">
           
           {/* Header */}
           <div className="mb-4 sm:mb-6">
@@ -166,20 +185,18 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
             </p>
           </div>
 
-
-
           {/* Select Your Role Segmented Container */}
           <div className="mb-5">
             <label className="block text-[11px] font-bold text-[#6F6B63] uppercase tracking-wider mb-2.5">
               SELECT YOUR ROLE
             </label>
-            <div className="grid grid-cols-3 p-1.5 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl gap-1">
+            <div className="grid grid-cols-3 p-1 sm:p-1.5 bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl gap-1">
               {[
                 {
                   key: "STUDENT",
                   label: "Student",
                   icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   ),
@@ -188,7 +205,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                   key: "FACULTY",
                   label: "Faculty",
                   icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 14l9-5-9-5-9 5 9 5z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                     </svg>
@@ -198,7 +215,7 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                   key: "HOD",
                   label: "HOD",
                   icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   ),
@@ -212,14 +229,14 @@ export default function Login({ onLogin, sessionNotice, onClearNotice }) {
                     if (onClearNotice) onClearNotice();
                     setMessage("");
                   }}
-                  className={`flex flex-col items-center justify-center py-2.5 px-2 rounded-lg transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1 sm:py-2.5 sm:px-2 rounded-lg transition-all cursor-pointer ${
                     role === item.key
                       ? "bg-[#BA5D3B] text-white shadow-sm"
                       : "text-[#6F6B63] hover:text-[#1C1C1A] hover:bg-white/60 bg-transparent"
                   }`}
                 >
-                  <div className="mb-1">{item.icon}</div>
-                  <span className="text-xs font-semibold">{item.label}</span>
+                  <div className="mb-0.5 sm:mb-1">{item.icon}</div>
+                  <span className="text-[11px] sm:text-xs font-semibold truncate">{item.label}</span>
                 </button>
               ))}
             </div>

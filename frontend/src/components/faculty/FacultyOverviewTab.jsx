@@ -19,7 +19,7 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
           <span className="text-xs uppercase font-bold text-[#9E3D24] font-mono tracking-wider">
             Faculty Academic Workspace
           </span>
-          <h1 className="font-serif text-3xl text-[#12181F] font-bold mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl text-[#12181F] font-bold mt-1">
             Good day, {user?.full_name || "Dr. Faculty"}!
           </h1>
           <p className="text-sm text-[#555E68] mt-1">
@@ -29,7 +29,7 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
       </div>
 
       {/* Next Lecture Hero Banner */}
-      <div className="bg-[#FBF9F5] border border-[#D8D2C4] rounded p-6 shadow-xs flex flex-col md:flex-row gap-8 justify-between items-start md:items-center">
+      <div className="bg-[#FBF9F5] border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs flex flex-col md:flex-row gap-6 sm:gap-8 justify-between items-start md:items-center">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-[#9E3D24] text-xs font-mono uppercase font-bold">Upcoming Scheduled Session</span>
@@ -38,7 +38,7 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
               {nextLecture ? `${nextLecture.start_time} - ${nextLecture.end_time}` : "10:00 AM - 11:30 AM"}
             </span>
           </div>
-          <h2 className="font-serif text-3xl text-[#12181F] font-bold">
+          <h2 className="font-serif text-2xl sm:text-3xl text-[#12181F] font-bold">
             {nextLecture ? nextLecture.subject_name : "Database Systems"}
           </h2>
           <p className="text-sm text-[#555E68] mt-1">
@@ -48,7 +48,7 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
 
         <button
           onClick={() => onGenerateQR(nextLecture?.id)}
-          className="bg-[#9E3D24] text-white py-3 px-8 rounded hover:bg-[#83311C] transition-colors shadow-xs cursor-pointer font-bold text-xs"
+          className="w-full sm:w-auto bg-[#9E3D24] text-white py-3 px-8 rounded hover:bg-[#83311C] transition-colors shadow-xs cursor-pointer font-bold text-xs text-center"
         >
           Broadcast Attendance QR
         </button>
@@ -56,21 +56,21 @@ export function FacultyOverviewTab({ user, nextLecture, totalClasses, onGenerate
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-[#D8D2C4] p-5 rounded shadow-xs">
+        <div className="bg-white border border-[#D8D2C4] p-4 sm:p-5 rounded shadow-xs">
           <span className="text-xs uppercase font-bold text-[#6B7280] font-mono">Classes Conducted</span>
-          <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">{totalClasses || 3}</div>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">{totalClasses || 3}</div>
           <p className="text-xs text-[#2E6B34] font-semibold mt-1">Syllabus Progress On Track</p>
         </div>
 
-        <div className="bg-white border border-[#D8D2C4] p-5 rounded shadow-xs">
+        <div className="bg-white border border-[#D8D2C4] p-4 sm:p-5 rounded shadow-xs">
           <span className="text-xs uppercase font-bold text-[#6B7280] font-mono">Average Attendance</span>
-          <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">92.4%</div>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">92.4%</div>
           <p className="text-xs text-[#2E6B34] font-semibold mt-1">+17.4% Above Cutoff</p>
         </div>
 
-        <div className="bg-white border border-[#D8D2C4] p-5 rounded shadow-xs">
+        <div className="bg-white border border-[#D8D2C4] p-4 sm:p-5 rounded shadow-xs">
           <span className="text-xs uppercase font-bold text-[#6B7280] font-mono">Assigned Subjects</span>
-          <div className="font-serif text-4xl font-bold text-[#12181F] mt-2">4</div>
+          <div className="font-serif text-3xl sm:text-4xl font-bold text-[#12181F] mt-2">4</div>
           <p className="text-xs text-[#6B7280] mt-1">Fall Semester 2026</p>
         </div>
       </div>

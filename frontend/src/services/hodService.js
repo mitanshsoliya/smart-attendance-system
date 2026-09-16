@@ -26,6 +26,16 @@ export const hodService = {
     return data;
   },
 
+  async resetStudentDevice(id, token) {
+    const { data } = await api.post(`/hod/students/${id}/reset-device`, {}, authHeader(token));
+    return data;
+  },
+
+  async unlockStudentAttendance(id, token) {
+    const { data } = await api.post(`/hod/students/${id}/unlock-attendance`, {}, authHeader(token));
+    return data;
+  },
+
   async getHodFaculty(token) {
     const { data } = await api.get("/hod/faculty", authHeader(token));
     return data;

@@ -150,6 +150,9 @@ router.get("/students", async (req, res) => {
         st.student_phone,
         st.parent_phone,
         st.department,
+        st.device_token_hash IS NOT NULL as is_device_bound,
+        st.device_registered_at,
+        st.attendance_security_locked as is_attendance_locked,
         u.id as user_id,
         u.full_name,
         u.email,
@@ -158,8 +161,8 @@ router.get("/students", async (req, res) => {
       FROM students st
       JOIN users u ON st.user_id = u.id
       LEFT JOIN attendance a ON st.id = a.student_id AND a.status = 'PRESENT'
-      WHERE st.department = $1
-      GROUP BY st.id, st.roll_number, st.section, st.student_phone, st.parent_phone, st.department, u.id, u.full_name, u.email, u.created_at
+      WHERE (st.department = $1 OR st.department IS NULL OR st.department = '')
+      GROUP BY st.id, st.roll_number, st.section, st.student_phone, st.parent_phone, st.department, st.device_token_hash, st.device_registered_at, st.attendance_security_locked, u.id, u.full_name, u.email, u.created_at
       ORDER BY u.full_name ASC`,
       [hodDept]
     );
@@ -188,6 +191,9 @@ router.get("/students", async (req, res) => {
         totalLectures: total,
         attendancePercentage: pct,
         status,
+        isDeviceBound: Boolean(s.is_device_bound),
+        deviceRegisteredAt: s.device_registered_at || null,
+        isAttendanceLocked: Boolean(s.is_attendance_locked),
       };
     });
 
@@ -327,6 +333,70 @@ router.delete("/students/:id", async (req, res) => {
   } catch (err) {
     console.error("Delete Student Error:", err);
     res.status(500).json({ message: "Failed to delete student record." });
+  }
+});
+
+// POST /hod/students/:id/reset-device — Reset registered device binding for a student
+router.post("/students/:id/reset-device", async (req, res) => {
+  const studentId = req.params.id;
+  try {
+    const studentRows = await db.query(
+      "SELECT s.id, u.full_name, u.email FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = $1",
+      [studentId]
+    );
+
+    if (!studentRows || studentRows.length === 0) {
+      return res.status(404).json({ message: "Student record not found." });
+    }
+
+    const student = studentRows[0];
+
+    await db.query(
+      "UPDATE students SET device_token_hash = NULL, device_registered_at = NULL, device_last_used_at = NULL WHERE id = $1",
+      [studentId]
+    );
+
+    res.json({
+      message: `Device binding successfully reset for ${student.full_name}. The student can now register their new device on their next login.`,
+      student_id: student.id,
+      full_name: student.full_name,
+    });
+  } catch (err) {
+    console.error("Reset Device Error:", err);
+    res.status(500).json({ message: "Failed to reset student device binding." });
+  }
+});
+
+// POST /hod/students/:id/unlock-attendance — HOD Unlocks Student's Attendance Access
+router.post("/students/:id/unlock-attendance", async (req, res) => {
+  const studentId = req.params.id;
+
+  try {
+    const studentRows = await db.query(
+      "SELECT s.id, u.full_name, u.email, s.attendance_security_locked FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = $1",
+      [studentId]
+    );
+
+    if (!studentRows || studentRows.length === 0) {
+      return res.status(404).json({ message: "Student record not found." });
+    }
+
+    const student = studentRows[0];
+
+    await db.query(
+      "UPDATE students SET attendance_security_locked = FALSE WHERE id = $1",
+      [studentId]
+    );
+
+    res.json({
+      message: `Attendance access unlocked successfully for ${student.full_name}.`,
+      student_id: student.id,
+      full_name: student.full_name,
+      unlocked: true,
+    });
+  } catch (err) {
+    console.error("Unlock Attendance Error:", err);
+    res.status(500).json({ message: "Failed to unlock student attendance access." });
   }
 });
 

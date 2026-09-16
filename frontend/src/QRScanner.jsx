@@ -93,9 +93,14 @@ function QRScanner({ onAttendanceMarked }) {
 
     try {
       const token = localStorage.getItem("token");
+      const deviceToken = localStorage.getItem("lecturelog_device_token");
       const payload = {
         session_token,
       };
+
+      if (deviceToken) {
+        payload.device_token = deviceToken;
+      }
 
       if (coordsToUse && coordsToUse.latitude !== undefined && coordsToUse.longitude !== undefined) {
         payload.latitude = coordsToUse.latitude;
@@ -108,6 +113,7 @@ function QRScanner({ onAttendanceMarked }) {
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            ...(deviceToken ? { "x-device-token": deviceToken } : {}),
           },
         }
       );
@@ -455,7 +461,7 @@ function QRScanner({ onAttendanceMarked }) {
         </div>
 
         {/* Video Reader Element */}
-        <div className="relative w-full max-w-[320px] aspect-square bg-black/90 border border-border-default overflow-hidden flex items-center justify-center">
+        <div className="relative w-full max-w-[260px] sm:max-w-[320px] aspect-square bg-black/90 border border-border-default overflow-hidden flex items-center justify-center mx-auto">
           <div id="qr-reader" className="w-full h-full"></div>
 
           {cameraState === "starting" && (
@@ -468,11 +474,11 @@ function QRScanner({ onAttendanceMarked }) {
           )}
 
           {cameraState === "error" && (
-            <div className="absolute inset-0 bg-black/90 p-4 flex flex-col items-center justify-center text-center text-white text-xs gap-3 z-10">
-              <span className="material-symbols-outlined text-3xl text-amber-400">
+            <div className="absolute inset-0 bg-black/90 p-3 sm:p-4 flex flex-col items-center justify-center text-center text-white text-xs gap-2 sm:gap-3 z-10">
+              <span className="material-symbols-outlined text-2xl sm:text-3xl text-amber-400">
                 videocam_off
               </span>
-              <p className="text-stone-300 leading-tight">
+              <p className="text-stone-300 leading-tight text-[11px] sm:text-xs">
                 {cameraErrorMessage || "Camera unaccessible on this browser/device."}
               </p>
               <button
@@ -492,7 +498,7 @@ function QRScanner({ onAttendanceMarked }) {
       </div>
 
       {/* SECTION 3: Upload Image Fallback */}
-      <div className="border border-border-default dark:border-outline-variant p-4 bg-surface-container-low">
+      <div className="border border-border-default dark:border-outline-variant p-3.5 sm:p-4 bg-surface-container-low">
         <span className="text-xs font-bold text-text-stone uppercase tracking-wider block mb-2 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-secondary text-sm">upload_file</span>
           Upload QR Image File
@@ -501,7 +507,7 @@ function QRScanner({ onAttendanceMarked }) {
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
-          className="text-xs text-text-stone file:mr-3 file:py-1.5 file:px-3 file:border file:border-border-default file:text-xs file:font-semibold file:bg-surface file:text-primary hover:file:bg-surface-container cursor-pointer"
+          className="w-full text-xs text-text-stone file:mr-2 sm:file:mr-3 file:py-1.5 file:px-2.5 sm:file:px-3 file:border file:border-border-default file:text-xs file:font-semibold file:bg-surface file:text-primary hover:file:bg-surface-container cursor-pointer truncate"
         />
         <div id="qr-image-reader" className="hidden"></div>
       </div>

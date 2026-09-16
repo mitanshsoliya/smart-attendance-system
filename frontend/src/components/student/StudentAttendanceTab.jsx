@@ -11,7 +11,7 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
         </div>
         <button
           onClick={onScanQR}
-          className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-xs font-semibold rounded hover:opacity-90 transition-opacity flex items-center gap-2 cursor-pointer shadow-xs"
+          className="px-5 py-2.5 bg-secondary text-on-secondary font-label-md text-xs font-semibold rounded hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow-xs w-full sm:w-auto shrink-0"
         >
           <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
           <span>Mark Attendance</span>
@@ -19,14 +19,14 @@ export function StudentAttendanceTab({ attendanceRecords, onScanQR }) {
       </div>
 
       {attendanceRecords.length === 0 ? (
-        <div className="p-8 bg-surface-bright border border-border-default text-center text-text-stone rounded">
+        <div className="p-8 bg-surface-bright border border-border-default text-center text-text-stone rounded text-sm">
           No attendance records registered. Scan active classroom QR codes to build your attendance log!
         </div>
       ) : (
-        <div className="bg-surface-bright border border-border-default rounded overflow-x-auto shadow-xs">
-          <table className="w-full text-left text-sm">
+        <div className="bg-surface-bright border border-border-default rounded overflow-x-auto custom-scrollbar touch-pan-x shadow-xs">
+          <table className="w-full text-left text-xs sm:text-sm min-w-[620px]">
             <thead>
-              <tr className="bg-surface-container border-b border-border-default font-bold text-xs uppercase text-text-stone">
+              <tr className="bg-surface-container border-b border-border-default font-bold text-xs uppercase text-text-stone whitespace-nowrap">
                 <th className="p-3.5">Subject Code</th>
                 <th className="p-3.5">Subject Name</th>
                 <th className="p-3.5">Lecture Date</th>

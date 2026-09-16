@@ -94,7 +94,7 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
         <div>
-          <h1 className="font-serif-display text-3xl text-primary font-bold">
+          <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">
             Session Register & Analytics Reports
           </h1>
           <p className="text-sm text-text-stone mt-1">
@@ -103,7 +103,7 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
         </div>
         <button
           onClick={() => window.print()}
-          className="px-4 py-2 bg-secondary text-on-secondary text-xs font-bold rounded flex items-center gap-1.5 hover:opacity-90 transition-all cursor-pointer shadow-xs"
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-secondary text-on-secondary text-xs font-bold rounded flex items-center gap-1.5 hover:opacity-90 transition-all cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[16px]">print</span>
           <span>Print All Register</span>
@@ -111,8 +111,8 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
       </div>
 
       {/* Lectures List Table */}
-      <div className="bg-surface-bright border border-border-default rounded overflow-x-auto shadow-xs">
-        <table className="w-full text-left text-xs">
+      <div className="bg-surface-bright border border-border-default rounded overflow-x-auto custom-scrollbar touch-pan-x shadow-xs">
+        <table className="w-full text-left text-xs min-w-[620px]">
           <thead>
             <tr className="bg-surface-container border-b border-border-default text-xs uppercase font-bold text-text-stone">
               <th className="p-3.5">Session ID</th>
@@ -222,7 +222,7 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
 
             {/* Filter Buttons & Search Input */}
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-1 border-t border-border-default">
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setFilter("ALL")}
@@ -299,8 +299,8 @@ export function FacultyReportsTab({ lectures = [], token, onUpdateStatus }) {
                 No student records found matching this filter.
               </div>
             ) : (
-              <div className="border border-border-default rounded overflow-x-auto max-h-96">
-                <table className="w-full text-left text-xs">
+              <div className="border border-border-default rounded overflow-x-auto custom-scrollbar touch-pan-x max-h-96">
+                <table className="w-full text-left text-xs min-w-[650px]">
                   <thead className="bg-surface-container-low text-text-stone uppercase text-[10px] tracking-wider sticky top-0 border-b border-border-default z-10">
                     <tr>
                       <th className="py-2.5 px-3">Student Name</th>

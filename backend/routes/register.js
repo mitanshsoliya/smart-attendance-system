@@ -49,9 +49,11 @@ router.post("/", async (req, res) => {
 
     // Automatically create the linked profile row based on user role to avoid orphan users
     if (role === "STUDENT") {
+      const rollToUse = req.body.roll_number || req.body.rollNumber || null;
+      const secToUse = req.body.section || "Sec A";
       await client.query(
-        "INSERT INTO students (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
-        [userId]
+        "INSERT INTO students (user_id, roll_number, section) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET roll_number = COALESCE(EXCLUDED.roll_number, students.roll_number), section = COALESCE(EXCLUDED.section, students.section)",
+        [userId, rollToUse, secToUse]
       );
     } else if (role === "FACULTY" || role === "HOD") {
       await client.query(

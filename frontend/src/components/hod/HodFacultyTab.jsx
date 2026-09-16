@@ -18,7 +18,7 @@ export function HodFacultyTab({ faculty, onOpenAddFacultyModal, onDeleteFaculty 
           <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
             FACULTY SUPERVISION & GOVERNANCE
           </span>
-          <h1 className="font-serif text-3xl font-bold text-[#12181F] mt-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
             Department Faculty Teaching Quotas & Compliance ({filtered.length})
           </h1>
           <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
@@ -28,7 +28,7 @@ export function HodFacultyTab({ faculty, onOpenAddFacultyModal, onDeleteFaculty 
         <button
           type="button"
           onClick={onOpenAddFacultyModal}
-          className="px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-[#9E3D24] text-white text-xs font-bold rounded hover:bg-[#83311C] cursor-pointer shadow-xs flex items-center gap-1.5"
         >
           <span className="material-symbols-outlined text-[16px]">person_add</span>
           <span>Add Faculty</span>
@@ -43,13 +43,13 @@ export function HodFacultyTab({ faculty, onOpenAddFacultyModal, onDeleteFaculty 
         className="w-full px-3 py-2 text-sm border border-[#D8D2C4] rounded bg-[#FBF9F5]"
       />
 
-      <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded shadow-xs overflow-x-auto">
+      <div className="bg-[#FFFFFF] border border-[#D8D2C4] rounded shadow-xs overflow-x-auto custom-scrollbar touch-pan-x">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#6B7280]">
             No faculty records found in the directory.
           </div>
         ) : (
-          <table className="w-full text-left border-collapse text-sm">
+          <table className="w-full text-left border-collapse text-sm min-w-[650px]">
             <thead>
               <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono text-xs uppercase text-[#6B7280]">
                 <th className="py-3 px-4">Faculty Member</th>

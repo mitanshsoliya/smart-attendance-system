@@ -4,13 +4,13 @@ export function FacultyCoursesTab({ courses }) {
   return (
     <div className="space-y-6">
       <div className="border-b border-border-default pb-4">
-        <h1 className="font-serif-display text-3xl text-primary font-bold">Assigned Courses & Curricula</h1>
+        <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Assigned Courses & Curricula</h1>
         <p className="text-sm text-text-stone mt-1">Courses assigned to your teaching workload for this semester.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {courses.map((c) => (
-          <div key={c.id} className="bg-surface-bright border border-border-default rounded p-6 shadow-xs space-y-3">
+          <div key={c.id} className="bg-surface-bright border border-border-default rounded p-4 sm:p-6 shadow-xs space-y-3">
             <span className="text-xs font-mono font-bold bg-secondary/10 text-secondary px-2 py-0.5 rounded">{c.subject_code}</span>
             <h3 className="font-serif-display text-xl font-bold text-primary">{c.subject_name}</h3>
             <p className="text-xs text-text-stone">{c.department || "Department of Computer Science & Engineering"}</p>

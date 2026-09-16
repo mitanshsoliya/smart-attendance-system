@@ -203,6 +203,28 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     }
   };
 
+  const handleResetStudentDevice = async (id, name) => {
+    if (!window.confirm(`Reset registered device binding for ${name || "this student"}? They will be allowed to bind their new device on their next login.`)) return;
+    try {
+      const res = await hodService.resetStudentDevice(id, token);
+      alert(res.message || "Student device binding reset successfully.");
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to reset student device.");
+    }
+  };
+
+  const handleUnlockStudentAttendance = async (id, name) => {
+    if (!window.confirm(`Unlock attendance access for ${name || "this student"}? Their security lock will be removed.`)) return;
+    try {
+      const res = await hodService.unlockStudentAttendance(id, token);
+      alert(res.message || "Student attendance access unlocked.");
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to unlock student attendance.");
+    }
+  };
+
   const handleDeleteFaculty = async (id) => {
     if (!window.confirm("Are you sure you want to delete this faculty record?")) return;
     try {
@@ -222,7 +244,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Attendance_Ledger.csv");
+    link.setAttribute("download", `CSE_Formal_Clearance_Ledger_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -256,6 +278,8 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
             students={students}
             onOpenAddModal={() => setShowAddStudentModal(true)}
             onDeleteStudent={handleDeleteStudent}
+            onResetDevice={handleResetStudentDevice}
+            onUnlockAttendance={handleUnlockStudentAttendance}
             onUpdateSection={handleUpdateStudentSection}
             onExportLedger={exportFormalLedger}
           />

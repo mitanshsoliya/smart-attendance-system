@@ -84,7 +84,7 @@ export function FacultySettingsTab({ user, onProfileUpdate }) {
     return (
       <div className="max-w-2xl space-y-6">
         <div className="border-b border-border-default pb-4">
-          <h1 className="font-serif-display text-3xl text-primary font-bold">Faculty Preferences & Settings</h1>
+          <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Faculty Preferences & Settings</h1>
           <p className="text-sm text-text-stone mt-1">Loading profile…</p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export function FacultySettingsTab({ user, onProfileUpdate }) {
   return (
     <div className="max-w-2xl space-y-6">
       <div className="border-b border-border-default pb-4">
-        <h1 className="font-serif-display text-3xl text-primary font-bold">Faculty Preferences & Settings</h1>
+        <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Faculty Preferences & Settings</h1>
         <p className="text-sm text-text-stone mt-1">Configure profile details and academic department settings.</p>
       </div>
 
@@ -109,7 +109,7 @@ export function FacultySettingsTab({ user, onProfileUpdate }) {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="bg-surface-bright border border-border-default rounded p-6 shadow-xs space-y-4">
+      <form onSubmit={handleSave} className="bg-surface-bright border border-border-default rounded p-4 sm:p-6 shadow-xs space-y-4">
         <h3 className="font-bold text-lg text-primary border-b border-border-default pb-2">Faculty Profile</h3>
         <div>
           <label className="block text-xs uppercase font-semibold text-text-stone mb-1">Full Name</label>
@@ -157,7 +157,7 @@ export function FacultySettingsTab({ user, onProfileUpdate }) {
         <button
           type="submit"
           disabled={saving}
-          className="px-5 py-2.5 bg-secondary text-on-secondary text-xs font-bold rounded cursor-pointer disabled:opacity-50"
+          className="w-full sm:w-auto px-5 py-2.5 bg-secondary text-on-secondary text-xs font-bold rounded cursor-pointer disabled:opacity-50 text-center"
         >
           {saving ? "Saving…" : "Save Preferences"}
         </button>

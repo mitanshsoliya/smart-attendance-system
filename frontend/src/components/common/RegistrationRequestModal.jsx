@@ -85,16 +85,16 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
   const isStudent = role === "STUDENT";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs font-body">
-      <div className="bg-white border border-[#D8D2C4] rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-xs font-body">
+      <div className="bg-white border border-[#D8D2C4] rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn min-w-0">
         {/* Header matching Image 3 with Role Selector */}
-        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#D8D2C4] bg-[#FBF9F5] shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-serif-display text-lg sm:text-xl font-bold text-[#12181F]">
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-[#D8D2C4] bg-[#FBF9F5] shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-serif-display text-base sm:text-xl font-bold text-[#12181F] truncate">
                 {isStudent ? "Onboard Candidate Student" : "Register Faculty Member"}
               </h2>
-              <p className="text-[10px] sm:text-[11px] font-mono text-[#9E3D24] uppercase tracking-wider font-bold mt-0.5">
+              <p className="text-[10px] sm:text-[11px] font-mono text-[#9E3D24] uppercase tracking-wider font-bold mt-0.5 truncate">
                 {isStudent
                   ? "Student Self-Registration Request • HOD Verification"
                   : "Faculty Self-Registration Request • HOD Verification"}
@@ -103,7 +103,7 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
             <button
               type="button"
               onClick={onClose}
-              className="text-[#6B7280] hover:text-[#12181F] p-1.5 rounded transition-colors text-lg font-bold cursor-pointer"
+              className="text-[#6B7280] hover:text-[#12181F] p-1.5 rounded transition-colors text-lg font-bold cursor-pointer shrink-0"
               aria-label="Close"
             >
               ✕
@@ -112,7 +112,7 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+        <form onSubmit={handleSubmit} className="p-3.5 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1 min-w-0">
           {error && (
             <div className="p-3 bg-[#FDE8E8] border border-[#F8B4B4] text-[#9B1C1C] text-xs rounded font-medium">
               {error}
@@ -303,18 +303,18 @@ export function RegistrationRequestModal({ isOpen, onClose, initialRole = "STUDE
           </div>
 
           {/* Buttons Footer */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#D8D2C4]">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-[#D8D2C4]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-[#F3EFE6] hover:bg-[#EBE5DA] text-[#12181F] font-bold text-xs rounded transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[#F3EFE6] hover:bg-[#EBE5DA] text-[#12181F] font-bold text-xs rounded transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || Boolean(success)}
-              className="px-5 py-2 bg-[#9E3D24] hover:bg-[#83311C] text-white font-bold text-xs rounded transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+              className="px-5 py-2 bg-[#9E3D24] hover:bg-[#83311C] text-white font-bold text-xs rounded transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {loading ? (
                 <>

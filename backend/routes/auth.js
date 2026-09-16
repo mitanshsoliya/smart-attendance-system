@@ -1,6 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const db = require("../db");
 const { verifyToken, getJwtSecret } = require("../middleware/auth");
 const { validateLogin } = require("../middleware/validator");
@@ -10,11 +11,10 @@ const router = express.Router();
 /**
  * POST /auth/login (and /login)
  * Authenticates user, verifies bcrypt password hash, issues JWT.
- * No plaintext-password fallbacks permitted.
- * No insecure default secrets permitted.
+ * Enforces one-student-one-device binding for STUDENT accounts.
  */
 router.post(["/", "/login"], validateLogin, async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, device_token } = req.body;
 
   let jwtSecret;
   try {
@@ -33,7 +33,6 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
     const results = await db.query(sql, [email]);
 
     if (!results || results.length === 0) {
-      // Use generic error response to prevent user enumeration attacks
       return res.status(401).json({
         message: "Invalid email or password.",
       });
@@ -56,23 +55,89 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
       });
     }
 
-    // Fetch linked profile metadata
+    // Fetch linked profile metadata & enforce device binding for STUDENT role
     let profile = null;
+    let studentDeviceTokenToReturn = null;
+
     if (user.role === "STUDENT") {
       const studentRows = await db.query(
-        "SELECT id, roll_number, section, student_phone, parent_phone, department FROM students WHERE user_id = $1",
+        "SELECT id, roll_number, section, student_phone, parent_phone, department, device_token_hash FROM students WHERE user_id = $1",
         [user.id]
       );
       if (studentRows && studentRows.length > 0) {
+        const studentRecord = studentRows[0];
         profile = {
-          id: studentRows[0].id,
-          student_id: studentRows[0].id,
-          roll_number: studentRows[0].roll_number || `2024-CSE-${String(studentRows[0].id).padStart(3, "0")}`,
-          section: studentRows[0].section || "Sec A",
-          student_phone: studentRows[0].student_phone || "",
-          parent_phone: studentRows[0].parent_phone || "",
-          department: studentRows[0].department || "Department of Computer Science & Engineering",
+          id: studentRecord.id,
+          student_id: studentRecord.id,
+          roll_number: studentRecord.roll_number || `2024-CSE-${String(studentRecord.id).padStart(3, "0")}`,
+          section: studentRecord.section || "Sec A",
+          student_phone: studentRecord.student_phone || "",
+          parent_phone: studentRecord.parent_phone || "",
+          department: studentRecord.department || "Department of Computer Science & Engineering",
         };
+
+        // --- One Student Account -> One Registered Device Protection ---
+        const existingHash = studentRecord.device_token_hash;
+        const clientDeviceToken = device_token ? String(device_token).trim() : "";
+
+        // Anti-Device Sharing Check: If a device token is presented, check if it belongs to another student
+        if (clientDeviceToken) {
+          const checkHash = crypto.createHash("sha256").update(clientDeviceToken).digest("hex");
+          const conflictRows = await db.query(
+            "SELECT id FROM students WHERE device_token_hash = $1 AND id != $2",
+            [checkHash, studentRecord.id]
+          );
+
+          if (conflictRows && conflictRows.length > 0) {
+            return res.status(403).json({
+              message: "This device is already registered to another student account. Each device can only be bound to one student.",
+              code: "DEVICE_ALREADY_BOUND",
+            });
+          }
+        }
+
+        if (!existingHash) {
+          // Case 1: First login (or reset by HOD) -> Generate a fresh, unique 256-bit device token
+          const newToken = crypto.randomBytes(32).toString("hex");
+          const newHash = crypto.createHash("sha256").update(newToken).digest("hex");
+          await db.query(
+            "UPDATE students SET device_token_hash = $1, device_registered_at = NOW(), device_last_used_at = NOW() WHERE id = $2",
+            [newHash, studentRecord.id]
+          );
+          studentDeviceTokenToReturn = newToken;
+        } else {
+          // Case 2: Subsequent login -> Verify registered device token
+          if (!clientDeviceToken) {
+            return res.status(403).json({
+              message: "Your account is registered on another device. Please contact the HOD/admin to verify or reset your registered device.",
+              code: "DEVICE_NOT_AUTHORIZED",
+            });
+          }
+
+          const clientHash = crypto.createHash("sha256").update(clientDeviceToken).digest("hex");
+          let isMatch = false;
+          try {
+            isMatch = crypto.timingSafeEqual(
+              Buffer.from(clientHash, "hex"),
+              Buffer.from(existingHash, "hex")
+            );
+          } catch {
+            isMatch = false;
+          }
+
+          if (!isMatch) {
+            return res.status(403).json({
+              message: "Your account is registered on another device. Please contact the HOD/admin to verify or reset your registered device.",
+              code: "DEVICE_NOT_AUTHORIZED",
+            });
+          }
+
+          // Legitimate registered device -> update last used timestamp
+          await db.query(
+            "UPDATE students SET device_last_used_at = NOW() WHERE id = $1",
+            [studentRecord.id]
+          );
+        }
       }
     } else if (user.role === "FACULTY" || user.role === "HOD") {
       const facultyRows = await db.query(
@@ -102,7 +167,7 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
       }
     );
 
-    res.json({
+    const responsePayload = {
       message: "Login successful.",
       token: token,
       user: {
@@ -113,7 +178,13 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
         department: profile?.department || null,
         profile: profile,
       },
-    });
+    };
+
+    if (studentDeviceTokenToReturn) {
+      responsePayload.device_token = studentDeviceTokenToReturn;
+    }
+
+    res.json(responsePayload);
   } catch (err) {
     console.error("Login Query Error:", err);
     return res.status(500).json({

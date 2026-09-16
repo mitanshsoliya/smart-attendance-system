@@ -181,9 +181,9 @@ export function StudentTimetableTab({ user, token }) {
         {/* Document Header Table */}
         <div className="border-b-2 border-primary/80">
           {/* Top Row: Meta info left, Center University Title, Doc info right */}
-          <div className="grid grid-cols-12 text-[11px] font-sans">
+          <div className="grid grid-cols-1 md:grid-cols-12 text-[11px] font-sans">
             {/* Left Box: Term, Semester, Class, Room */}
-            <div className="col-span-3 border-r-2 border-primary/80 divide-y divide-primary/70">
+            <div className="col-span-1 md:col-span-3 border-b-2 md:border-b-0 md:border-r-2 border-primary/80 divide-y divide-primary/70">
               <div className="px-2.5 py-1 flex justify-between">
                 <span className="font-bold italic">Term:</span>
                 <span className="font-bold">{currentTimetable.term}</span>
@@ -206,7 +206,7 @@ export function StudentTimetableTab({ user, token }) {
             </div>
 
             {/* Center Box: BMU Logo & Department Title */}
-            <div className="col-span-6 flex flex-col items-center justify-center p-3 text-center border-r-2 border-primary/80 bg-surface-lowest">
+            <div className="col-span-1 md:col-span-6 flex flex-col items-center justify-center p-3 text-center border-b-2 md:border-b-0 md:border-r-2 border-primary/80 bg-surface-lowest">
               <div className="flex items-center gap-3 mb-1">
                 <div className="w-10 h-10 rounded bg-[#002b49] text-white flex flex-col items-center justify-center font-serif font-black shadow-xs border border-amber-400/40">
                   <span className="text-[10px] tracking-wider leading-none text-amber-300">BMU</span>
@@ -227,7 +227,7 @@ export function StudentTimetableTab({ user, token }) {
             </div>
 
             {/* Right Box: Doc No, Effective Date, Rev No, Issue No */}
-            <div className="col-span-3 divide-y divide-primary/70 text-[11px]">
+            <div className="col-span-1 md:col-span-3 divide-y divide-primary/70 text-[11px]">
               <div className="px-2.5 py-1 flex justify-between">
                 <span className="font-bold italic">Doc No.:</span>
                 <span className="font-mono text-[10px]">{currentTimetable.docNo}</span>

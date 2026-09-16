@@ -193,8 +193,8 @@ export function FacultyScheduleTab({ user, token }) {
       {/* Official Matrix Grid */}
       <div className="bg-white border-2 border-[#0F172A] rounded-md shadow-md overflow-hidden text-[#0F172A] print:border-black">
         {/* Document Header */}
-        <div className="grid grid-cols-12 border-b-2 border-[#0F172A] text-[11px] font-sans">
-          <div className="col-span-3 border-r-2 border-[#0F172A] divide-y divide-[#0F172A]/70">
+        <div className="grid grid-cols-1 md:grid-cols-12 border-b-2 border-[#0F172A] text-[11px] font-sans">
+          <div className="col-span-1 md:col-span-3 border-b-2 md:border-b-0 md:border-r-2 border-[#0F172A] divide-y divide-[#0F172A]/70">
             <div className="px-3 py-1.5 flex justify-between bg-[#F8FAFC]">
               <span className="font-bold italic">Term:</span>
               <span className="font-extrabold">{current.term}</span>
@@ -215,7 +215,7 @@ export function FacultyScheduleTab({ user, token }) {
             </div>
           </div>
 
-          <div className="col-span-6 flex flex-col items-center justify-center p-3 text-center border-r-2 border-[#0F172A] bg-white">
+          <div className="col-span-1 md:col-span-6 flex flex-col items-center justify-center p-3 text-center border-b-2 md:border-b-0 md:border-r-2 border-[#0F172A] bg-white">
             <h2 className="font-serif text-base tracking-wider font-extrabold text-[#0F172A] uppercase">
               {current.facultyName}
             </h2>
@@ -227,7 +227,7 @@ export function FacultyScheduleTab({ user, token }) {
             </div>
           </div>
 
-          <div className="col-span-3 divide-y divide-[#0F172A]/70 text-[11px]">
+          <div className="col-span-1 md:col-span-3 divide-y divide-[#0F172A]/70 text-[11px]">
             <div className="px-3 py-1.5 flex justify-between bg-[#F8FAFC]">
               <span className="font-bold italic">Doc No.:</span>
               <span className="font-mono text-[10px] font-bold">{current.docNo}</span>

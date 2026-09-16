@@ -15,12 +15,12 @@ export function FacultyStudentsTab({ studentRoster, onOpenEnrolModal }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
         <div>
-          <h1 className="font-serif-display text-3xl text-primary font-bold">Student Directory & Roster ({filtered.length})</h1>
+          <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Student Directory & Roster ({filtered.length})</h1>
           <p className="text-sm text-text-stone mt-1">View enrolled candidates, contact numbers, and course registration statuses.</p>
         </div>
         <button
           onClick={onOpenEnrolModal}
-          className="px-4 py-2 bg-secondary text-on-secondary text-xs font-bold rounded hover:opacity-90 flex items-center gap-1.5 cursor-pointer shadow-xs"
+          className="w-full sm:w-auto justify-center px-4 py-2 bg-secondary text-on-secondary text-xs font-bold rounded hover:opacity-90 flex items-center gap-1.5 cursor-pointer shadow-xs"
         >
           <span className="material-symbols-outlined text-[16px]">person_add</span>
           <span>Onboard Student</span>
@@ -35,13 +35,13 @@ export function FacultyStudentsTab({ studentRoster, onOpenEnrolModal }) {
         className="w-full p-2.5 bg-surface-bright border border-border-default rounded text-sm text-primary"
       />
 
-      <div className="bg-surface-bright border border-border-default rounded overflow-x-auto shadow-xs">
+      <div className="bg-surface-bright border border-border-default rounded overflow-x-auto custom-scrollbar touch-pan-x shadow-xs">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-text-stone">
             No student records found in the directory.
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[560px]">
             <thead>
               <tr className="bg-surface-container border-b border-border-default text-xs uppercase font-bold text-text-stone">
                 <th className="p-3.5">Candidate Student</th>
