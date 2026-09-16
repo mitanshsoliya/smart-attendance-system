@@ -1,4 +1,10 @@
 require("dotenv").config();
+const dns = require("dns");
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder("verbatim");
+  }
+} catch (e) {}
 const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
@@ -11,18 +17,22 @@ let isSqlite = false;
 
 function switchToSqlite() {
   if (isSqlite && sqliteDb) return;
-  isSqlite = true;
-  pool = null;
-  const sqlite3 = require("sqlite3").verbose();
-  const dbPath = path.join(__dirname, "database", "local.sqlite");
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
+  try {
+    const sqlite3 = require("sqlite3").verbose();
+    isSqlite = true;
+    pool = null;
+    const dbPath = path.join(__dirname, "database", "local.sqlite");
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
 
-  sqliteDb = new sqlite3.Database(dbPath);
-  console.log(`Database engine: Local SQLite (${dbPath})`);
-  sqliteInitPromise = initSqliteSchemaAndSeed();
+    sqliteDb = new sqlite3.Database(dbPath);
+    console.log(`Database engine: Local SQLite (${dbPath})`);
+    sqliteInitPromise = initSqliteSchemaAndSeed();
+  } catch (sqliteErr) {
+    console.warn("SQLite module not installed. Continuing with PostgreSQL pool:", sqliteErr.message);
+  }
 }
 
 if (connectionString && /^postgres(?:ql)?:\/\/[^\s<>]+$/i.test(connectionString)) {
@@ -332,11 +342,25 @@ const db = {
     if (!isSqlite) {
       if (typeof callback === "function") {
         pool.query(sql, values, (error, result) => {
+          if (error && (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED" || (error.message && error.message.includes("ENOTFOUND")))) {
+            console.warn("PostgreSQL query failed with connection error, switching to local SQLite:", error.message);
+            switchToSqlite();
+            return db.query(sql, values, callback);
+          }
           callback(error, result ? result.rows : undefined);
         });
         return;
       }
-      return pool.query(sql, values).then((result) => result.rows);
+      return pool.query(sql, values)
+        .then((result) => result.rows)
+        .catch((err) => {
+          if (err && (err.code === "ENOTFOUND" || err.code === "ECONNREFUSED" || (err.message && err.message.includes("ENOTFOUND")))) {
+            console.warn("PostgreSQL query failed with connection error, switching to local SQLite:", err.message);
+            switchToSqlite();
+            return db.query(sql, values);
+          }
+          throw err;
+        });
     }
 
     const exec = async () => {

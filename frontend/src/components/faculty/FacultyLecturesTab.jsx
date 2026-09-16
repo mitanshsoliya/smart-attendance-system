@@ -12,12 +12,23 @@ export function FacultyLecturesTab({
   onOpenEdit,
   onDeleteLecture,
   onGenerateQR,
+  selectedFacultyCode,
+  departmentName,
 }) {
   return (
     <div className="space-y-8">
-      <div className="border-b border-border-default pb-4">
-        <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Classroom Lectures Directory</h1>
-        <p className="text-sm text-text-stone mt-1">Schedule new lecture sessions, verify active status, and modify class timings.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border-default pb-4">
+        <div>
+          <h1 className="font-serif-display text-2xl sm:text-3xl text-primary font-bold">Classroom Lectures Directory</h1>
+          <p className="text-sm text-text-stone mt-1">Schedule new lecture sessions, verify active status, and modify class timings.</p>
+        </div>
+        {departmentName && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono font-bold bg-secondary/10 text-secondary px-2.5 py-1 rounded">
+              {selectedFacultyCode ? `Instructor: ${selectedFacultyCode} • ` : ""}{departmentName}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Schedule Form */}
@@ -37,11 +48,11 @@ export function FacultyLecturesTab({
             <select
               value={lectureForm.subject_id}
               onChange={(e) => setLectureForm({ ...lectureForm, subject_id: e.target.value })}
-              className="w-full p-2.5 text-xs bg-surface border border-border-default text-primary rounded"
+              className="w-full p-2.5 text-xs bg-surface border border-border-default text-primary rounded font-medium"
             >
               {subjectsList.map((sub) => (
                 <option key={sub.id} value={sub.id}>
-                  {sub.subject_code} - {sub.subject_name}
+                  {sub.subject_code} - {sub.subject_name} {sub.type ? `(${sub.type})` : ""}
                 </option>
               ))}
             </select>

@@ -18,10 +18,37 @@ router.get("/", async (req, res) => {
     let params = [];
 
     if (req.user.role === "FACULTY") {
+      let facultyDept = req.user.department;
+      let facultyId = null;
       const facRows = await db.query("SELECT id, department FROM faculty WHERE user_id = $1", [req.user.id]);
       if (facRows && facRows.length > 0) {
-        filterClause = "WHERE s.department = $1 OR s.faculty_id = $2";
-        params = [facRows[0].department, facRows[0].id];
+        facultyId = facRows[0].id;
+        if (facRows[0].department) facultyDept = facRows[0].department;
+      }
+
+      const email = (req.user.email || "").toLowerCase();
+      if (!facultyDept) {
+        if (email.includes(".ece@") || email.includes("ece.")) {
+          facultyDept = "Electronics";
+        } else if (email.includes(".it@") || email.includes("it.")) {
+          facultyDept = "Information Technology";
+        } else {
+          facultyDept = "Computer";
+        }
+      }
+
+      const searchKey = facultyDept.toLowerCase().includes("electronics")
+        ? "%Electronics%"
+        : facultyDept.toLowerCase().includes("information")
+        ? "%Information%"
+        : "%Computer%";
+
+      if (facultyId) {
+        filterClause = "WHERE s.department ILIKE $1 OR s.faculty_id = $2";
+        params = [searchKey, facultyId];
+      } else {
+        filterClause = "WHERE s.department ILIKE $1";
+        params = [searchKey];
       }
     } else if (req.user.role === "HOD") {
       let hodDept = req.user.department;
@@ -29,10 +56,24 @@ router.get("/", async (req, res) => {
         const facRows = await db.query("SELECT department FROM faculty WHERE user_id = $1", [req.user.id]);
         hodDept = facRows && facRows[0]?.department ? facRows[0].department : null;
       }
-      if (hodDept) {
-        filterClause = "WHERE s.department = $1";
-        params = [hodDept];
+      const email = (req.user.email || "").toLowerCase();
+      if (!hodDept) {
+        if (email.includes(".ece@") || email.includes("ece.")) {
+          hodDept = "Electronics";
+        } else if (email.includes(".it@") || email.includes("it.")) {
+          hodDept = "Information Technology";
+        } else {
+          hodDept = "Computer";
+        }
       }
+      const searchKey = hodDept.toLowerCase().includes("electronics")
+        ? "%Electronics%"
+        : hodDept.toLowerCase().includes("information")
+        ? "%Information%"
+        : "%Computer%";
+
+      filterClause = "WHERE s.department ILIKE $1";
+      params = [searchKey];
     }
 
     const sql = `

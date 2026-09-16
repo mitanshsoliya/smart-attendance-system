@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import { timetableService } from "../../services/timetableService";
 import { getDepartmentTimetable } from "../../data/departmentTimetables";
 
-export function FacultyScheduleTab({ user, token }) {
+export function FacultyScheduleTab({
+  user,
+  token,
+  selectedFacultyCode: controlledFacultyCode,
+  onSelectFacultyCode,
+}) {
   const facultyDept =
     user?.department ||
     user?.profile?.department ||
@@ -10,7 +15,19 @@ export function FacultyScheduleTab({ user, token }) {
 
   const [timetable, setTimetable] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedFacultyCode, setSelectedFacultyCode] = useState("");
+  const [internalFacultyCode, setInternalFacultyCode] = useState("");
+
+  const selectedFacultyCode =
+    controlledFacultyCode !== undefined && controlledFacultyCode !== ""
+      ? controlledFacultyCode
+      : internalFacultyCode;
+
+  const handleSelectFacultyCode = (code) => {
+    if (onSelectFacultyCode) {
+      onSelectFacultyCode(code);
+    }
+    setInternalFacultyCode(code);
+  };
 
   // Fetch live timetable from database
   useEffect(() => {
@@ -23,7 +40,7 @@ export function FacultyScheduleTab({ user, token }) {
           const sched = data?.schedule || getDepartmentTimetable(facultyDept);
           setTimetable(sched);
 
-          // Auto-detect faculty code from user's full name or email
+          // Auto-detect faculty code from user's full name or email if not already selected
           const directory = sched.facultyDirectory || [];
           const userEmail = (user?.email || "").toLowerCase();
           const userName = (user?.full_name || "").toLowerCase();
@@ -35,10 +52,10 @@ export function FacultyScheduleTab({ user, token }) {
               userEmail.includes(f.code.toLowerCase())
           );
 
-          if (found) {
-            setSelectedFacultyCode(found.code);
-          } else if (directory.length > 0) {
-            setSelectedFacultyCode(directory[0].code);
+          if (found && !selectedFacultyCode) {
+            handleSelectFacultyCode(found.code);
+          } else if (directory.length > 0 && !selectedFacultyCode) {
+            handleSelectFacultyCode(directory[0].code);
           }
         }
       } catch (err) {
@@ -46,8 +63,8 @@ export function FacultyScheduleTab({ user, token }) {
         if (isMounted) {
           const fallback = getDepartmentTimetable(facultyDept);
           setTimetable(fallback);
-          if (fallback.facultyDirectory?.length > 0) {
-            setSelectedFacultyCode(fallback.facultyDirectory[0].code);
+          if (fallback.facultyDirectory?.length > 0 && !selectedFacultyCode) {
+            handleSelectFacultyCode(fallback.facultyDirectory[0].code);
           }
         }
       } finally {
@@ -124,7 +141,7 @@ export function FacultyScheduleTab({ user, token }) {
             <span className="font-extrabold text-[#334155]">Active Instructor:</span>
             <select
               value={selectedFacultyCode}
-              onChange={(e) => setSelectedFacultyCode(e.target.value)}
+              onChange={(e) => handleSelectFacultyCode(e.target.value)}
               className="font-black text-[#0F172A] bg-transparent focus:outline-none cursor-pointer text-xs"
             >
               {directory.map((f) => (

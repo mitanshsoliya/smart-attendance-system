@@ -43,10 +43,27 @@ function computeLectureStatus(lecture, activeSessionLectureIds = new Set()) {
 router.get("/subjects", verifyToken, requireFacultyOrHod, async (req, res) => {
   try {
     let subjects = [];
+    const allSubjects = await db.query(
+      "SELECT id, subject_code, subject_name, department, faculty_id FROM subjects ORDER BY subject_code ASC"
+    );
+
+    const email = (req.user.email || "").toLowerCase();
+    let userDept = req.user.department ? String(req.user.department).trim().toLowerCase() : "";
+
     if (req.user.role === "HOD") {
-      subjects = await db.query(
-        "SELECT id, subject_code, subject_name, department FROM subjects ORDER BY subject_code ASC"
-      );
+      if (!userDept) {
+        if (email.includes(".ece@") || email.includes("ece.")) {
+          userDept = "electronics";
+        } else if (email.includes(".it@") || email.includes("it.")) {
+          userDept = "information";
+        } else {
+          userDept = "computer";
+        }
+      }
+      subjects = (allSubjects || []).filter((s) => {
+        const sDept = String(s.department || "").trim().toLowerCase();
+        return !userDept || sDept.includes(userDept) || userDept.includes(sDept);
+      });
     } else {
       // Find faculty profile for authenticated user
       const facRows = await db.query(
@@ -54,22 +71,27 @@ router.get("/subjects", verifyToken, requireFacultyOrHod, async (req, res) => {
         [req.user.id]
       );
 
-      const allSubjects = await db.query(
-        "SELECT id, subject_code, subject_name, department, faculty_id FROM subjects ORDER BY subject_code ASC"
-      );
-
+      let facId = null;
       if (facRows && facRows.length > 0) {
-        const facId = String(facRows[0].id);
-        const facDept = String(facRows[0].department || "").trim().toLowerCase();
-
-        subjects = (allSubjects || []).filter((s) => {
-          const sDept = String(s.department || "").trim().toLowerCase();
-          const sFacId = String(s.faculty_id || "");
-          return sFacId === facId || (facDept && sDept === facDept);
-        });
-      } else {
-        subjects = allSubjects || [];
+        facId = String(facRows[0].id);
+        if (facRows[0].department) userDept = String(facRows[0].department).trim().toLowerCase();
       }
+
+      if (!userDept) {
+        if (email.includes(".ece@") || email.includes("ece.")) {
+          userDept = "electronics";
+        } else if (email.includes(".it@") || email.includes("it.")) {
+          userDept = "information";
+        } else {
+          userDept = "computer";
+        }
+      }
+
+      subjects = (allSubjects || []).filter((s) => {
+        const sDept = String(s.department || "").trim().toLowerCase();
+        const sFacId = String(s.faculty_id || "");
+        return (facId && sFacId === facId) || (userDept && (sDept.includes(userDept) || userDept.includes(sDept)));
+      });
     }
 
     res.json({

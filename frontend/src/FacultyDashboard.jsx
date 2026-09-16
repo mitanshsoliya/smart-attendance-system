@@ -18,6 +18,11 @@ import { courseService } from "./services/courseService";
 import { authService } from "./services/authService";
 import { attendanceService } from "./services/attendanceService";
 import api, { authHeader } from "./services/api";
+import {
+  getFacultyAssignedSubjects,
+  detectFacultyCode,
+  getDepartmentTimetable,
+} from "./data/departmentTimetables";
 
 export default function FacultyDashboard({ user: initialUser, token, onLogout, onToggleRole }) {
   const { user, refreshUser } = useAuth(initialUser, token);
@@ -33,6 +38,29 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const [selectedRadius, setSelectedRadius] = useState(100);
   const [lectureAttendance, setLectureAttendance] = useState([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+
+  // Department name and timetable-driven faculty code
+  const facultyDeptName =
+    user?.department ||
+    user?.profile?.department ||
+    "Department of Computer Science & Engineering";
+
+  const [selectedFacultyCode, setSelectedFacultyCode] = useState(() =>
+    detectFacultyCode(facultyDeptName, user)
+  );
+
+  // Auto-detect faculty code whenever user profile or email changes
+  useEffect(() => {
+    const code = detectFacultyCode(facultyDeptName, user);
+    if (code) {
+      setSelectedFacultyCode(code);
+    }
+  }, [facultyDeptName, user?.email, user?.full_name]);
+
+  // Timetable-driven assigned subjects for this faculty member
+  const facultyAssignedSubjects = React.useMemo(() => {
+    return getFacultyAssignedSubjects(facultyDeptName, selectedFacultyCode || user, subjects);
+  }, [facultyDeptName, selectedFacultyCode, user, subjects]);
 
   // Create lecture form state
   const [lectureForm, setLectureForm] = useState({
@@ -59,39 +87,19 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     section: "Sec A",
   });
 
-  // Department-level strict subject filtering
-  const facultyDept = (user?.department || user?.profile?.department || "").toLowerCase();
-  const facultyEmail = (user?.email || "").toLowerCase();
-
-  const departmentFilteredSubjects = subjects.filter((sub) => {
-    const subDept = (sub.department || "").toLowerCase();
-    const subCode = (sub.subject_code || "").toUpperCase();
-
-    if (facultyEmail.includes(".ece@") || facultyDept.includes("electronics")) {
-      return subCode.startsWith("ECE") || subDept.includes("electronics");
-    }
-    if (facultyEmail.includes(".it@") || facultyDept.includes("information")) {
-      return subCode.startsWith("IT") || subDept.includes("information");
-    }
-    if (facultyEmail.includes(".cse@") || facultyDept.includes("computer")) {
-      return subCode.startsWith("CSE") || subDept.includes("computer");
-    }
-    // Fallback match by exact department if custom faculty
-    return facultyDept ? subDept.includes(facultyDept) || facultyDept.includes(subDept) : true;
-  });
-
+  // Sync lectureForm default subject with facultyAssignedSubjects
   useEffect(() => {
     if (
-      departmentFilteredSubjects.length > 0 &&
+      facultyAssignedSubjects.length > 0 &&
       (!lectureForm.subject_id ||
-        !departmentFilteredSubjects.some((s) => String(s.id) === String(lectureForm.subject_id)))
+        !facultyAssignedSubjects.some((s) => String(s.id) === String(lectureForm.subject_id)))
     ) {
       setLectureForm((prev) => ({
         ...prev,
-        subject_id: String(departmentFilteredSubjects[0].id),
+        subject_id: String(facultyAssignedSubjects[0].id),
       }));
     }
-  }, [departmentFilteredSubjects]);
+  }, [facultyAssignedSubjects]);
 
   useEffect(() => {
     if (lectures.length > 0 && !selectedLectureId) {
@@ -145,6 +153,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
     { id: "lectures", label: "Lectures", icon: "co_present" },
     { id: "attendance", label: "Attendance", icon: "fact_check" },
+    { id: "courses", label: "Courses", icon: "menu_book" },
     { id: "schedule", label: "Schedule", icon: "calendar_today" },
     { id: "reports", label: "Reports", icon: "analytics" },
     { id: "students", label: "Students", icon: "group" },
@@ -344,13 +353,15 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             totalClasses={lectures.length}
             onGenerateQR={handleGenerateQR}
             onNavigateTab={setActiveTab}
+            assignedSubjectsCount={facultyAssignedSubjects.length}
+            assignedSubjectsList={facultyAssignedSubjects}
           />
         )}
 
         {activeTab === "lectures" && (
           <FacultyLecturesTab
             lectures={lectures}
-            subjectsList={departmentFilteredSubjects}
+            subjectsList={facultyAssignedSubjects}
             lectureForm={lectureForm}
             setLectureForm={setLectureForm}
             createLoading={createLoading}
@@ -362,6 +373,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             }}
             onDeleteLecture={handleDeleteLecture}
             onGenerateQR={handleGenerateQR}
+            selectedFacultyCode={selectedFacultyCode}
+            departmentName={facultyDeptName}
           />
         )}
 
@@ -394,7 +407,24 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
           />
         )}
 
-        {activeTab === "schedule" && <FacultyScheduleTab user={user} token={token} />}
+        {activeTab === "courses" && (
+          <FacultyCoursesTab
+            courses={facultyAssignedSubjects}
+            user={user}
+            selectedFacultyCode={selectedFacultyCode}
+            departmentName={facultyDeptName}
+          />
+        )}
+
+        {activeTab === "schedule" && (
+          <FacultyScheduleTab
+            user={user}
+            token={token}
+            selectedFacultyCode={selectedFacultyCode}
+            onSelectFacultyCode={setSelectedFacultyCode}
+          />
+        )}
+
         {activeTab === "reports" && (
           <FacultyReportsTab
             lectures={lectures}
@@ -425,7 +455,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
                   onChange={(e) => setEditingLecture({ ...editingLecture, subject_id: e.target.value })}
                   className="w-full p-2.5 bg-surface border border-border-default rounded text-primary"
                 >
-                  {subjects.map((s) => (
+                  {facultyAssignedSubjects.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.subject_code} - {s.subject_name}
                     </option>

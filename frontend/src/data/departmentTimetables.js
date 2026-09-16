@@ -486,3 +486,162 @@ export function getBatchLabel(section) {
   if (s.includes("C") || s === "3") return { section: "Sec C", batch: "Sec C" };
   return { section: "Sec A", batch: "Sec A" };
 }
+
+/**
+ * Auto-detect faculty code (e.g. ST, RM, VP, VK, MS) from faculty user object
+ */
+export function detectFacultyCode(deptName, user) {
+  if (!user) return "";
+  const tt = getDepartmentTimetable(deptName);
+  const directory = tt?.facultyDirectory || [];
+  const userEmail = (user.email || "").toLowerCase().trim();
+  const userName = (user.full_name || "").toLowerCase().trim();
+
+  // 1. Direct code match in email (e.g. strivedi@ or st.faculty@)
+  for (const f of directory) {
+    const codeLower = f.code.toLowerCase();
+    if (userEmail.startsWith(codeLower) || userEmail.includes(`.${codeLower}@`) || userEmail.includes(`_${codeLower}@`)) {
+      return f.code;
+    }
+  }
+
+  // 2. Name match in directory
+  const cleanUserName = userName
+    .replace(/^dr\.\s+/i, "")
+    .replace(/^prof\.\s+/i, "")
+    .replace(/^mr\.\s+/i, "")
+    .replace(/^ms\.\s+/i, "")
+    .trim();
+
+  for (const f of directory) {
+    const cleanDirName = f.name
+      .toLowerCase()
+      .replace(/^dr\.\s+/i, "")
+      .replace(/^prof\.\s+/i, "")
+      .trim();
+
+    // Check last name match or surname match
+    const userParts = cleanUserName.split(/\s+/).filter(Boolean);
+    const dirParts = cleanDirName.split(/\s+/).filter(Boolean);
+
+    const hasCommonPart = userParts.some((p) => p.length > 2 && cleanDirName.includes(p)) ||
+      dirParts.some((p) => p.length > 2 && cleanUserName.includes(p));
+
+    if (hasCommonPart) {
+      return f.code;
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Returns subjects assigned to a faculty member in their department timetable.
+ * If an instructor code is provided/detected, returns their exact assigned subjects.
+ * If generic/unmatched, returns all subjects for that department's timetable.
+ */
+export function getFacultyAssignedSubjects(deptName, facultyIdentifier, dbSubjects = []) {
+  const tt = getDepartmentTimetable(deptName);
+  const directory = tt?.facultyDirectory || [];
+  const subjectsDir = (tt?.subjectDirectory || []).filter((s) => s.code !== "LIBRARY");
+
+  let facultyCode = typeof facultyIdentifier === "string" ? facultyIdentifier : "";
+  if (!facultyCode && facultyIdentifier && typeof facultyIdentifier === "object") {
+    facultyCode = detectFacultyCode(deptName, facultyIdentifier);
+  }
+
+  let assignedCodes = new Set();
+
+  if (facultyCode) {
+    const facultyEntry = directory.find((f) => f.code === facultyCode);
+
+    // 1. Scan all slots across all timetable days
+    if (tt.days) {
+      Object.values(tt.days).forEach((day) => {
+        if (!day) return;
+        // Theory / tutorial slots
+        ["p1", "p2", "p3", "p4", "p5", "p6", "p7"].forEach((slotKey) => {
+          const slot = day[slotKey];
+          if (slot && slot.faculty === facultyCode && slot.subject && slot.subject !== "LIBRARY") {
+            assignedCodes.add(slot.subject);
+          }
+        });
+
+        // Lab 1
+        if (day.lab1?.batches) {
+          Object.values(day.lab1.batches).forEach((b) => {
+            if (b && b.faculty === facultyCode && b.subject && b.subject !== "LIBRARY") {
+              assignedCodes.add(b.subject);
+            }
+          });
+        }
+
+        // Lab 2
+        if (day.lab2?.batches) {
+          Object.values(day.lab2.batches).forEach((b) => {
+            if (b && b.faculty === facultyCode && b.subject && b.subject !== "LIBRARY") {
+              assignedCodes.add(b.subject);
+            }
+          });
+        }
+      });
+    }
+
+    // 2. Scan facultyDirectory entry subject text (e.g. "Digital Design & Signal Processing (DDSP) / Python")
+    if (facultyEntry && facultyEntry.subject) {
+      const text = facultyEntry.subject.toUpperCase();
+      subjectsDir.forEach((s) => {
+        if (text.includes(s.code.toUpperCase()) || text.includes(s.name.toUpperCase())) {
+          assignedCodes.add(s.code);
+        }
+      });
+    }
+  }
+
+  // Fallback: If no code matched, or assignedCodes is empty, return all department subjects
+  if (assignedCodes.size === 0) {
+    subjectsDir.forEach((s) => assignedCodes.add(s.code));
+  }
+
+  // Format into rich subject objects matching the rest of the application
+  return Array.from(assignedCodes).map((code) => {
+    const subInfo = subjectsDir.find((s) => s.code === code) || {
+      code,
+      name: code,
+      type: "Theory & Lab",
+    };
+
+    // Find if database has this subject already
+    const dbMatch = (dbSubjects || []).find((d) => {
+      if (!d) return false;
+      const dCode = (d.subject_code || "").toUpperCase();
+      const targetCode = code.toUpperCase();
+      return (
+        dCode === targetCode ||
+        dCode === `IT-${targetCode}` ||
+        dCode === `ECE-${targetCode}` ||
+        dCode.replace(/^(IT-|ECE-)/, "") === targetCode ||
+        (d.subject_name && d.subject_name.toLowerCase().includes(subInfo.name.toLowerCase()))
+      );
+    });
+
+    return {
+      id: dbMatch ? dbMatch.id : code,
+      subject_id: dbMatch ? dbMatch.id : code,
+      subject_code: dbMatch?.subject_code || code,
+      subject_name: subInfo.name,
+      department: tt.deptFullName || deptName,
+      credit_hours: subInfo.type?.includes("Lab Only") ? 2 : subInfo.type?.includes("Theory Only") ? 3 : 4,
+      type: subInfo.type || "Theory & Lab",
+      faculty_code: facultyCode || "",
+    };
+  });
+}
+
+/**
+ * Returns all subjects in a department's timetable
+ */
+export function getDepartmentSubjects(deptName, dbSubjects = []) {
+  return getFacultyAssignedSubjects(deptName, "", dbSubjects);
+}
+
