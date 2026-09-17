@@ -408,7 +408,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
               <button type="button" onClick={() => setShowAddStudentModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" className="px-5 py-2 bg-[#9E3D24] text-white font-bold rounded cursor-pointer shadow-xs">
+              <button type="submit" className="px-5 py-2.5 bg-primary hover:bg-primary-container text-white font-bold rounded-xl cursor-pointer shadow-xs transition-colors">
                 Enrol Student
               </button>
             </div>
@@ -494,7 +494,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
               <button type="button" onClick={() => setShowAddFacultyModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" className="px-5 py-2 bg-[#9E3D24] text-white font-bold rounded cursor-pointer shadow-xs">
+              <button type="submit" className="px-5 py-2.5 bg-primary hover:bg-primary-container text-white font-bold rounded-xl cursor-pointer shadow-xs transition-colors">
                 Onboard Faculty
               </button>
             </div>
@@ -544,7 +544,7 @@ export default function HodDashboard({ user: initialUser, token, onLogout, onTog
               <button type="button" onClick={() => setShowAddCourseModal(false)} className="px-4 py-2 bg-surface-container font-bold rounded">
                 Cancel
               </button>
-              <button type="submit" className="px-5 py-2 bg-[#9E3D24] text-white font-bold rounded">
+              <button type="submit" className="px-5 py-2.5 bg-primary hover:bg-primary-container text-white font-bold rounded-xl cursor-pointer shadow-xs transition-colors">
                 Register Course
               </button>
             </div>

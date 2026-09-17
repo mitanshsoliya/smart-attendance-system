@@ -41,9 +41,10 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
 
   const handleApprove = async (id, name, role) => {
     const targetSection = assignedSections[id] || "Sec A";
-    const confirmMsg = role === "STUDENT"
-      ? `Are you sure you want to onboard candidate ${name} into ${targetSection}?`
-      : `Are you sure you want to ALLOW and onboard ${name} (${role}) into the departmental registry?`;
+    const confirmMsg =
+      role === "STUDENT"
+        ? `Are you sure you want to onboard candidate ${name} into ${targetSection}?`
+        : `Are you sure you want to onboard ${name} (${role}) into the departmental registry?`;
 
     if (!window.confirm(confirmMsg)) {
       return;
@@ -58,7 +59,7 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
       setSuccessMessage(res.message || `${role} account approved and added to department!`);
       await fetchRequests();
       if (onDataChanged) {
-        onDataChanged(); // Re-sync students, faculty, and departments in parent dashboard!
+        onDataChanged();
       }
     } catch (err) {
       console.error("Approve error:", err);
@@ -69,17 +70,22 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
   };
 
   const handleReject = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to REJECT the registration request for ${name}?`)) {
-      return;
-    }
+    const reason = window.prompt(
+      `Enter reason for rejecting registration for ${name} (optional):`,
+      "Information does not match departmental records"
+    );
+    if (reason === null) return;
 
     try {
       setProcessingId(id);
       setError("");
       setSuccessMessage("");
-      const res = await hodService.rejectRegistrationRequest(id, token);
+      const res = await hodService.rejectRegistrationRequest(id, { reason }, token);
       setSuccessMessage(res.message || "Registration request rejected.");
       await fetchRequests();
+      if (onDataChanged) {
+        onDataChanged();
+      }
     } catch (err) {
       console.error("Reject error:", err);
       setError(err.response?.data?.message || "Failed to reject registration request.");
@@ -90,132 +96,129 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
 
   const filteredRequests = useMemo(() => {
     return requests.filter((r) => {
-      // Role section filter
-      if (r.role !== activeSection) return false;
-
-      // Status filter
-      if (statusFilter !== "ALL" && r.status !== statusFilter) return false;
-
-      // Search filter
-      const q = search.toLowerCase().trim();
-      if (!q) return true;
-      const name = (r.fullName || "").toLowerCase();
-      const email = (r.email || "").toLowerCase();
-      const roll = (r.rollNumber || "").toLowerCase();
-      const empId = (r.employeeId || "").toLowerCase();
-      const dept = (r.department || "").toLowerCase();
-
-      return (
-        name.includes(q) ||
-        email.includes(q) ||
-        roll.includes(q) ||
-        empId.includes(q) ||
-        dept.includes(q)
-      );
+      const matchRole = r.role === activeSection;
+      const matchStatus = statusFilter === "ALL" || r.status === statusFilter;
+      const q = search.toLowerCase();
+      const matchSearch =
+        !search ||
+        (r.fullName || "").toLowerCase().includes(q) ||
+        (r.email || "").toLowerCase().includes(q) ||
+        (r.rollNumber || "").toLowerCase().includes(q) ||
+        (r.employeeId || "").toLowerCase().includes(q);
+      return matchRole && matchStatus && matchSearch;
     });
   }, [requests, activeSection, statusFilter, search]);
 
-  const studentRequestsCount = requests.filter((r) => r.role === "STUDENT" && r.status === "PENDING").length;
-  const facultyRequestsCount = requests.filter((r) => r.role === "FACULTY" && r.status === "PENDING").length;
+  const studentRequestsCount = counts.pendingStudents || 0;
+  const facultyRequestsCount = counts.pendingFaculty || 0;
 
   return (
-    <div className="space-y-6 animate-fadeIn font-body">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#D8D2C4]">
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-[#BA1A1A] font-bold">
-            ACADEMIC ONBOARDING & ADMISSION CLEARANCE
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+              ONBOARDING WORKSPACE
+            </span>
+            <span className="text-xs text-text-stone">Identity & Section Verification</span>
+          </div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-primary">
             Registration Requests & Verification
           </h1>
-          <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
-            Review self-registration requests from candidate students and faculty members. Allowing a request automatically registers their user credentials, creates their profile, and integrates them into their academic department roster.
+          <p className="text-xs sm:text-sm text-text-stone mt-0.5 max-w-3xl">
+            Review self-registration requests from candidate students and faculty members. Allowing a request automatically registers their user credentials, creates their profile, and integrates them into their assigned cohort section.
           </p>
         </div>
 
         <button
           onClick={fetchRequests}
-          className="px-3.5 py-2 bg-white border border-[#D8D2C4] hover:bg-[#F3EFE6] text-xs font-semibold rounded cursor-pointer flex items-center gap-1.5 transition-colors self-start md:self-auto"
+          className="px-4 py-2.5 bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold rounded-xl transition-colors self-start md:self-auto flex items-center gap-1.5 cursor-pointer shadow-2xs"
         >
-          <span className="material-symbols-outlined text-[16px]">refresh</span>
+          <span className="material-symbols-outlined text-[18px]">refresh</span>
           <span>Refresh Requests</span>
         </button>
       </div>
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 bg-white border border-[#D8D2C4] rounded-lg shadow-xs">
-          <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-wider font-mono">
+        <div className="p-4 bg-white border border-border-default rounded-2xl shadow-xs">
+          <div className="text-[10px] uppercase font-bold text-amber-700 tracking-wider font-mono">
             PENDING VERIFICATION
           </div>
-          <div className="text-2xl font-serif font-bold text-[#9E3D24] mt-1">
+          <div className="text-2xl font-heading font-black text-amber-600 mt-1">
             {counts.pendingTotal}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-0.5">Awaiting HOD action</div>
+          <div className="text-[11px] text-text-stone mt-0.5">Awaiting HOD action</div>
         </div>
 
-        <div className="p-4 bg-white border border-[#D8D2C4] rounded-lg shadow-xs">
-          <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-wider font-mono">
+        <div className="p-4 bg-white border border-border-default rounded-2xl shadow-xs">
+          <div className="text-[10px] uppercase font-bold text-text-stone tracking-wider font-mono">
             STUDENT REQUESTS
           </div>
-          <div className="text-2xl font-serif font-bold text-[#12181F] mt-1">
+          <div className="text-2xl font-heading font-black text-primary mt-1">
             {studentRequestsCount}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-0.5">Candidate enrollments</div>
+          <div className="text-[11px] text-text-stone mt-0.5">Candidate enrollments</div>
         </div>
 
-        <div className="p-4 bg-white border border-[#D8D2C4] rounded-lg shadow-xs">
-          <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-wider font-mono">
+        <div className="p-4 bg-white border border-border-default rounded-2xl shadow-xs">
+          <div className="text-[10px] uppercase font-bold text-text-stone tracking-wider font-mono">
             FACULTY REQUESTS
           </div>
-          <div className="text-2xl font-serif font-bold text-[#12181F] mt-1">
+          <div className="text-2xl font-heading font-black text-primary mt-1">
             {facultyRequestsCount}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-0.5">Instructor applications</div>
+          <div className="text-[11px] text-text-stone mt-0.5">Instructor applications</div>
         </div>
 
-        <div className="p-4 bg-white border border-[#D8D2C4] rounded-lg shadow-xs">
-          <div className="text-[10px] uppercase font-bold text-[#6B7280] tracking-wider font-mono">
+        <div className="p-4 bg-white border border-border-default rounded-2xl shadow-xs">
+          <div className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider font-mono">
             APPROVED ONBOARDED
           </div>
-          <div className="text-2xl font-serif font-bold text-[#2E7D32] mt-1">
+          <div className="text-2xl font-heading font-black text-emerald-600 mt-1">
             {counts.approvedTotal}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-0.5">Active in Department</div>
+          <div className="text-[11px] text-text-stone mt-0.5">Added to registry</div>
         </div>
       </div>
 
-      {/* Notifications */}
+      {/* Alerts */}
       {error && (
-        <div className="p-3 bg-[#FDE8E8] border border-[#F8B4B4] text-[#9B1C1C] text-xs rounded font-medium flex items-center justify-between">
-          <span>{error}</span>
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-rose-600 text-base">error</span>
+            <span>{error}</span>
+          </div>
           <button onClick={() => setError("")} className="font-bold cursor-pointer">✕</button>
         </div>
       )}
 
       {successMessage && (
-        <div className="p-3 bg-[#DEF7EC] border border-[#BCF0DA] text-[#03543F] text-xs rounded font-medium flex items-center justify-between">
-          <span>✓ {successMessage}</span>
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-emerald-600 text-base">check_circle</span>
+            <span>{successMessage}</span>
+          </div>
           <button onClick={() => setSuccessMessage("")} className="font-bold cursor-pointer">✕</button>
         </div>
       )}
 
-      {/* 2 Main Sub-Sections: Student vs Faculty Toggle */}
-      <div className="flex items-center gap-2 border-b border-[#D8D2C4]">
+      {/* Role Toggle Tabs */}
+      <div className="flex items-center gap-3 border-b border-border-default pb-2">
         <button
           type="button"
           onClick={() => setActiveSection("STUDENT")}
-          className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`pb-2.5 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeSection === "STUDENT"
-              ? "border-[#9E3D24] text-[#9E3D24]"
-              : "border-transparent text-[#6B7280] hover:text-[#12181F]"
+              ? "border-primary text-primary"
+              : "border-transparent text-text-stone hover:text-primary"
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">school</span>
           <span>Student Requests</span>
           {studentRequestsCount > 0 && (
-            <span className="px-2 py-0.5 bg-[#9E3D24] text-white text-[10px] rounded-full font-bold">
+            <span className="px-2 py-0.5 bg-primary text-white text-[10px] rounded-full font-bold">
               {studentRequestsCount}
             </span>
           )}
@@ -224,16 +227,16 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
         <button
           type="button"
           onClick={() => setActiveSection("FACULTY")}
-          className={`pb-3 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+          className={`pb-2.5 px-4 font-bold text-sm transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
             activeSection === "FACULTY"
-              ? "border-[#9E3D24] text-[#9E3D24]"
-              : "border-transparent text-[#6B7280] hover:text-[#12181F]"
+              ? "border-primary text-primary"
+              : "border-transparent text-text-stone hover:text-primary"
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">badge</span>
           <span>Faculty Requests</span>
           {facultyRequestsCount > 0 && (
-            <span className="px-2 py-0.5 bg-[#9E3D24] text-white text-[10px] rounded-full font-bold">
+            <span className="px-2 py-0.5 bg-primary text-white text-[10px] rounded-full font-bold">
               {facultyRequestsCount}
             </span>
           )}
@@ -252,16 +255,16 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full p-2.5 bg-white border border-[#D8D2C4] rounded text-xs text-[#12181F] focus:outline-none focus:border-[#9E3D24]"
+            className="w-full p-2.5 bg-white border border-border-default rounded-xl text-xs text-primary focus:outline-none focus:border-primary"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs font-bold text-[#6B7280] whitespace-nowrap">Status:</span>
+          <span className="text-xs font-bold text-text-stone whitespace-nowrap">Status:</span>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 bg-white border border-[#D8D2C4] rounded text-xs font-medium text-[#12181F] focus:outline-none focus:border-[#9E3D24] cursor-pointer"
+            className="p-2 bg-white border border-border-default rounded-xl text-xs font-medium text-primary focus:outline-none focus:border-primary cursor-pointer"
           >
             <option value="ALL">All Statuses</option>
             <option value="PENDING">Pending Verification</option>
@@ -273,130 +276,106 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
 
       {/* Content View: Request List */}
       {loading ? (
-        <div className="p-12 text-center bg-white border border-[#D8D2C4] rounded-lg">
-          <div className="animate-spin inline-block w-8 h-8 border-3 border-[#9E3D24] border-t-transparent rounded-full mb-3"></div>
-          <p className="text-sm font-medium text-[#6B7280]">Loading registration requests...</p>
+        <div className="p-12 text-center bg-white border border-border-default rounded-2xl">
+          <div className="animate-spin inline-block w-8 h-8 border-3 border-primary border-t-transparent rounded-full mb-3"></div>
+          <p className="text-sm font-medium text-text-stone">Loading registration requests...</p>
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="p-12 text-center bg-white border border-[#D8D2C4] rounded-lg space-y-2">
-          <span className="material-symbols-outlined text-4xl text-[#9CA3AF]">
-            {activeSection === "STUDENT" ? "person_search" : "badge"}
-          </span>
-          <h3 className="font-serif text-lg font-bold text-[#12181F]">
-            No {activeSection === "STUDENT" ? "Student" : "Faculty"} Requests Found
-          </h3>
-          <p className="text-xs text-[#6B7280] max-w-md mx-auto">
-            {search || statusFilter !== "ALL"
-              ? "No registration requests matched your filter query."
-              : `There are currently no new registration requests submitted for ${activeSection.toLowerCase()}s.`}
+        <div className="p-10 text-center bg-white border border-border-default rounded-2xl shadow-xs space-y-2">
+          <span className="material-symbols-outlined text-3xl text-text-stone/60">inbox</span>
+          <p className="font-semibold text-primary">No registration requests found</p>
+          <p className="text-xs text-text-stone">
+            All applications have been processed, or none match the active filters.
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredRequests.map((req) => {
             const isPending = req.status === "PENDING";
             const isApproved = req.status === "APPROVED";
-            const isRejected = req.status === "REJECTED";
             const isProcessing = processingId === req.id;
 
             return (
               <div
                 key={req.id}
-                className="bg-white border border-[#D8D2C4] rounded-lg p-3.5 sm:p-5 shadow-xs transition-all hover:border-[#9E3D24]/40"
+                className="bg-white border border-border-default rounded-2xl p-4 sm:p-5 shadow-xs transition-all hover:border-primary/40"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   {/* Left: Identity Info */}
                   <div className="flex items-start gap-3.5">
-                    <div className="w-11 h-11 rounded-full bg-[#F3EFE6] border border-[#D8D2C4] flex items-center justify-center font-serif text-base font-bold text-[#9E3D24] shrink-0">
+                    <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center font-heading text-base font-bold text-primary shrink-0">
                       {req.fullName ? req.fullName.slice(0, 2).toUpperCase() : "U"}
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-serif text-lg font-bold text-[#12181F]">
+                        <h3 className="font-heading text-base font-bold text-primary">
                           {req.fullName}
                         </h3>
 
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isPending
-                              ? "bg-[#FEF08A] text-[#854D0E] border border-[#FDE047]"
+                              ? "bg-amber-50 text-amber-800 border border-amber-200"
                               : isApproved
-                              ? "bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]"
-                              : "bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA]"
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-rose-50 text-rose-800 border border-rose-200"
                           }`}
                         >
                           {req.status}
                         </span>
                       </div>
 
-                      <div className="text-xs text-[#6B7280] flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-[#12181F]">{req.email}</span>
+                      <div className="text-xs text-text-stone flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-primary">{req.email}</span>
                         <span>•</span>
-                        <span className="text-[#9E3D24] font-semibold">{req.department}</span>
+                        <span className="text-primary font-semibold">{req.department}</span>
                       </div>
 
                       {/* Detail Badges depending on Role */}
-                      <div className="flex items-center gap-4 pt-1 text-xs text-[#4B5563] flex-wrap">
+                      <div className="flex items-center gap-3 pt-1 text-xs text-text-stone flex-wrap">
                         {req.role === "STUDENT" ? (
                           <>
                             <div>
-                              <span className="font-bold text-[#6B7280]">Roll No:</span>{" "}
-                              <code className="font-mono bg-[#FBF9F5] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
+                              <span className="font-bold text-text-stone">Roll No:</span>{" "}
+                              <code className="font-mono bg-surface-container-low px-1.5 py-0.5 rounded border border-border-default text-primary">
                                 {req.rollNumber || "Not Provided"}
                               </code>
                             </div>
                             <div>
-                              <span className="font-bold text-[#6B7280]">Section:</span>{" "}
+                              <span className="font-bold text-text-stone">Section:</span>{" "}
                               {req.section === "Pending HOD Allocation" || !req.section ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#FEF08A] text-[#854D0E] border border-[#FDE047]">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                                   <span className="material-symbols-outlined text-[12px]">pending</span>
                                   <span>Pending HOD Allocation</span>
                                 </span>
                               ) : (
-                                <span className="font-semibold text-[#12181F] bg-[#FBF9F5] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
+                                <span className="font-bold text-primary bg-surface-container-low px-2 py-0.5 rounded border border-border-default">
                                   {req.section}
                                 </span>
                               )}
                             </div>
                             {req.studentPhone && (
                               <div>
-                                <span className="font-bold text-[#6B7280]">Student Phone:</span>{" "}
+                                <span className="font-bold text-text-stone">Phone:</span>{" "}
                                 <span>{req.studentPhone}</span>
-                              </div>
-                            )}
-                            {req.parentPhone && (
-                              <div>
-                                <span className="font-bold text-[#6B7280]">Parents Phone:</span>{" "}
-                                <span>{req.parentPhone}</span>
                               </div>
                             )}
                           </>
                         ) : (
                           <>
                             <div>
-                              <span className="font-bold text-[#6B7280]">Employee ID:</span>{" "}
-                              <code className="font-mono bg-[#FBF9F5] px-1.5 py-0.5 rounded border border-[#E5E7EB]">
+                              <span className="font-bold text-text-stone">Employee ID:</span>{" "}
+                              <code className="font-mono bg-surface-container-low px-1.5 py-0.5 rounded border border-border-default text-primary">
                                 {req.employeeId || "Not Provided"}
                               </code>
                             </div>
                             <div>
-                              <span className="font-bold text-[#6B7280]">Designation:</span>{" "}
+                              <span className="font-bold text-text-stone">Designation:</span>{" "}
                               <span>{req.designation || "Assistant Professor"}</span>
                             </div>
-                            {req.phone && (
-                              <div>
-                                <span className="font-bold text-[#6B7280]">Phone:</span>{" "}
-                                <span>{req.phone}</span>
-                              </div>
-                            )}
                           </>
                         )}
-
-                        <div className="text-[11px] text-[#9CA3AF] font-mono">
-                          Requested: {new Date(req.createdAt).toLocaleDateString()} at{" "}
-                          {new Date(req.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -406,18 +385,20 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                     {isPending ? (
                       <>
                         {req.role === "STUDENT" && (
-                          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-[#FBF9F5] py-1 px-2 rounded border border-[#D8D2C4] w-full sm:w-auto">
+                          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-surface-container-low py-1.5 px-3 rounded-xl border border-border-default w-full sm:w-auto">
                             <div className="flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[15px] text-[#9E3D24]">school</span>
-                              <label className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider whitespace-nowrap">
-                                Assign Section:
+                              <span className="material-symbols-outlined text-[16px] text-primary">school</span>
+                              <label className="text-[10px] font-bold text-text-stone uppercase tracking-wider whitespace-nowrap">
+                                Section:
                               </label>
                             </div>
                             <select
                               value={assignedSections[req.id] || "Sec A"}
-                              onChange={(e) => setAssignedSections((prev) => ({ ...prev, [req.id]: e.target.value }))}
+                              onChange={(e) =>
+                                setAssignedSections((prev) => ({ ...prev, [req.id]: e.target.value }))
+                              }
                               disabled={isProcessing}
-                              className="py-1 px-2 bg-white border border-[#D8D2C4] rounded text-xs font-bold text-[#9E3D24] focus:outline-none focus:border-[#9E3D24] cursor-pointer"
+                              className="py-1 px-2.5 bg-white border border-border-default rounded-lg text-xs font-bold text-primary focus:outline-none focus:border-primary cursor-pointer"
                             >
                               <option value="Sec A">Sec A</option>
                               <option value="Sec B">Sec B</option>
@@ -431,7 +412,7 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                           type="button"
                           disabled={isProcessing}
                           onClick={() => handleReject(req.id, req.fullName)}
-                          className="flex-1 sm:flex-initial justify-center px-3 py-1.5 bg-white border border-[#D8D2C4] hover:bg-[#FDE8E8] hover:text-[#BA1A1A] hover:border-[#F8B4B4] text-[#6B7280] font-bold text-xs rounded transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                          className="flex-1 sm:flex-initial justify-center px-3.5 py-2 bg-white border border-border-default hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-text-stone font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1"
                         >
                           <span className="material-symbols-outlined text-[16px]">close</span>
                           <span>Reject</span>
@@ -441,7 +422,7 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                           type="button"
                           disabled={isProcessing}
                           onClick={() => handleApprove(req.id, req.fullName, req.role)}
-                          className="flex-1 sm:flex-initial justify-center px-4 py-1.5 bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-bold text-xs rounded transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                          className="flex-1 sm:flex-initial justify-center px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
                         >
                           {isProcessing ? (
                             <>
@@ -454,19 +435,19 @@ export function HodRegistrationRequestsTab({ token, onDataChanged }) {
                               <span>
                                 {req.role === "STUDENT"
                                   ? `Assign & Allow (${assignedSections[req.id] || "Sec A"})`
-                                  : "Allow / Approve"}
+                                  : "Allow & Onboard"}
                               </span>
                             </>
                           )}
                         </button>
                       </>
                     ) : isApproved ? (
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#2E7D32] bg-[#DCFCE7] px-3 py-1.5 rounded border border-[#BBF7D0]">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
                         <span className="material-symbols-outlined text-[16px]">verified</span>
                         <span>Active in Department Roster</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-[#991B1B] bg-[#FEE2E2] px-3 py-1.5 rounded border border-[#FECACA]">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200">
                         <span className="material-symbols-outlined text-[16px]">cancel</span>
                         <span>Request Rejected</span>
                       </div>

@@ -1,56 +1,118 @@
 import React from "react";
 
-export function HodAnalyticsTab({ students }) {
-  const lowAttendance = students.filter((s) => s.attendancePercentage < 75);
+export function HodAnalyticsTab({ students = [] }) {
+  const lowAttendance = students.filter((s) => (s.attendancePercentage ?? s.attendance_percentage ?? 0) < 75);
+  const clearedAttendance = students.filter((s) => (s.attendancePercentage ?? s.attendance_percentage ?? 0) >= 75);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#D8D2C4]">
-        <div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
-            NAAC / NBA COMPLIANCE ANALYTICS
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
-            Institutional Attendance Metrics & Cohort Risk
-          </h1>
-          <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
-            Accreditation committee compliance metrics, cohort attendance distribution bands, and statutory audit dossiers.
-          </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-default pb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+                ACCREDITATION AUDIT
+              </span>
+              <span className="text-xs text-text-stone">NBA / NAAC Statutory Metrics</span>
+            </div>
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-primary">
+              Institutional Compliance & Attendance Risk
+            </h1>
+            <p className="text-xs sm:text-sm text-text-stone mt-0.5 max-w-3xl">
+              Cohort risk distribution, condonation audits, and examination hall ticket disqualification metrics under Ordinance §42.1.
+            </p>
+          </div>
+        </div>
+
+        {/* Metric Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+          <div className="p-4 bg-surface-container-low rounded-xl border border-border-default/60">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-stone block">
+              Total Audited Cohort
+            </span>
+            <div className="font-heading text-2xl font-bold text-primary mt-1">
+              {students.length}
+            </div>
+            <span className="text-[11px] text-text-stone">Enrolled candidates</span>
+          </div>
+
+          <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block">
+              Statutory Cleared (≥75%)
+            </span>
+            <div className="font-heading text-2xl font-bold text-emerald-700 mt-1">
+              {clearedAttendance.length}
+            </div>
+            <span className="text-[11px] text-emerald-600 font-medium">Eligible for end-sem exams</span>
+          </div>
+
+          <div className="p-4 bg-rose-50/60 rounded-xl border border-rose-200">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800 block">
+              Attendance Shortage (&lt;75%)
+            </span>
+            <div className="font-heading text-2xl font-bold text-rose-700 mt-1">
+              {lowAttendance.length}
+            </div>
+            <span className="text-[11px] text-rose-600 font-medium">Requires condonation or hold</span>
+          </div>
         </div>
       </div>
 
       {/* Low Attendance Audit Table */}
-      <div className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs space-y-4">
-        <h3 className="font-serif text-xl font-bold text-[#BA1A1A]">Students Below 75% Statutory Threshold ({lowAttendance.length})</h3>
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-border-default pb-3">
+          <h3 className="font-heading text-base font-bold text-rose-700 flex items-center gap-2">
+            <span className="material-symbols-outlined text-rose-600 text-lg">warning</span>
+            Candidates Under Condonation Threshold (&lt;75%)
+          </h3>
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            {lowAttendance.length} Students at Risk
+          </span>
+        </div>
+
         {lowAttendance.length === 0 ? (
-          <p className="text-xs text-[#2E6B34] font-semibold">All enrolled students are above the 75% statutory attendance threshold!</p>
+          <div className="py-8 text-center bg-emerald-50/40 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-1">
+            <span className="material-symbols-outlined text-2xl text-emerald-600">verified</span>
+            <p className="font-bold">100% Departmental Compliance!</p>
+            <p>All enrolled students currently meet or exceed the mandatory 75% attendance threshold.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto custom-scrollbar touch-pan-x">
-            <table className="w-full text-left text-xs min-w-[550px]">
+            <table className="w-full text-left text-xs sm:text-sm min-w-[650px]">
               <thead>
-                <tr className="bg-[#F3EFE6] border-b border-[#D8D2C4] font-mono font-bold text-[#6B7280]">
-                  <th className="p-3">Roll Number</th>
-                  <th className="p-3">Student Name</th>
-                  <th className="p-3">Email</th>
-                  <th className="p-3 text-right">Attendance %</th>
-                  <th className="p-3 text-center">Status</th>
+                <tr className="bg-surface-container-low border-b border-border-default text-[11px] font-bold uppercase tracking-wider text-text-stone">
+                  <th className="py-3 px-4">Roll Number</th>
+                  <th className="py-3 px-4">Student Name</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4 text-right">Attendance %</th>
+                  <th className="py-3 px-4 text-center">Examination Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D8D2C4]">
-              {lowAttendance.map((s, idx) => (
-                <tr key={s.id || idx}>
-                  <td className="p-3 font-mono font-bold">{s.rollNumber || s.roll_number || `2024-CSE-00${s.id || idx + 1}`}</td>
-                  <td className="p-3 font-bold text-[#12181F]">{s.fullName || s.full_name || "Student"}</td>
-                  <td className="p-3 text-[#6B7280]">{s.email}</td>
-                  <td className="p-3 text-right font-bold text-[#BA1A1A]">{s.attendancePercentage ?? s.attendance_percentage ?? 0}%</td>
-                  <td className="p-3 text-center">
-                    <span className="px-2 py-0.5 bg-[#BA1A1A]/10 text-[#BA1A1A] font-bold rounded">
-                      DISQUALIFIED
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+              <tbody className="divide-y divide-border-default/60">
+                {lowAttendance.map((s, idx) => {
+                  const pct = s.attendancePercentage ?? s.attendance_percentage ?? 0;
+                  return (
+                    <tr key={s.id || idx} className="hover:bg-surface-container-low/50 transition-colors">
+                      <td className="py-3 px-4 font-mono font-bold text-primary">
+                        {s.rollNumber || s.roll_number || `2024-CSE-00${s.id || idx + 1}`}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-primary">
+                        {s.fullName || s.full_name || "Student"}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs text-text-stone">{s.email}</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
+                        {pct}%
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[10px] rounded-full uppercase">
+                          CONDITIONAL HOLD
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
           </div>
         )}

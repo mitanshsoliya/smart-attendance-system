@@ -10,30 +10,31 @@ export function LoadingSpinner({ size = "md", text = "Loading..." }) {
   return (
     <div className="flex flex-col items-center justify-center p-6 gap-3">
       <div
-        className={`${sizeClasses[size] || sizeClasses.md} border-secondary border-t-transparent rounded-full animate-spin`}
+        className={`${sizeClasses[size] || sizeClasses.md} border-blue-600 border-t-transparent rounded-full animate-spin`}
       ></div>
-      {text && <span className="text-xs font-mono text-text-stone tracking-wide">{text}</span>}
+      {text && <span className="text-xs font-medium text-slate-500 tracking-wide">{text}</span>}
     </div>
   );
 }
 
 export function SkeletonCard() {
   return (
-    <div className="p-6 bg-surface-bright border border-border-default rounded animate-pulse space-y-4">
-      <div className="h-4 bg-surface-container rounded w-1/3"></div>
-      <div className="h-6 bg-surface-container rounded w-3/4"></div>
-      <div className="h-4 bg-surface-container rounded w-1/2"></div>
+    <div className="p-6 bg-white border border-slate-200/80 rounded-2xl animate-pulse space-y-4 shadow-xs">
+      <div className="h-4 bg-slate-100 rounded-lg w-1/3"></div>
+      <div className="h-6 bg-slate-200 rounded-lg w-3/4"></div>
+      <div className="h-4 bg-slate-100 rounded-lg w-1/2"></div>
     </div>
   );
 }
 
 export function SkeletonTable({ rows = 4 }) {
   return (
-    <div className="border border-border-default rounded bg-surface-bright p-4 animate-pulse space-y-3">
-      <div className="h-6 bg-surface-container rounded w-full"></div>
+    <div className="border border-slate-200/80 rounded-2xl bg-white p-4 animate-pulse space-y-3 shadow-xs">
+      <div className="h-8 bg-slate-100 rounded-xl w-full"></div>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-10 bg-surface-container-low rounded w-full"></div>
+        <div key={i} className="h-10 bg-slate-50 rounded-xl w-full"></div>
       ))}
     </div>
   );
 }
+

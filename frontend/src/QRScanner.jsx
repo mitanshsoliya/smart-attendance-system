@@ -343,25 +343,25 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
   };
 
   return (
-    <div className="w-full flex flex-col gap-5 text-left font-sans">
+    <div className="w-full flex flex-col gap-4 text-left font-sans">
       {/* Geo-Fencing Anti-Proxy Live GPS Banner */}
       <div
-        className={`p-3 border rounded text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+        className={`p-3.5 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
           geoStatus === "ready"
-            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+            ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
             : geoStatus === "denied"
-            ? "bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300"
-            : "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300"
+            ? "bg-rose-50/80 border-rose-200 text-rose-900"
+            : "bg-amber-50/80 border-amber-200 text-amber-900"
         }`}
       >
         <div className="flex items-start sm:items-center gap-2.5">
           <span
             className={`material-symbols-outlined text-xl shrink-0 ${
               geoStatus === "ready"
-                ? "text-emerald-600 dark:text-emerald-400"
+                ? "text-emerald-600"
                 : geoStatus === "denied"
-                ? "text-rose-600 dark:text-rose-400"
-                : "text-amber-600 dark:text-amber-400 animate-spin"
+                ? "text-rose-600"
+                : "text-amber-600 animate-spin"
             }`}
           >
             {geoStatus === "ready" ? "fmd_good" : geoStatus === "denied" ? "location_off" : "sync"}
@@ -370,12 +370,12 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
             <div className="font-bold flex flex-wrap items-center gap-1.5">
               <span>Geo-Fence GPS Protection:</span>
               <span
-                className={`uppercase tracking-wider text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                className={`uppercase tracking-wider text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
                   geoStatus === "ready"
-                    ? "bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200"
+                    ? "bg-emerald-200/70 text-emerald-900"
                     : geoStatus === "denied"
-                    ? "bg-rose-200/60 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200"
-                    : "bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200"
+                    ? "bg-rose-200/70 text-rose-900"
+                    : "bg-amber-200/70 text-amber-900"
                 }`}
               >
                 {geoStatus === "ready"
@@ -405,7 +405,7 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
           <button
             type="button"
             onClick={() => getGeoCoordinates().catch(() => {})}
-            className="self-start sm:self-auto px-3 py-1.5 bg-secondary text-on-secondary rounded text-[11px] font-bold hover:opacity-90 transition-all flex items-center gap-1 shrink-0"
+            className="self-start sm:self-auto px-3 py-1.5 bg-primary text-white rounded-lg text-[11px] font-bold hover:bg-primary-container transition-all flex items-center gap-1 shrink-0 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[14px]">refresh</span>
             <span>Retry GPS</span>
@@ -416,22 +416,22 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
       {/* Verification Feedback Banner */}
       {message && (
         <div
-          className={`p-3.5 text-sm font-semibold flex flex-col gap-1 border ${
+          className={`p-3.5 text-xs sm:text-sm font-semibold rounded-xl flex flex-col gap-1 border ${
             isSuccess
-              ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700"
-              : "bg-rose-50 text-rose-900 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-700"
+              ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+              : "bg-rose-50 text-rose-900 border-rose-300"
           }`}
         >
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">
+              <span className="material-symbols-outlined text-lg shrink-0">
                 {isSuccess ? "verified" : "gpp_bad"}
               </span>
               <span>{message}</span>
             </span>
             <button
               onClick={() => setMessage("")}
-              className="text-xs opacity-60 hover:opacity-100"
+              className="text-xs opacity-60 hover:opacity-100 cursor-pointer ml-2"
             >
               ✕
             </button>
@@ -448,48 +448,19 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
         </div>
       )}
 
-      {/* SECTION 1: Manual Session Token Verification */}
-      <div className="bg-surface-warm dark:bg-surface-tint/10 border border-border-default dark:border-outline-variant p-4">
-        <h4 className="text-xs font-bold text-text-stone uppercase tracking-wider mb-2 flex items-center gap-2">
-          <span className="material-symbols-outlined text-secondary text-sm">verified</span>
-          Manual Token Verification
-        </h4>
-        <form onSubmit={handleManualSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={manualToken}
-            onChange={(e) => setManualToken(e.target.value)}
-            placeholder="e.g. LECTURE-892041"
-            className="flex-1 bg-surface border border-border-default px-3 py-2 text-sm text-primary focus:outline-none focus:border-secondary uppercase"
-          />
-          <button
-            type="submit"
-            disabled={submitting || !manualToken.trim()}
-            className="bg-secondary text-on-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/90 disabled:opacity-50 transition-colors flex items-center gap-1"
-          >
-            {submitting ? (
-              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
-            ) : (
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            )}
-            Verify
-          </button>
-        </form>
-      </div>
-
-      {/* SECTION 2: Camera Scanner */}
-      <div className="border border-border-default dark:border-outline-variant p-4 bg-surface flex flex-col items-center">
+      {/* Camera Scanner Viewport */}
+      <div className="border border-border-default rounded-2xl p-4 bg-white flex flex-col items-center shadow-xs">
         <div className="w-full flex justify-between items-center mb-3">
-          <span className="text-xs font-bold text-text-stone uppercase tracking-wider flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-secondary text-sm">photo_camera</span>
-            Scan using Camera
+          <span className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-primary text-base">photo_camera</span>
+            Live Camera Scanner
           </span>
 
           {cameras.length > 1 && (
             <select
               value={selectedCameraId}
               onChange={handleCameraChange}
-              className="text-xs bg-surface border border-border-default px-2 py-1 focus:outline-none"
+              className="text-xs bg-surface-container-low border border-border-default rounded-lg px-2.5 py-1 text-primary focus:outline-none"
             >
               {cameras.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -500,12 +471,29 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
           )}
         </div>
 
-        {/* Video Reader Element */}
-        <div className="relative w-full max-w-[260px] sm:max-w-[320px] aspect-square bg-black/90 border border-border-default overflow-hidden flex items-center justify-center mx-auto">
+        {/* Video Reader Element with Viewfinder Reticle & Laser */}
+        <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-square bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto border-2 border-primary/20 shadow-inner">
           <div id="qr-reader" className="w-full h-full"></div>
 
+          {/* Viewfinder Reticle Corner Brackets */}
+          <div className="absolute inset-4 pointer-events-none z-10">
+            {/* Top-Left */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-secondary rounded-tl-sm"></div>
+            {/* Top-Right */}
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-secondary rounded-tr-sm"></div>
+            {/* Bottom-Left */}
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-secondary rounded-bl-sm"></div>
+            {/* Bottom-Right */}
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-secondary rounded-br-sm"></div>
+
+            {/* Animated Laser Beam */}
+            {cameraState === "active" && (
+              <div className="qr-scan-laser"></div>
+            )}
+          </div>
+
           {cameraState === "starting" && (
-            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white text-xs gap-2 z-10">
+            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white text-xs gap-2 z-20">
               <span className="material-symbols-outlined text-2xl animate-spin text-secondary">
                 sync
               </span>
@@ -514,40 +502,69 @@ function QRScanner({ onAttendanceMarked, onScanSuccess }) {
           )}
 
           {cameraState === "error" && (
-            <div className="absolute inset-0 bg-black/90 p-3 sm:p-4 flex flex-col items-center justify-center text-center text-white text-xs gap-2 sm:gap-3 z-10">
-              <span className="material-symbols-outlined text-2xl sm:text-3xl text-amber-400">
+            <div className="absolute inset-0 bg-black/90 p-4 flex flex-col items-center justify-center text-center text-white text-xs gap-3 z-20">
+              <span className="material-symbols-outlined text-3xl text-amber-400">
                 videocam_off
               </span>
-              <p className="text-stone-300 leading-tight text-[11px] sm:text-xs">
-                {cameraErrorMessage || "Camera unaccessible on this browser/device."}
+              <p className="text-stone-300 leading-tight text-xs">
+                {cameraErrorMessage || "Camera unaccessible on this browser or device."}
               </p>
               <button
                 onClick={() => startCamera()}
-                className="px-3 py-1.5 bg-secondary text-white text-xs font-semibold rounded-none hover:bg-secondary/90 flex items-center gap-1"
+                className="px-3.5 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-container flex items-center gap-1 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-xs">refresh</span>
+                <span className="material-symbols-outlined text-sm">refresh</span>
                 Retry Camera Access
               </button>
             </div>
           )}
         </div>
 
-        <p className="text-[11px] text-text-muted mt-2 text-center">
-          Align the faculty QR code within the frame above
+        <p className="text-[11px] text-text-stone mt-2.5 text-center font-medium">
+          Align the dynamic classroom QR code within the target reticle
         </p>
       </div>
 
-      {/* SECTION 3: Upload Image Fallback */}
-      <div className="border border-border-default dark:border-outline-variant p-3.5 sm:p-4 bg-surface-container-low">
-        <span className="text-xs font-bold text-text-stone uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-          <span className="material-symbols-outlined text-secondary text-sm">upload_file</span>
-          Upload QR Image File
+      {/* Manual Session Token Verification */}
+      <div className="bg-surface-container-low border border-border-default p-4 rounded-xl">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-primary text-sm">keyboard</span>
+          Manual Session Token Entry
+        </h4>
+        <form onSubmit={handleManualSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={manualToken}
+            onChange={(e) => setManualToken(e.target.value)}
+            placeholder="e.g. LECTURE-892041"
+            className="flex-1 bg-white border border-border-default rounded-lg px-3 py-2 text-xs sm:text-sm text-primary focus:outline-none focus:border-primary uppercase font-mono"
+          />
+          <button
+            type="submit"
+            disabled={submitting || !manualToken.trim()}
+            className="bg-primary text-white px-4 py-2 text-xs font-bold rounded-lg hover:bg-primary-container disabled:opacity-50 transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            {submitting ? (
+              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+            ) : (
+              <span className="material-symbols-outlined text-sm">check</span>
+            )}
+            Verify Token
+          </button>
+        </form>
+      </div>
+
+      {/* Upload Image Fallback */}
+      <div className="border border-border-default rounded-xl p-3.5 bg-surface-container-low">
+        <span className="text-xs font-bold text-primary uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-primary text-sm">upload_file</span>
+          Upload QR Image File (Fallback)
         </span>
         <input
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
-          className="w-full text-xs text-text-stone file:mr-2 sm:file:mr-3 file:py-1.5 file:px-2.5 sm:file:px-3 file:border file:border-border-default file:text-xs file:font-semibold file:bg-surface file:text-primary hover:file:bg-surface-container cursor-pointer truncate"
+          className="w-full text-xs text-text-stone file:mr-3 file:py-1.5 file:px-3 file:border file:border-border-default file:rounded-lg file:text-xs file:font-semibold file:bg-white file:text-primary hover:file:bg-surface-container cursor-pointer truncate"
         />
         <div id="qr-image-reader" className="hidden"></div>
       </div>

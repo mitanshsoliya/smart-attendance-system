@@ -133,59 +133,67 @@ export function HodDepartmentsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#D8D2C4]">
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-[#9E3D24] font-bold">
-            INSTITUTIONAL DEPARTMENTS OVERVIEW
-          </span>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#12181F] mt-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+              INSTITUTIONAL OVERVIEW
+            </span>
+            <span className="text-xs text-text-stone">Departmental Performance</span>
+          </div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-primary">
             Academic Departments & Performance Metrics
           </h1>
-          <p className="text-sm text-[#6B7280] mt-1 max-w-3xl">
+          <p className="text-xs sm:text-sm text-text-stone mt-0.5 max-w-3xl">
             Live overview of academic departments, faculty ratios, enrolled student cohorts, and aggregate compliance rates.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {departments.map((dept) => (
           <div
             key={dept.id}
-            className="bg-white border border-[#D8D2C4] rounded p-4 sm:p-6 shadow-xs flex flex-col justify-between gap-4"
+            className="bg-white border border-border-default hover:border-primary/40 rounded-2xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-4 group"
           >
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono font-bold bg-[#9E3D24]/10 text-[#9E3D24] px-2 py-0.5 rounded">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-lg">
                   {dept.code}
                 </span>
                 <span
-                  className={`text-xs font-mono font-bold ${
+                  className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
                     dept.attendancePct >= 75
-                      ? "text-[#2E6B34]"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                       : dept.attendancePct > 0
-                      ? "text-[#BA1A1A]"
-                      : "text-[#6B7280]"
+                      ? "bg-rose-50 text-rose-700 border border-rose-200"
+                      : "bg-surface-container text-text-stone"
                   }`}
                 >
                   {dept.attendancePct}% Avg Attendance
                 </span>
               </div>
-              <h3 className="font-serif text-xl font-bold text-[#12181F]">{dept.name}</h3>
-              <p className="text-xs text-[#6B7280] mt-1">Head: {dept.head}</p>
+              <h3 className="font-heading text-lg font-bold text-primary group-hover:text-primary-container transition-colors">
+                {dept.name}
+              </h3>
+              <p className="text-xs text-text-stone mt-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">person</span>
+                <span>Head: {dept.head}</span>
+              </p>
             </div>
 
-            <div className="pt-4 border-t border-[#D8D2C4] grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="bg-[#FBF9F5] p-2 rounded border border-[#D8D2C4]/60">
-                <span className="block font-bold text-[#12181F] text-base">{dept.students}</span>
-                <span className="text-[10px] text-[#6B7280]">Students</span>
+            <div className="pt-4 border-t border-border-default/60 grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="bg-surface-container-low p-2 rounded-xl border border-border-default/60">
+                <span className="block font-bold text-primary text-base">{dept.students}</span>
+                <span className="text-[10px] text-text-stone">Students</span>
               </div>
-              <div className="bg-[#FBF9F5] p-2 rounded border border-[#D8D2C4]/60">
-                <span className="block font-bold text-[#12181F] text-base">{dept.faculty}</span>
-                <span className="text-[10px] text-[#6B7280]">Faculty</span>
+              <div className="bg-surface-container-low p-2 rounded-xl border border-border-default/60">
+                <span className="block font-bold text-primary text-base">{dept.faculty}</span>
+                <span className="text-[10px] text-text-stone">Faculty</span>
               </div>
-              <div className="bg-[#FBF9F5] p-2 rounded border border-[#D8D2C4]/60">
-                <span className="block font-bold text-[#12181F] text-base">{dept.courses}</span>
-                <span className="text-[10px] text-[#6B7280]">Courses</span>
+              <div className="bg-surface-container-low p-2 rounded-xl border border-border-default/60">
+                <span className="block font-bold text-primary text-base">{dept.courses}</span>
+                <span className="text-[10px] text-text-stone">Courses</span>
               </div>
             </div>
           </div>

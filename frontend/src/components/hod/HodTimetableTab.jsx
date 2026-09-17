@@ -138,7 +138,7 @@ export function HodTimetableTab({ user, token }) {
         <div className="flex items-center gap-3">
           <button
             onClick={handleOpenEdit}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black text-white bg-[#9E3D24] hover:bg-[#83311C] rounded-lg shadow-md transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black text-white bg-primary hover:bg-primary-container rounded-lg shadow-md transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-base font-bold">edit</span>
             <span>Edit Timetable</span>
@@ -447,7 +447,7 @@ export function HodTimetableTab({ user, token }) {
                   onClick={() => setEditingDay(day)}
                   className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     editingDay === day
-                      ? "bg-[#9E3D24] text-white shadow-sm"
+                      ? "bg-primary text-white shadow-sm"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-black"
                   }`}
                 >
@@ -461,7 +461,7 @@ export function HodTimetableTab({ user, token }) {
               {/* ALL 7 PERIODS EDITOR */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase text-[#9E3D24] tracking-wider">
+                  <h4 className="text-xs font-black uppercase text-primary tracking-wider">
                     {editingDay} — All 7 Period Lecture Slots
                   </h4>
                   <span className="text-[11px] font-bold text-slate-500">
@@ -571,7 +571,7 @@ export function HodTimetableTab({ user, token }) {
               {(activeDaySchedule.lab1 || activeDaySchedule.lab2) && (
                 <div className="space-y-4 border-t-2 border-slate-200 pt-5">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-black uppercase text-[#9E3D24] tracking-wider">
+                    <h4 className="text-xs font-black uppercase text-primary tracking-wider">
                       {editingDay} — Rotating Lab Sessions (Sec A / B / C)
                     </h4>
                     <span className="text-[11px] font-bold text-slate-500">
@@ -796,7 +796,7 @@ export function HodTimetableTab({ user, token }) {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-6 py-2.5 text-xs font-black text-white bg-[#9E3D24] hover:bg-[#83311C] rounded-lg shadow-md transition-colors flex items-center gap-2 cursor-pointer"
+                    className="px-6 py-2.5 text-xs font-black text-white bg-primary hover:bg-primary-container rounded-lg shadow-md transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     {saving && <span className="material-symbols-outlined animate-spin text-sm">sync</span>}
                     <span>{saving ? "Publishing Changes..." : "Save & Publish Changes"}</span>
