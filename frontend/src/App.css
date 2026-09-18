@@ -14,9 +14,23 @@
   --purple-light: #F2EDFF;
   --bg: #F7F9FC;
   --surface: #FFFFFF;
+  --surface-hover: #F8FAFC;
   --text: #0F172A;
   --text-muted: #64748B;
   --border: #E2E8F0;
+}
+
+html.dark,
+body.dark,
+.dark {
+  --bg: #090D16;
+  --surface: #111827;
+  --surface-hover: #1E293B;
+  --text: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border: #1E293B;
+  --primary-light: #172554;
+  --secondary-light: #1E3A8A;
 }
 
 /* Modern Card Styles */
@@ -34,7 +48,7 @@
 }
 
 .kpi-card {
-  background: #FFFFFF;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.875rem;
   padding: 1.25rem 1.5rem;
@@ -61,7 +75,7 @@
   padding: 0.625rem 0.875rem;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background-color: #FFFFFF;
+  background-color: var(--surface);
   color: var(--text);
   font-size: 0.875rem;
   outline: none;
@@ -97,12 +111,12 @@
 
 .button.secondary {
   color: var(--text);
-  background: #FFFFFF;
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 
 .button.secondary:hover {
-  background: #F8FAFC;
+  background: var(--surface-hover, #F8FAFC);
 }
 
 .button:disabled {

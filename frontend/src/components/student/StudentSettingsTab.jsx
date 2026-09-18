@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { authService } from "../../services/authService";
+import { ThemeToggle } from "../common/ThemeToggle";
 
 export function StudentSettingsTab({ user, token }) {
   const [profile, setProfile] = useState(null);
@@ -230,6 +231,27 @@ export function StudentSettingsTab({ user, token }) {
             <strong className="text-sm font-semibold text-primary mt-0.5 block">{deptToDisplay}</strong>
           </div>
         </div>
+      </div>
+
+      {/* Appearance & Theme Preferences */}
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="border-b border-border-default pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">palette</span>
+            </span>
+            <div>
+              <h3 className="font-heading text-base font-bold text-primary">
+                Appearance & Theme Preferences
+              </h3>
+              <p className="text-xs text-text-stone">
+                Choose between Light and Dark interface styles for all campus dashboards.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <ThemeToggle variant="card" />
       </div>
 
       {/* Editable Contact Numbers Form */}

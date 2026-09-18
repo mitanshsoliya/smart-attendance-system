@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ThemeToggle } from "../common/ThemeToggle";
 
 export function DashboardLayout({
   user,
@@ -50,11 +51,11 @@ export function DashboardLayout({
 
   // Role-specific badge theme
   const roleBadgeStyle = {
-    STUDENT: "bg-blue-50 text-blue-700 border-blue-200",
-    FACULTY: "bg-indigo-50 text-indigo-700 border-indigo-200",
-    HOD: "bg-amber-50 text-amber-800 border-amber-300 font-bold",
-    ADMIN: "bg-purple-50 text-purple-700 border-purple-200",
-  }[userRole] || "bg-slate-100 text-slate-700 border-slate-200";
+    STUDENT: "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60",
+    FACULTY: "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60",
+    HOD: "bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60 font-bold",
+    ADMIN: "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60",
+  }[userRole] || "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
 
   const departmentName =
     user?.department ||
@@ -64,17 +65,17 @@ export function DashboardLayout({
   const bottomNavItems = navItems.slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] text-slate-900 font-sans flex flex-col antialiased">
+    <div className="min-h-screen bg-[#F7F9FC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans flex flex-col antialiased transition-colors duration-200">
       {/* ========================================================
           DESKTOP SIDEBAR NAVIGATION (Collapsible: 260px <-> 72px)
          ======================================================== */}
       <aside
-        className={`hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-white border-r border-slate-200/90 z-30 transition-all duration-200 ease-in-out ${
+        className={`hidden md:flex flex-col fixed top-0 bottom-0 left-0 bg-white dark:bg-slate-900 border-r border-slate-200/90 dark:border-slate-800 z-30 transition-all duration-200 ease-in-out ${
           isCollapsed ? "w-20" : "w-64"
         }`}
       >
         {/* Brand Header */}
-        <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div className={`flex items-center gap-3 min-w-0 ${isCollapsed ? "justify-center w-full" : ""}`}>
             {/* University Crest / App Icon */}
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-xs shrink-0">
@@ -82,10 +83,10 @@ export function DashboardLayout({
             </div>
             {!isCollapsed && (
               <div className="min-w-0 truncate">
-                <span className="text-sm font-extrabold text-slate-900 tracking-tight block leading-tight truncate">
+                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 tracking-tight block leading-tight truncate">
                   Smart Attendance
                 </span>
-                <span className="text-[10px] uppercase font-bold text-blue-700 tracking-wider block leading-tight mt-0.5 truncate">
+                <span className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400 tracking-wider block leading-tight mt-0.5 truncate">
                   Campus Platform
                 </span>
               </div>
@@ -94,7 +95,7 @@ export function DashboardLayout({
           {!isCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer shrink-0"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
             >
@@ -105,15 +106,15 @@ export function DashboardLayout({
 
         {/* Action Button Container */}
         {actionButton && !isCollapsed && (
-          <div className="p-3.5 border-b border-slate-100 shrink-0">{actionButton}</div>
+          <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">{actionButton}</div>
         )}
 
         {/* Collapsed Toggle Button when collapsed */}
         {isCollapsed && (
-          <div className="py-2 flex justify-center border-b border-slate-100">
+          <div className="py-2 flex justify-center border-b border-slate-100 dark:border-slate-800">
             <button
               onClick={toggleSidebar}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
@@ -133,13 +134,13 @@ export function DashboardLayout({
                 className={`w-full py-2.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-3 group relative ${
                   isActive
                     ? "bg-primary text-white shadow-xs font-bold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/80"
                 } ${isCollapsed ? "justify-center px-0" : ""}`}
                 title={isCollapsed ? item.label : undefined}
               >
                 <span
                   className={`material-symbols-outlined text-[20px] shrink-0 ${
-                    isActive ? "text-white" : "text-slate-500 group-hover:text-slate-800"
+                    isActive ? "text-white" : "text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200"
                   }`}
                 >
                   {item.icon}
@@ -152,7 +153,7 @@ export function DashboardLayout({
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
                       isActive
                         ? "bg-white/20 text-white"
-                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                        : "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60"
                     }`}
                   >
                     {item.badge}
@@ -161,7 +162,7 @@ export function DashboardLayout({
                 {!isCollapsed && item.count !== undefined && item.count > 0 && (
                   <span
                     className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold shrink-0 ${
-                      isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+                      isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                     }`}
                   >
                     {item.count}
@@ -169,7 +170,7 @@ export function DashboardLayout({
                 )}
                 {/* Tooltip for collapsed view */}
                 {isCollapsed && (
-                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-100 border border-slate-800 dark:border-slate-700 text-[11px] font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                     {item.label}
                   </span>
                 )}
@@ -179,7 +180,18 @@ export function DashboardLayout({
         </div>
 
         {/* Bottom User Card / Footer */}
-        <div className="p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 shrink-0 space-y-2.5">
+          {/* Sidebar Theme Toggle */}
+          {isCollapsed ? (
+            <div className="flex justify-center mb-1">
+              <ThemeToggle variant="compact" />
+            </div>
+          ) : (
+            <div className="mb-2">
+              <ThemeToggle variant="sidebar" />
+            </div>
+          )}
+
           <div
             className={`flex items-center gap-2.5 ${
               isCollapsed ? "justify-center" : "justify-between"
@@ -190,11 +202,11 @@ export function DashboardLayout({
                 <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shadow-xs">
                   {initials}
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white"></span>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
               </div>
               {!isCollapsed && (
                 <div className="min-w-0 truncate">
-                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
+                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate leading-tight">
                     {user?.full_name || "User"}
                   </p>
                   <span
@@ -209,7 +221,7 @@ export function DashboardLayout({
             {!isCollapsed && (
               <button
                 onClick={onLogout}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer shrink-0"
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
                 title="Sign out of campus terminal"
                 aria-label="Logout"
               >
@@ -224,7 +236,7 @@ export function DashboardLayout({
           STICKY TOP HEADER
          ======================================================== */}
       <header
-        className={`h-16 border-b border-slate-200/90 px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-20 transition-all duration-200 ease-in-out ${
+        className={`h-16 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-20 transition-all duration-200 ease-in-out ${
           isCollapsed ? "md:ml-20" : "md:ml-64"
         }`}
       >
@@ -232,7 +244,7 @@ export function DashboardLayout({
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="md:hidden text-slate-700 p-2 -ml-1 cursor-pointer rounded-xl hover:bg-slate-100 active:scale-95 transition-transform shrink-0"
+            className="md:hidden text-slate-700 dark:text-slate-300 p-2 -ml-1 cursor-pointer rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-transform shrink-0"
             aria-label="Open Navigation Menu"
           >
             <span className="material-symbols-outlined text-2xl">menu</span>
@@ -243,20 +255,20 @@ export function DashboardLayout({
               <span className="material-symbols-outlined text-base">account_balance</span>
             </div>
             <div className="truncate">
-              <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate leading-tight">
+              <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate leading-tight">
                 {title}
               </h1>
-              <p className="text-[11px] text-slate-500 truncate leading-none mt-0.5 hidden sm:block">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5 hidden sm:block">
                 {departmentName}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Right Side: Campus Pulse, Date, Role Pill, Notifications, User Menu */}
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {/* Right Side: Campus Pulse, Date, Theme Toggle, Role Pill, Notifications, User Menu */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Live Campus Pulse Badge (Desktop) */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] font-semibold text-emerald-800 shadow-2xs">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -266,10 +278,13 @@ export function DashboardLayout({
 
           {/* Current Academic Date */}
           {currentDateString && (
-            <span className="hidden xl:inline-block text-xs font-medium text-slate-500 bg-slate-100/80 px-2.5 py-1 rounded-lg">
+            <span className="hidden xl:inline-block text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
               📅 {currentDateString}
             </span>
           )}
+
+          {/* DARK / LIGHT THEME TOGGLE BUTTON */}
+          <ThemeToggle variant="pill" />
 
           {/* Active Role Badge */}
           <span
@@ -279,15 +294,15 @@ export function DashboardLayout({
           </span>
 
           {/* User Menu Trigger */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
             <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shadow-2xs shrink-0">
               {initials}
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-xs font-bold text-slate-900 leading-tight">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
                 {user?.full_name ? user.full_name.split(" ")[0] : "User"}
               </span>
-              <span className="text-[10px] text-slate-500 capitalize leading-none mt-0.5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 capitalize leading-none mt-0.5">
                 {userRole.toLowerCase()}
               </span>
             </div>
@@ -296,7 +311,7 @@ export function DashboardLayout({
           {/* Sign Out Button */}
           <button
             onClick={onLogout}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer flex items-center gap-1 shrink-0"
             title="Sign out of system"
             aria-label="Logout"
           >
@@ -310,29 +325,29 @@ export function DashboardLayout({
           MOBILE SLIDE-OUT DRAWER NAVIGATION
          ======================================================== */}
       <nav
-        className={`bg-white h-screen w-[82vw] max-w-xs fixed left-0 top-0 border-r border-slate-200 flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out shadow-2xl md:hidden ${
+        className={`bg-white dark:bg-slate-900 h-screen w-[82vw] max-w-xs fixed left-0 top-0 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out shadow-2xl md:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Drawer Header */}
-          <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100 bg-slate-50/70 shrink-0">
+          <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white shrink-0 shadow-xs">
                 <span className="material-symbols-outlined text-[20px]">account_balance</span>
               </div>
               <div className="truncate">
-                <span className="text-sm font-extrabold text-slate-900 block leading-tight truncate">
+                <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 block leading-tight truncate">
                   Smart Attendance
                 </span>
-                <span className="text-[10px] uppercase font-bold text-blue-700 tracking-wider block leading-tight mt-0.5 truncate">
+                <span className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-400 tracking-wider block leading-tight mt-0.5 truncate">
                   {subtitle}
                 </span>
               </div>
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-200/60 shrink-0"
+              className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 shrink-0"
               aria-label="Close Navigation Menu"
             >
               <span className="material-symbols-outlined text-xl">close</span>
@@ -340,7 +355,9 @@ export function DashboardLayout({
           </div>
 
           {/* Action Button for mobile */}
-          {actionButton && <div className="p-3.5 border-b border-slate-100 shrink-0">{actionButton}</div>}
+          {actionButton && (
+            <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 shrink-0">{actionButton}</div>
+          )}
 
           {/* Navigation Items */}
           <div className="py-3 px-3 flex-1 overflow-y-auto custom-scrollbar space-y-1">
@@ -356,13 +373,13 @@ export function DashboardLayout({
                   className={`w-full px-3.5 py-3 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer flex items-center justify-between gap-3 ${
                     isActive
                       ? "bg-primary text-white shadow-xs font-bold"
-                      : "text-slate-700 hover:bg-slate-100"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
                   <div className="flex items-center gap-3 truncate">
                     <span
                       className={`material-symbols-outlined text-[20px] shrink-0 ${
-                        isActive ? "text-white" : "text-slate-500"
+                        isActive ? "text-white" : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
                       {item.icon}
@@ -372,7 +389,7 @@ export function DashboardLayout({
                   {item.badge && (
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        isActive ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"
+                        isActive ? "bg-white/20 text-white" : "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
                       }`}
                     >
                       {item.badge}
@@ -381,7 +398,7 @@ export function DashboardLayout({
                   {item.count !== undefined && item.count > 0 && (
                     <span
                       className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+                        isActive ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                       }`}
                     >
                       {item.count}
@@ -392,15 +409,21 @@ export function DashboardLayout({
             })}
           </div>
 
-          {/* Mobile Drawer Footer User Profile */}
-          <div className="p-4 border-t border-slate-100 bg-slate-50/70 shrink-0 space-y-3">
+          {/* Mobile Drawer Footer User Profile & Theme Toggle */}
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 shrink-0 space-y-3">
+            {/* Mobile Theme Toggle */}
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Theme Appearance</span>
+              <ThemeToggle variant="pill" />
+            </div>
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate">{user?.full_name || "User"}</p>
-                <p className="text-[11px] text-slate-500 truncate">{user?.email || ""}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user?.full_name || "User"}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email || ""}</p>
               </div>
               <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${roleBadgeStyle}`}>
                 {userRole}
@@ -408,7 +431,7 @@ export function DashboardLayout({
             </div>
             <button
               onClick={onLogout}
-              className="w-full py-2 px-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-rose-100 transition-colors"
+              className="w-full py-2 px-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors"
             >
               <span className="material-symbols-outlined text-base">logout</span>
               <span>Sign Out</span>
@@ -440,7 +463,7 @@ export function DashboardLayout({
           MOBILE BOTTOM NAVIGATION BAR
          ======================================================== */}
       {bottomNavItems.length > 1 && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-30 flex items-center justify-around px-1 py-1 safe-bottom-padding shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 z-30 flex items-center justify-around px-1 py-1 safe-bottom-padding shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
           {bottomNavItems.map((item) => {
             const isActive = activeTab === item.id || activeTab === item.altId;
             return (
@@ -449,8 +472,8 @@ export function DashboardLayout({
                 onClick={() => onTabChange(item.id)}
                 className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-[10px] font-semibold transition-colors flex-1 min-w-0 ${
                   isActive
-                    ? "text-blue-700 font-bold"
-                    : "text-slate-500 hover:text-slate-900"
+                    ? "text-blue-700 dark:text-blue-400 font-bold"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
@@ -460,7 +483,7 @@ export function DashboardLayout({
           })}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-[10px] font-semibold text-slate-500 hover:text-slate-900 flex-1 min-w-0"
+            className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-[10px] font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex-1 min-w-0"
           >
             <span className="material-symbols-outlined text-[20px]">more_horiz</span>
             <span>More</span>

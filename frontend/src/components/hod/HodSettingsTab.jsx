@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import api, { authHeader } from "../../services/api";
+import { ThemeToggle } from "../common/ThemeToggle";
 
 export function HodSettingsTab({ user, onProfileUpdate }) {
   const [fullName, setFullName] = useState(user?.full_name || "");
@@ -148,6 +149,27 @@ export function HodSettingsTab({ user, onProfileUpdate }) {
             {saving ? "Saving…" : "Save Settings"}
           </button>
         </form>
+      </div>
+
+      {/* Appearance & Theme Preferences */}
+      <div className="bg-white border border-border-default rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="border-b border-border-default pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">palette</span>
+            </span>
+            <div>
+              <h3 className="font-heading text-base font-bold text-primary">
+                Appearance & Theme Preferences
+              </h3>
+              <p className="text-xs text-text-stone">
+                Select your preferred visual mode for HOD management console and analytics.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <ThemeToggle variant="card" />
       </div>
     </div>
   );
