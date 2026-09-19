@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import axios from "axios";
-import FacultyDashboard from "./FacultyDashboard";
-import StudentDashboard from "./StudentDashboard";
-import HodDashboard from "./HodDashboard";
 import Login from "./components/Login";
 import "./App.css";
+
+// Lazy-load role-specific dashboards to optimize initial bundle size
+const FacultyDashboard = lazy(() => import("./FacultyDashboard"));
+const StudentDashboard = lazy(() => import("./StudentDashboard"));
+const HodDashboard = lazy(() => import("./HodDashboard"));
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const api = axios.create({ baseURL: API_BASE });
@@ -15,6 +17,42 @@ function storedUser() {
   } catch {
     return null;
   }
+}
+
+function DashboardFallback() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "var(--bg)",
+        color: "var(--text)",
+        gap: "1rem",
+      }}
+    >
+      <div
+        style={{
+          width: "36px",
+          height: "36px",
+          border: "3px solid var(--border)",
+          borderTopColor: "var(--primary)",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+      <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", fontWeight: 500 }}>
+        Loading dashboard...
+      </p>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 function App() {
@@ -102,67 +140,35 @@ function App() {
 }
 
 function Dashboard({ user, token, onLogout, onToggleRole }) {
-  if (user.role === "HOD") {
-    return (
-      <HodDashboard
-        user={user}
-        token={token}
-        onLogout={onLogout}
-        onToggleRole={onToggleRole}
-      />
-    );
-  }
-
-  if (user.role === "FACULTY") {
-    return (
-      <FacultyDashboard
-        user={user}
-        token={token}
-        onLogout={onLogout}
-        onToggleRole={onToggleRole}
-      />
-    );
-  }
-
   return (
-    <StudentDashboard
-      user={user}
-      token={token}
-      onLogout={onLogout}
-      onToggleRole={onToggleRole}
-    />
-  );
-}
-
-function Field({ label, type = "text", value, onChange, placeholder }) {
-  return (
-    <div className="field">
-      <label>{label}</label>
-      <input
-        required
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
-
-function Notice({ type, children }) {
-  return <div className={`notice ${type}`}>{children}</div>;
-}
-
-function Brand() {
-  return (
-    <div className="brand">
-      <span className="brand-mark">
-        <i />
-        <i />
-      </span>
-      <span>LECTURELOG</span>
-    </div>
+    <Suspense fallback={<DashboardFallback />}>
+      {user.role === "HOD" && (
+        <HodDashboard
+          user={user}
+          token={token}
+          onLogout={onLogout}
+          onToggleRole={onToggleRole}
+        />
+      )}
+      {user.role === "FACULTY" && (
+        <FacultyDashboard
+          user={user}
+          token={token}
+          onLogout={onLogout}
+          onToggleRole={onToggleRole}
+        />
+      )}
+      {user.role !== "HOD" && user.role !== "FACULTY" && (
+        <StudentDashboard
+          user={user}
+          token={token}
+          onLogout={onLogout}
+          onToggleRole={onToggleRole}
+        />
+      )}
+    </Suspense>
   );
 }
 
 export default App;
+
