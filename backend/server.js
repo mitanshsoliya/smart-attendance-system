@@ -1,9 +1,14 @@
 require("dotenv").config();
+const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const db = require("./db");
+const { initSocket } = require("./utils/socket");
 
 const app = express();
+const server = http.createServer(app);
+const io = initSocket(server);
+app.set("io", io);
 
 app.use(cors());
 app.use(express.json());
@@ -86,7 +91,9 @@ db.connect((err) => {
   });
 
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 });
+
+module.exports = { app, server };
