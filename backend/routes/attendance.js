@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const { verifyToken, requireStudent, requireFacultyOrHod } = require("../middleware/auth");
 const { calculateDistanceInMeters } = require("../utils/geo");
+const { getIO } = require("../utils/socket");
 const db = require("../db");
 
 const router = express.Router();
@@ -42,7 +43,11 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
   try {
     // --- 1. Resolve authenticated student record strictly from JWT identity ---
     const studentRows = await db.query(
-      "SELECT id, user_id, roll_number, department, attendance_security_locked, device_token_hash FROM students WHERE user_id = $1",
+      `SELECT st.id, st.user_id, st.roll_number, st.department, st.attendance_security_locked, st.device_token_hash,
+              u.full_name AS name
+       FROM students st
+       JOIN users u ON st.user_id = u.id
+       WHERE st.user_id = $1`,
       [req.user.id]
     );
 
@@ -53,6 +58,7 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     }
 
     const student = studentRows[0];
+    student.name = student.name || req.user.full_name || req.user.name || "Student";
     const studentId = student.id;
 
     const clientDeviceToken = req.body?.device_token || req.headers["x-device-token"] || null;
@@ -364,6 +370,23 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     }
 
     const record = insertRows[0];
+    const lecture_id = lectureId;
+
+    // --- Socket Event: Notify faculty lecture room of student attendance ---
+    try {
+      const io = req.app.get("io") || getIO();
+      if (io) {
+        io.to(`lecture_${lecture_id}`).emit("student_marked", {
+          student_id: student.id,
+          roll_number: student.roll_number,
+          name: student.name,
+          status: "Present",
+          timestamp: new Date(),
+        });
+      }
+    } catch (socketErr) {
+      console.error("Failed to emit student_marked socket event:", socketErr);
+    }
 
     return res.status(201).json({
       message: `Attendance marked successfully. Status: PRESENT.${

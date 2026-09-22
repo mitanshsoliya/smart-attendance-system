@@ -157,6 +157,7 @@ router.post(["/", "/login"], validateLogin, async (req, res) => {
     const token = jwt.sign(
       {
         id: user.id,
+        name: user.full_name,
         email: user.email,
         role: user.role,
         department: profile?.department || null,

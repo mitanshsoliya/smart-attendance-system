@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const QRCode = require("qrcode");
 const { verifyToken, requireFacultyOrHod } = require("../middleware/auth");
 const { validateQrSession } = require("../middleware/validator");
+const { getIO } = require("../utils/socket");
 const db = require("../db");
 
 const router = express.Router();
@@ -25,9 +26,13 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     // --- Ownership verification ---
     // Ensure the requesting faculty actually owns this lecture.
     const ownershipSql = `
-      SELECT l.id
+      SELECT l.id, s.subject_name, s.subject_code,
+             COALESCE(s.department, f.department, '') AS department,
+             u.full_name AS faculty_name
       FROM lectures l
+      JOIN subjects s ON l.subject_id = s.id
       JOIN faculty f ON l.faculty_id = f.id
+      JOIN users u ON f.user_id = u.id
       WHERE l.id = $1 AND f.user_id = $2
     `;
     const ownerRows = await db.query(ownershipSql, [lecture_id, req.user.id]);
@@ -36,6 +41,9 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
         message: "Forbidden: You do not own this lecture or it does not exist.",
       });
     }
+
+    const lecture = ownerRows[0];
+    req.user.name = req.user.name || req.user.full_name || lecture.faculty_name || "Faculty";
 
     // --- Invalidate any previously active QR session for this faculty ---
     // Rule: Only 1 active QR session allowed per faculty at a time.
@@ -107,6 +115,22 @@ router.post("/create", verifyToken, requireFacultyOrHod, validateQrSession, asyn
     // Never embed lecture_id in QR — the backend resolves it from the session.
     const qrPayload = session_token;
     const qr_code = await QRCode.toDataURL(qrPayload);
+
+    // --- Emit Real-time Socket Event: lecture_started ---
+    try {
+      const io = req.app.get("io") || getIO();
+      if (io) {
+        io.emit("lecture_started", {
+          lecture_id: lecture.id,
+          subject_name: lecture.subject_name,
+          subject_code: lecture.subject_code,
+          department: lecture.department,
+          faculty_name: req.user.name,
+        });
+      }
+    } catch (socketErr) {
+      console.error("Failed to emit lecture_started socket event:", socketErr);
+    }
 
     return res.status(201).json({
       message: isGeoEnabled
