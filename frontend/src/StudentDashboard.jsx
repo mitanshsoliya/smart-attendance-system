@@ -12,6 +12,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useAttendance } from "./hooks/useAttendance";
 import { useCourses } from "./hooks/useCourses";
 import QRScanner from "./QRScanner";
+import { getSocket } from "./services/socket";
+import { LiveAttendanceToast } from "./components/common/LiveAttendanceToast";
 
 export default function StudentDashboard({ user: initialUser, token, onLogout, onToggleRole }) {
   const { user } = useAuth(initialUser, token);
@@ -21,10 +23,54 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
   const [activeTab, setActiveTab] = useState("overview");
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
+  const [liveAlert, setLiveAlert] = useState(null);
 
   useEffect(() => {
     fetchMyAttendance();
   }, [token]);
+
+  // Real-time socket listener for live lecture attendance sessions
+  useEffect(() => {
+    const socket = getSocket();
+
+    const userDept = user?.department || user?.profile?.department;
+    if (userDept) {
+      socket.emit("join_department", userDept);
+    }
+
+    const handleLectureStarted = (data) => {
+      console.log("[Socket.io] Student received lecture_started event:", data);
+      if (!data) return;
+
+      const studentDept = (user?.department || user?.profile?.department || "").toLowerCase().trim();
+      const lectureDept = (data.department || "").toLowerCase().trim();
+
+      const isRelevant =
+        !studentDept ||
+        !lectureDept ||
+        studentDept.includes(lectureDept) ||
+        lectureDept.includes(studentDept) ||
+        (studentDept.includes("cse") && lectureDept.includes("computer")) ||
+        (studentDept.includes("computer") && lectureDept.includes("cse"));
+
+      if (isRelevant) {
+        setLiveAlert(data);
+
+        // Tactile alert on mobile devices
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          try {
+            navigator.vibrate([120, 80, 120]);
+          } catch (e) {}
+        }
+      }
+    };
+
+    socket.on("lecture_started", handleLectureStarted);
+
+    return () => {
+      socket.off("lecture_started", handleLectureStarted);
+    };
+  }, [user?.department, user?.profile?.department]);
 
   const navItems = [
     { id: "overview", label: "Dashboard", icon: "dashboard" },
@@ -44,6 +90,16 @@ export default function StudentDashboard({ user: initialUser, token, onLogout, o
 
   return (
     <ProtectedRoute user={user} allowedRoles={["STUDENT"]}>
+      {/* Real-time Animated Floating Toast / Banner */}
+      <LiveAttendanceToast
+        alert={liveAlert}
+        onScanNow={() => {
+          setLiveAlert(null);
+          setShowQRScanner(true);
+        }}
+        onDismiss={() => setLiveAlert(null)}
+      />
+
       <DashboardLayout
         user={user}
         onLogout={onLogout}
