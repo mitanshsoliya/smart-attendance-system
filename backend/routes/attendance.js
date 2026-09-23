@@ -43,8 +43,8 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
   try {
     // --- 1. Resolve authenticated student record strictly from JWT identity ---
     const studentRows = await db.query(
-      `SELECT st.id, st.user_id, st.roll_number, st.department, st.attendance_security_locked, st.device_token_hash,
-              u.full_name AS name
+      `SELECT st.id, st.user_id, st.roll_number, st.section, st.department, st.attendance_security_locked, st.device_token_hash,
+              u.full_name AS name, u.email
        FROM students st
        JOIN users u ON st.user_id = u.id
        WHERE st.user_id = $1`,
@@ -376,13 +376,27 @@ router.post("/mark", verifyToken, requireStudent, async (req, res) => {
     try {
       const io = req.app.get("io") || getIO();
       if (io) {
-        io.to(`lecture_${lecture_id}`).emit("student_marked", {
+        const studentPayload = {
+          id: record.id,
+          lecture_id: Number(lecture_id),
           student_id: student.id,
-          roll_number: student.roll_number,
+          full_name: student.name,
           name: student.name,
-          status: "Present",
-          timestamp: new Date(),
-        });
+          roll_number: student.roll_number,
+          email: student.email || req.user.email || "",
+          section: student.section || "",
+          department: student.department || "",
+          status: "PRESENT",
+          distance_meters: verifiedDistance,
+          student_latitude: latitude !== undefined && latitude !== null ? Number(latitude) : null,
+          student_longitude: longitude !== undefined && longitude !== null ? Number(longitude) : null,
+          location_verified: verifiedDistance !== null,
+          attendance_time: record.attendance_time || new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+        };
+
+        io.to(`lecture_${lecture_id}`).emit("student_marked", studentPayload);
+        io.emit("student_marked", studentPayload);
       }
     } catch (socketErr) {
       console.error("Failed to emit student_marked socket event:", socketErr);
@@ -740,6 +754,25 @@ router.put("/status", verifyToken, requireFacultyOrHod, async (req, res) => {
         ]
       );
       updatedRecord = insertResult && insertResult[0] ? insertResult[0] : null;
+    }
+
+    // --- Socket Event: Notify faculty & students of manual status update ---
+    try {
+      const io = req.app.get("io") || getIO();
+      if (io) {
+        const statusPayload = {
+          id: updatedRecord?.id || null,
+          lecture_id: resolvedLectureId,
+          student_id: resolvedStudentId,
+          status: targetStatus,
+          attendance_time: updatedRecord?.attendance_time || new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+        };
+        io.to(`lecture_${resolvedLectureId}`).emit("student_status_updated", statusPayload);
+        io.emit("student_status_updated", statusPayload);
+      }
+    } catch (socketErr) {
+      console.error("Failed to emit student_status_updated socket event:", socketErr);
     }
 
     return res.json({

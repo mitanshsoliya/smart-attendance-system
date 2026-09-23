@@ -288,6 +288,10 @@ export function FacultyAttendanceTab({
                   <span>Live Active</span>
                 </span>
               )}
+              <span className="px-2.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping"></span>
+                <span>Socket.io Live Sync</span>
+              </span>
             </div>
             <p className="text-xs text-text-stone mt-0.5">
               Live roster showing students verified inside classroom radius. Use one-click actions to toggle Present / Absent.
@@ -379,12 +383,23 @@ export function FacultyAttendanceTab({
                   return (
                     <tr
                       key={att.id || `att-${att.student_id || idx}`}
-                      className={`transition-colors ${
-                        isPresent ? "hover:bg-emerald-50/30" : "hover:bg-rose-50/30 bg-rose-500/[0.02]"
+                      className={`transition-all duration-500 ${
+                        att.justMarked
+                          ? "bg-emerald-500/10 border-l-4 border-l-emerald-500 font-medium"
+                          : isPresent
+                          ? "hover:bg-emerald-50/30"
+                          : "hover:bg-rose-50/30 bg-rose-500/[0.02]"
                       }`}
                     >
                       <td className="py-3 px-4 font-semibold text-primary">
-                        <div>{att.full_name || "Enrolled Student"}</div>
+                        <div className="flex items-center gap-2">
+                          <span>{att.full_name || "Enrolled Student"}</span>
+                          {att.justMarked && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse inline-flex items-center gap-0.5">
+                              ⚡ Just Checked In
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-text-stone font-normal font-mono">{att.email}</div>
                       </td>
                       <td className="py-3 px-4 font-mono text-text-stone">
@@ -403,8 +418,8 @@ export function FacultyAttendanceTab({
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {isPresent ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 ${att.justMarked ? "ring-2 ring-emerald-400" : ""}`}>
+                            <span className="material-symbols-outlined text-[15px] text-emerald-600 font-bold">check_circle</span>
                             <span>PRESENT</span>
                           </span>
                         ) : (

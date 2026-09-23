@@ -18,6 +18,8 @@ import { courseService } from "./services/courseService";
 import { authService } from "./services/authService";
 import { attendanceService } from "./services/attendanceService";
 import api, { authHeader } from "./services/api";
+import { getSocket } from "./services/socket";
+import { FacultyLiveToast } from "./components/faculty/FacultyLiveToast";
 import {
   getFacultyAssignedSubjects,
   detectFacultyCode,
@@ -38,6 +40,7 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const [selectedRadius, setSelectedRadius] = useState(100);
   const [lectureAttendance, setLectureAttendance] = useState([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  const [liveToast, setLiveToast] = useState(null);
 
   // Department name and timetable-driven faculty code
   const facultyDeptName =
@@ -140,14 +143,126 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
     }
   }, [selectedLectureId, activeTab]);
 
-  // Live polling: refresh roster every 2 seconds while QR broadcast is actively running
+  // Real-time Socket.io Live Sync: instant roster updates & zero database polling
   useEffect(() => {
-    if (!qr || remaining <= 0) return;
-    const interval = setInterval(() => {
-      fetchLectureAttendance(qr.lecture_id || selectedLectureId);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [qr, remaining, selectedLectureId]);
+    const socket = getSocket();
+    const currentLectureId = String(qr?.lecture_id || selectedLectureId || "");
+
+    if (currentLectureId) {
+      socket.emit("join_lecture", currentLectureId);
+    }
+
+    const handleStudentMarked = (data) => {
+      if (!data) return;
+      const targetLectureId = String(qr?.lecture_id || selectedLectureId || "");
+
+      // Match active lecture session
+      if (data.lecture_id && targetLectureId && String(data.lecture_id) !== targetLectureId) {
+        return;
+      }
+
+      // Play subtle pleasant audio chime for real-time check-in (Web Audio API)
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        }
+      } catch (e) {
+        // Audio muted or unsupported
+      }
+
+      // Trigger floating live toast
+      setLiveToast({
+        full_name: data.full_name || data.name || "Student",
+        roll_number: data.roll_number,
+        section: data.section,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      });
+
+      // Auto-dismiss toast after 4 seconds
+      setTimeout(() => {
+        setLiveToast((current) => (current?.roll_number === data.roll_number ? null : current));
+      }, 4000);
+
+      // Instantly update lecture attendance roster
+      setLectureAttendance((prev) => {
+        const studentIdStr = String(data.student_id);
+        const existingIndex = prev.findIndex(
+          (att) => String(att.student_id) === studentIdStr || (data.roll_number && att.roll_number === data.roll_number)
+        );
+
+        const updatedRecord = {
+          id: data.id || (existingIndex !== -1 ? prev[existingIndex].id : Date.now()),
+          lecture_id: Number(targetLectureId || data.lecture_id),
+          student_id: data.student_id,
+          full_name: data.full_name || data.name || (existingIndex !== -1 ? prev[existingIndex].full_name : "Enrolled Student"),
+          email: data.email || (existingIndex !== -1 ? prev[existingIndex].email : ""),
+          roll_number: data.roll_number || (existingIndex !== -1 ? prev[existingIndex].roll_number : "—"),
+          section: data.section || (existingIndex !== -1 ? prev[existingIndex].section : ""),
+          department: data.department || (existingIndex !== -1 ? prev[existingIndex].department : ""),
+          status: "PRESENT",
+          distance_meters: data.distance_meters !== undefined ? data.distance_meters : (existingIndex !== -1 ? prev[existingIndex].distance_meters : null),
+          student_latitude: data.student_latitude !== undefined ? data.student_latitude : (existingIndex !== -1 ? prev[existingIndex].student_latitude : null),
+          student_longitude: data.student_longitude !== undefined ? data.student_longitude : (existingIndex !== -1 ? prev[existingIndex].student_longitude : null),
+          location_verified: data.location_verified ?? true,
+          attendance_time: data.attendance_time || data.timestamp || new Date().toISOString(),
+          justMarked: true,
+        };
+
+        if (existingIndex !== -1) {
+          // Move student to top of PRESENT records with green tick
+          const filtered = prev.filter((_, idx) => idx !== existingIndex);
+          return [updatedRecord, ...filtered];
+        } else {
+          // Prepend newly checked-in student to top of roster
+          return [updatedRecord, ...prev];
+        }
+      });
+    };
+
+    const handleStatusUpdated = (data) => {
+      if (!data) return;
+      const targetLectureId = String(qr?.lecture_id || selectedLectureId || "");
+      if (data.lecture_id && targetLectureId && String(data.lecture_id) !== targetLectureId) {
+        return;
+      }
+
+      setLectureAttendance((prev) =>
+        prev.map((att) => {
+          if (String(att.student_id) === String(data.student_id)) {
+            return {
+              ...att,
+              status: data.status,
+              attendance_time: data.attendance_time || att.attendance_time,
+            };
+          }
+          return att;
+        })
+      );
+    };
+
+    socket.on("student_marked", handleStudentMarked);
+    socket.on("student_status_updated", handleStatusUpdated);
+
+    return () => {
+      if (currentLectureId) {
+        socket.emit("leave_lecture", currentLectureId);
+      }
+      socket.off("student_marked", handleStudentMarked);
+      socket.off("student_status_updated", handleStatusUpdated);
+    };
+  }, [qr?.lecture_id, selectedLectureId]);
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -356,6 +471,9 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
 
   return (
     <ProtectedRoute user={user} allowedRoles={["FACULTY", "HOD"]}>
+      {/* Real-time Student Check-in Floating Toast */}
+      <FacultyLiveToast alert={liveToast} onDismiss={() => setLiveToast(null)} />
+
       <DashboardLayout
         user={user}
         onLogout={onLogout}
