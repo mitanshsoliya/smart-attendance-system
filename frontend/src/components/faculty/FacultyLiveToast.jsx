@@ -1,6 +1,6 @@
 import React from "react";
 
-export function FacultyLiveToast({ alert, onDismiss }) {
+export function FacultyLiveToast({ alert, onDismiss, soundEnabled = true }) {
   if (!alert) return null;
 
   return (
@@ -23,8 +23,14 @@ export function FacultyLiveToast({ alert, onDismiss }) {
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
               ⚡ Live Check-In
             </span>
-            <span className="text-[10px] text-text-stone font-mono ml-auto">
-              {alert.time || "Just now"}
+            <span className="text-[10px] text-text-stone font-mono ml-auto flex items-center gap-1">
+              <span
+                className="material-symbols-outlined text-[13px] opacity-70"
+                title={soundEnabled ? "Audio chime active" : "Audio chime muted"}
+              >
+                {soundEnabled ? "volume_up" : "volume_off"}
+              </span>
+              <span>{alert.time || "Just now"}</span>
             </span>
           </div>
 

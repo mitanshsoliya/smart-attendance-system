@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { Modal } from "./components/common/Modal";
@@ -41,6 +41,29 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   const [lectureAttendance, setLectureAttendance] = useState([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [liveToast, setLiveToast] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem("faculty_sound_enabled");
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("faculty_sound_enabled", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Department name and timetable-driven faculty code
   const facultyDeptName =
@@ -161,25 +184,27 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
         return;
       }
 
-      // Play subtle pleasant audio chime for real-time check-in (Web Audio API)
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
-          gain.gain.setValueAtTime(0.12, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.35);
+      // Play subtle pleasant audio chime for real-time check-in (Web Audio API) if sound is enabled
+      if (soundEnabledRef.current) {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+            osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+          }
+        } catch (e) {
+          // Audio muted or unsupported
         }
-      } catch (e) {
-        // Audio muted or unsupported
       }
 
       // Trigger floating live toast
@@ -472,7 +497,11 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
   return (
     <ProtectedRoute user={user} allowedRoles={["FACULTY", "HOD"]}>
       {/* Real-time Student Check-in Floating Toast */}
-      <FacultyLiveToast alert={liveToast} onDismiss={() => setLiveToast(null)} />
+      <FacultyLiveToast
+        alert={liveToast}
+        soundEnabled={soundEnabled}
+        onDismiss={() => setLiveToast(null)}
+      />
 
       <DashboardLayout
         user={user}
@@ -544,6 +573,8 @@ export default function FacultyDashboard({ user: initialUser, token, onLogout, o
             isSessionActive={Boolean(qr && remaining > 0)}
             isSessionExpired={Boolean(qr && remaining <= 0)}
             onUpdateStatus={handleUpdateAttendanceStatus}
+            soundEnabled={soundEnabled}
+            onToggleSound={toggleSound}
           />
         )}
 

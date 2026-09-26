@@ -20,6 +20,8 @@ export function FacultyAttendanceTab({
   isSessionActive,
   isSessionExpired,
   onUpdateStatus,
+  soundEnabled = true,
+  onToggleSound,
 }) {
   const [rosterSearch, setRosterSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -320,6 +322,25 @@ export function FacultyAttendanceTab({
                   sync
                 </span>
                 <span className="hidden sm:inline">Refresh</span>
+              </button>
+            )}
+
+            {onToggleSound && (
+              <button
+                onClick={onToggleSound}
+                className={`p-1.5 border rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-all ${
+                  soundEnabled
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    : "border-border-default bg-surface-container text-text-stone hover:bg-surface-container-high"
+                }`}
+                title={soundEnabled ? "Mute Check-In Chime" : "Unmute Check-In Chime"}
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {soundEnabled ? "volume_up" : "volume_off"}
+                </span>
+                <span className="hidden sm:inline font-medium">
+                  {soundEnabled ? "Chime On" : "Chime Muted"}
+                </span>
               </button>
             )}
           </div>
